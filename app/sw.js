@@ -5,7 +5,7 @@
 // qualquer módulo mudar — sem isso, utilizadores que já instalaram a PWA
 // não veem a atualização.
 
-const CACHE_NAME = "antecipa-v1.1";
+const CACHE_NAME = "antecipa-v1.2";
 
 const ASSETS_ESTATICOS = [
   "./",

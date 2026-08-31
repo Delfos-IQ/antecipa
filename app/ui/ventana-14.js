@@ -38,6 +38,22 @@ export async function renderVentana14({ container, anoFiscal }) {
   const ajustes = await getAjustesManuais(anoFiscal);
   const deducoesColeta = await getDeducoesColeta(anoFiscal, "household");
 
+  if (documentos.length === 0 && ajustes.length === 0) {
+    container.innerHTML = `
+      <h2>${pt.ventana14.titulo}</h2>
+      <div class="empty-state-card">
+        ${iconeSimulacaoVazia()}
+        <h3>${pt.ventana14.vazioTitulo}</h3>
+        <p>${pt.ventana14.vazioCorpo}</p>
+        <button class="btn btn-primary" data-action="ir-mensal">${pt.ventana14.vazioCta}</button>
+      </div>
+    `;
+    container.querySelector('[data-action="ir-mensal"]')?.addEventListener("click", () => {
+      document.querySelector('[data-rota="mensal"]')?.click();
+    });
+    return;
+  }
+
   const rubricasPorPessoa = [];
   for (const p of pessoas) {
     const docsDaPessoa = documentos
@@ -133,6 +149,10 @@ export async function renderVentana14({ container, anoFiscal }) {
       })
     );
   }
+}
+
+function iconeSimulacaoVazia() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
 }
 
 function melhorResultado(comparacao) {

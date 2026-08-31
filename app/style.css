@@ -217,6 +217,7 @@ input:focus, select:focus { border-color: var(--brass); }
   align-items: flex-start;
 }
 .privacy-note svg { flex: none; width: 28px; height: 28px; color: var(--brass-light); }
+.privacy-note p { color: inherit; margin: 0; }
 
 /* ---------- Cards / accordion (ventanas mensais) ---------- */
 .card {
@@ -309,6 +310,17 @@ input:focus, select:focus { border-color: var(--brass); }
   font-style: italic;
   font-family: var(--font-display);
 }
+
+.empty-state-card {
+  text-align: center;
+  padding: var(--space-6) var(--space-5);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--card);
+}
+.empty-state-card svg { width: 40px; height: 40px; margin: 0 auto var(--space-4); color: var(--muted); }
+.empty-state-card h3 { margin-bottom: var(--space-2); }
+.empty-state-card p { color: var(--muted); margin-bottom: var(--space-5); }
 
 /* ---------- Ventana 13 — acumulado ---------- */
 .metrics-grid {
