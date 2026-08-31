@@ -52,7 +52,7 @@ Parsing universal por IA, monetização/paywall, notificações, navegação mul
 antecipa/
 ├── index.html, landing.css          — landing pública (raiz do site)
 ├── icons/                            — ícones PWA + favicons, partilhados por landing e app
-├── assets/mark.svg                   — fonte do símbolo de marca
+├── assets/mark.png, mark-badge.png     — logotipo (arte fornecida pelo Dani)
 ├── BRAND.md                          — identidade de marca (paleta, tipografia, voz, uso do símbolo)
 └── app/                               — a PWA instalável
     ├── index.html, manifest.json, sw.js, style.css, app.js

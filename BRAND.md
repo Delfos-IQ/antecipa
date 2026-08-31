@@ -75,24 +75,31 @@ antes do documento oficial fechar. É o único elemento gráfico de
 assinatura da marca — não se introduzem outros ícones decorativos ao
 lado dele.
 
-Fonte: `assets/mark.svg` (mark isolado) e `icons/icon-source.svg`
-(versão em badge, com fundo `--paper` e cantos arredondados, usada
-para os ícones PWA).
+*Nota de versão*: a partir desta versão usa-se diretamente a arte
+original fornecida pelo Dani (`Public/`), não uma recriação vetorial
+— para máxima fidelidade ao logotipo desenhado, o símbolo é a imagem
+recortada dessa arte, não um SVG redesenhado à mão.
 
-- **Cores fixas**: ao contrário da versão anterior, o símbolo não se
-  adapta via `currentColor` — os arcos e a folha de dados usam sempre
-  `--navy-mid`/`--brass-light`, a calculadora usa `--navy-deep`.
-- **Variante sobre fundo escuro**: quando o símbolo aparece sobre
-  `--navy-deep` (cabeçalho da app), a calculadora troca para
-  `--navy-mid`/`--brass-light` em vez de `--navy-deep`, senão
-  desaparece contra o fundo — ver o `<svg class="brand-mark">` em
-  `app/index.html`.
-- **Uso**: cabeçalho da app (32px), landing (28px, em lockup com a
-  wordmark), ícones PWA (72–512px), favicon (16/32px — a sigla "IRS"
-  deixa de ser legível a este tamanho, o que é esperado).
+Fonte: `assets/mark.png` (recorte de fundo transparente, para usar
+sobre fundos claros — landing, onboarding) e `assets/mark-badge.png`
+(o mesmo símbolo sobre um badge arredondado com fundo `--paper`,
+usado sempre que o fundo é escuro ou é preciso um ícone autocontido —
+cabeçalho da app, ícones PWA, favicon). Os ícones em `icons/` são
+gerados a partir de `assets/mark.png` compondo o mesmo badge a cada
+tamanho.
+
+- **Cores fixas**: o símbolo não muda de cor consoante o contexto —
+  para usar sobre fundo escuro, usa-se sempre a variante em badge
+  (`mark-badge.png`), nunca uma recoloração do símbolo em si.
+- **Uso**: cabeçalho da app (badge, 32px), landing (mark direto,
+  28px, em lockup com a wordmark), onboarding (mark direto, 88px),
+  ícones PWA (72–512px, badge), favicon (16/32px badge — a sigla
+  "IRS" deixa de ser legível a este tamanho, o que é esperado).
 - **Não fazer**: não duplicar o símbolo lado a lado como padrão
   decorativo; não o rodar; não o usar como marca de água exceto no PDF
-  para contabilista (onde a marca de água é texto, não o símbolo).
+  para contabilista (onde a marca de água é texto, não o símbolo); não
+  recriar a arte à mão — qualquer atualização ao logotipo parte de
+  novos ficheiros em `Public/`.
 
 ---
 

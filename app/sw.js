@@ -8,7 +8,7 @@
 // Bump da constante CACHE_NAME sempre que style.css/index.html ou
 // qualquer módulo mudar, para limpar caches antigas na ativação.
 
-const CACHE_NAME = "antecipa-v1.6";
+const CACHE_NAME = "antecipa-v1.7";
 
 const ASSETS_ESTATICOS = [
   "./",
@@ -34,6 +34,8 @@ const ASSETS_ESTATICOS = [
   "./ui/components/confirmacao.js",
   "../icons/icon-192.png",
   "../icons/icon-512.png",
+  "../assets/mark.png",
+  "../assets/mark-badge.png",
 ];
 
 self.addEventListener("install", (event) => {
