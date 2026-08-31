@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://delfos-iq.github.io/antecipa/sitemap.xml

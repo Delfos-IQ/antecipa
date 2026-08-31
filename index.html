@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Antecipa — o seu IRS, um ano antes da hora</title>
+  <meta name="description" content="Antecipa: simulação de IRS alinhada com a fórmula oficial, mês a mês, um ano antes da campanha de entrega." />
+  <meta name="theme-color" content="#141A2B" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="app-header__row">
+        <svg class="brand-mark" viewBox="0 0 100 100" role="img" aria-label="Antecipa">
+          <circle cx="50" cy="50" r="38" fill="none" stroke="#2B3555" stroke-width="4"/>
+          <line x1="50" y1="50" x2="80" y2="20" stroke="#A9843F" stroke-width="6" stroke-linecap="round"/>
+          <circle cx="50" cy="50" r="6" fill="#A9843F"/>
+          <circle cx="84" cy="16" r="5.5" fill="#A9843F"/>
+        </svg>
+        <span class="brand-wordmark">antecipa</span>
+      </div>
+    </header>
+
+    <main class="app-main" id="main-view" aria-live="polite"></main>
+
+    <nav class="bottom-nav" id="bottom-nav" hidden>
+      <button class="bottom-nav__item" data-rota="mensal" aria-current="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        Meses
+      </button>
+      <button class="bottom-nav__item" data-rota="acumulado">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
+        Acumulado
+      </button>
+      <button class="bottom-nav__item" data-rota="simulacao">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 12l5-5"/></svg>
+        Simulação
+      </button>
+    </nav>
+  </div>
+
+  <!-- Libs externas — só para parsing de PDF e exportação de PDF. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

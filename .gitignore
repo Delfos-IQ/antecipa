@@ -1,0 +1,15 @@
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Node (se vier a usar tooling local)
+node_modules/
+npm-debug.log*
+
+# Ficheiros temporários
+*.zip

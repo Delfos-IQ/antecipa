@@ -1,0 +1,26 @@
+name: CI
+
+# Verificação de sintaxe de todos os módulos JS em cada push/PR — mesmo
+# princípio da suite de Liberdade Fiscal (ver Delfos-IQ/LiberdadeFiscal),
+# reduzido aqui porque o Antecipa v1 ainda não tem suite de testes
+# automatizada (só o sanity check em tests/test-engine.mjs).
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verificar sintaxe de todos os ficheiros .js
+        run: |
+          for f in $(find . -name "*.js" -not -path "./node_modules/*" -not -path "./.git/*"); do
+            node --check "$f" || exit 1
+          done
+      - name: Correr o motor de cálculo (sanity check)
+        run: node tests/test-engine.mjs
