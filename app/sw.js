@@ -1,11 +1,14 @@
 // sw.js — Antecipa service worker
-// Versão: antecipa-v1.0
-// Estratégia: cache-first para assets estáticos, com fallback de rede.
+// Estratégia: network-first para os assets da própria app — tenta sempre a
+// rede primeiro e só cai para o cache se estiver offline. Os browsers só
+// verificam se há uma versão nova deste ficheiro uma vez a cada 24h, por
+// isso um cache-first "esconde" atualizações durante esse período inteiro;
+// com network-first, assim que há rede, a versão mais recente é sempre a
+// que aparece — o cache serve só de rede de segurança offline.
 // Bump da constante CACHE_NAME sempre que style.css/index.html ou
-// qualquer módulo mudar — sem isso, utilizadores que já instalaram a PWA
-// não veem a atualização.
+// qualquer módulo mudar, para limpar caches antigas na ativação.
 
-const CACHE_NAME = "antecipa-v1.3";
+const CACHE_NAME = "antecipa-v1.4";
 
 const ASSETS_ESTATICOS = [
   "./",
@@ -61,16 +64,16 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // network-first: só usa o cache quando a rede falha (offline). Isto troca
+  // um pouco de velocidade em cada pedido por nunca deixar alguém preso
+  // numa versão antiga da app — crítico numa app de cálculo fiscal.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match("./index.html"));
-    })
+    fetch(request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        return response;
+      })
+      .catch(() => caches.match(request).then((cached) => cached || caches.match("./index.html")))
   );
 });
