@@ -66,6 +66,10 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
 }
+/* O "€" formatado pelo Intl vem separado por um nbsp, que numa fonte
+   monoespaçada ocupa a largura de um caractere — parece desalinhado do
+   valor. Aqui sai da mono e ganha só o espaço que precisa. */
+.moeda { font-family: var(--font-body); margin-left: 0.2em; }
 
 :focus-visible {
   outline: 2px solid var(--brass);

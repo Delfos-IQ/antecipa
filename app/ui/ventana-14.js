@@ -10,7 +10,13 @@ import { calcularDeclaracao, compararRegimes } from "../engine/calculo-irs.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
 
 function formatarMoeda(v) {
-  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v ?? 0);
+  // O espaço que o Intl insere antes do símbolo é um nbsp (U+00A0) — numa
+  // fonte monoespaçada isso ocupa a largura de um caractere inteiro e o
+  // "€" fica visualmente desligado do valor. Substitui-se por um espaço
+  // reduzido via CSS (ver .moeda em style.css).
+  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" })
+    .format(v ?? 0)
+    .replace(" €", '<span class="moeda">€</span>');
 }
 
 const LABELS_LINHA = {

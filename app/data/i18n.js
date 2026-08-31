@@ -111,7 +111,7 @@ export const pt = {
     heroEyebrow: "Para quem já quer saber, não adivinhar",
     heroTitulo: "O seu IRS, um ano antes da hora.",
     heroCorpo:
-      "Carregue os seus talões e recibos verdes mês a mês. O Antecipa vai replicando a fórmula oficial da Autoridade Tributária à medida que os dados chegam — e diz-lhe, hoje, se vai pagar ou receber.",
+      "Acompanhe o ano fiscal mês a mês: carregue cada talão e recibo verde assim que chega, e o Antecipa vai apurando o resultado — cada vez mais preciso — até ao que vai realmente pagar ou receber a 31 de dezembro.",
     heroCtaPrimario: "Começar a antecipar",
     heroCtaSecundario: "Ver como funciona",
     heroLegenda: "Simulação real de um agregado com 8 meses carregados",

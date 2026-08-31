@@ -5,7 +5,11 @@ import { pt } from "../data/i18n.js";
 import { getTodasRubricas } from "../storage/db.js";
 
 function formatarMoeda(v) {
-  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v ?? 0);
+  // ver nota em ui/ventana-14.js: substitui o nbsp antes do € por um
+  // espaço reduzido (.moeda), para não parecer desalinhado em fonte mono.
+  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" })
+    .format(v ?? 0)
+    .replace(" €", '<span class="moeda">€</span>');
 }
 
 export async function renderVentana13({ container, anoFiscal }) {
