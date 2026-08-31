@@ -1,8 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="22" fill="#141A2B"/>
-  <circle cx="48" cy="53" r="29" fill="none" stroke="#2B3555" stroke-width="3.4"/>
-  <line x1="48" y1="53" x2="70" y2="31" stroke="#A9843F" stroke-width="5.6" stroke-linecap="round"/>
-  <circle cx="48" cy="53" r="5" fill="#A9843F"/>
-  <circle cx="70" cy="31" r="6.4" fill="none" stroke="#D4B876" stroke-width="1.6"/>
-  <circle cx="70" cy="31" r="3.2" fill="#D4B876"/>
+  <rect width="100" height="100" rx="22" fill="#F1F3F6"/>
+
+  <path d="M17,29 Q8,50 17,71" fill="none" stroke="#1F4E9E" stroke-width="6.5" stroke-linecap="round"/>
+  <path d="M83,29 Q92,50 83,71" fill="none" stroke="#1F4E9E" stroke-width="6.5" stroke-linecap="round"/>
+
+  <rect x="27" y="47" width="46" height="37" rx="7.5" fill="#0B1D3A"/>
+  <g fill="#FFFFFF">
+    <rect x="34" y="57" width="8.5" height="8.5" rx="2"/>
+    <rect x="45.8" y="57" width="8.5" height="8.5" rx="2"/>
+    <rect x="57.5" y="57" width="8.5" height="8.5" rx="2"/>
+    <rect x="34" y="69.5" width="8.5" height="8.5" rx="2"/>
+    <rect x="45.8" y="69.5" width="8.5" height="8.5" rx="2"/>
+    <rect x="57.5" y="69.5" width="8.5" height="8.5" rx="2"/>
+  </g>
+
+  <path d="M34,16 H60 L69,25 V58 A4.5,4.5 0 0 1 64.5,62.5 H34 A4.5,4.5 0 0 1 29.5,58 V20.5 A4.5,4.5 0 0 1 34,16 Z" fill="#FFFFFF" stroke="#0B1D3A" stroke-width="2.8"/>
+  <path d="M60,16 L69,25 H60 Z" fill="#1F4E9E"/>
+
+  <text x="49.5" y="35" font-family="Inter, Arial, sans-serif" font-weight="800" font-size="13.5" fill="#0B1D3A" text-anchor="middle">IRS</text>
+  <line x1="37.5" y1="43" x2="58.5" y2="43" stroke="#5B8DD9" stroke-width="2.8" stroke-linecap="round"/>
+  <line x1="37.5" y1="49.5" x2="52" y2="49.5" stroke="#5B8DD9" stroke-width="2.8" stroke-linecap="round"/>
 </svg>

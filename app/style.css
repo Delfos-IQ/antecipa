@@ -7,28 +7,32 @@
    Mobile-first: o layout base é telemóvel; expande-se para tablet/desktop.
    ============================================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&display=swap");
 
 :root {
-  --navy-deep: #141a2b;
-  --navy-ink: #1e2740;
-  --navy-mid: #2b3555;
-  --paper: #f3f4f7;
+  /* Paleta e tipografia atualizadas — ver BRAND.md. Os nomes das
+     variáveis (--brass, --font-display, --font-mono...) ficaram do
+     sistema anterior por não valer a pena re-nomear todos os usos no
+     CSS; o que importa são os valores, já na nova identidade. */
+  --navy-deep: #0b1d3a;
+  --navy-ink: #142a52;
+  --navy-mid: #1f4e9e;
+  --paper: #f1f3f6;
   --card: #ffffff;
-  --hairline: #dcdfe6;
-  --brass: #a9843f;
-  --brass-light: #d4b876;
-  --brass-soft: #f1e8d6;
+  --hairline: #dce7f5;
+  --brass: #1f4e9e;
+  --brass-light: #5b8dd9;
+  --brass-soft: #dce7f5;
   --devolver: #2f6b52;
   --devolver-bg: #e7f0ea;
   --pagar: #9b3d3d;
   --pagar-bg: #f6e9e9;
   --muted: #6b7280;
-  --text: #1b1f2a;
+  --text: #101b33;
 
-  --font-display: "Fraunces", "Iowan Old Style", serif;
-  --font-body: "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-display: "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "Inter", system-ui, sans-serif;
 
   --radius: 14px;
   --radius-sm: 8px;
@@ -57,7 +61,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 img, svg { display: block; max-width: 100%; }
-h1, h2, h3, h4 { font-family: var(--font-display); margin: 0 0 var(--space-2); font-weight: 500; letter-spacing: -0.01em; }
+h1, h2, h3, h4 { font-family: var(--font-display); margin: 0 0 var(--space-2); font-weight: 700; letter-spacing: -0.01em; }
 p { margin: 0 0 var(--space-3); color: var(--text); }
 a { color: var(--brass); }
 button, input, select, textarea { font-family: inherit; font-size: 1rem; }

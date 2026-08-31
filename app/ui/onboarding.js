@@ -48,7 +48,7 @@ export function criarOnboarding({ container, onConcluido }) {
       case 0:
         return `
           <div class="onboarding__welcome">
-            ${simboloSVG({ size: 88, corAro: "var(--hairline)" })}
+            ${simboloSVG({ size: 88 })}
             <h1>${pt.onboarding.boasVindas.titulo}</h1>
             <p class="tagline">${pt.onboarding.boasVindas.tagline}</p>
             <button class="btn btn-primary" data-action="seguinte">${pt.onboarding.boasVindas.cta}</button>

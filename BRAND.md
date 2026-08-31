@@ -14,41 +14,42 @@ Antecipa não é uma calculadora de bolso — é um instrumento de precisão.
 A pessoa que a usa já lida com números o ano inteiro (talões, recibos
 verdes) e quer uma resposta que se comporte com o mesmo rigor: nada de
 arredondamentos otimistas, nada de "estimativa aproximada". A marca
-existe para comunicar essa exatidão sem soar burocrática ou fria — o
-tom é o de um relojoeiro, não o de um funcionário de finanças.
+existe para comunicar essa exatidão sem soar burocrática ou fria.
 
-Isso determina todas as escolhas abaixo: a paleta (tinteiro/latão, não
-SaaS azul-genérico), a tipografia (uma serifa editorial para as
-afirmações, uma monoespaçada para cada número), e o símbolo (um
-mecanismo, não um ícone decorativo).
+*Nota de versão*: a identidade original (paleta tinteiro/latão, serifa
+Fraunces, símbolo de círculo+ponteiro em torno do conceito "relojoeiro")
+foi substituída a pedido do Dani por uma identidade azul mais direta —
+documento fiscal "IRS" sobre uma calculadora, paleta azul, Inter como
+única tipografia. Este documento descreve a versão atual.
 
 ---
 
 ## 2. Paleta
 
 ```css
---navy-deep:   #141A2B;  /* fundos escuros, cabeçalhos, o próprio símbolo */
---navy-ink:    #1E2740;  /* painéis de dados escuros (acumulado, desglose) */
---navy-mid:    #2B3555;  /* aro do símbolo, acentos secundários */
---paper:       #F3F4F7;  /* fundo geral */
+--navy-deep:   #0B1D3A;  /* fundos escuros, cabeçalhos, calculadora do símbolo */
+--navy-ink:    #142A52;  /* painéis de dados escuros (acumulado, desglose) */
+--navy-mid:    #1F4E9E;  /* acento principal — CTAs, o azul da marca */
+--paper:       #F1F3F6;  /* fundo geral */
 --card:        #FFFFFF;
---hairline:    #DCDFE6;
---brass:       #A9843F;  /* ÚNICO acento quente — CTAs, a ponta do símbolo */
---brass-light: #D4B876;
---brass-soft:  #F1E8D6;  /* blocos de voz de marca, privacidade */
+--hairline:    #DCE7F5;
+--brass:       #1F4E9E;  /* mesmo azul de --navy-mid — nome do token ficou do sistema anterior */
+--brass-light: #5B8DD9;  /* acento secundário, sobre fundo escuro */
+--brass-soft:  #DCE7F5;  /* blocos de voz de marca, privacidade */
 --devolver:    #2F6B52;  /* resultado positivo — nunca usar para outra coisa */
 --devolver-bg: #E7F0EA;
 --pagar:       #9B3D3D;  /* resultado negativo — idem */
 --pagar-bg:    #F6E9E9;
 --muted:       #6B7280;
---text:        #1B1F2A;
+--text:        #101B33;
 ```
 
-**Regra inegociável**: um único acento quente (brass). Devolver/pagar
-são semânticos — reportam um resultado real, nunca são usados como
-decoração ou para chamar atenção para outra coisa. Se precisar de mais
-um acento algum dia, é sinal de que a composição está a falhar noutro
-sítio (hierarquia, espaço), não de que falta cor.
+**Regra**: o azul (`--brass`/`--navy-mid`, mesmo valor) é o único
+acento de marca — CTAs, links, o símbolo. Devolver/pagar são
+semânticos — reportam um resultado real, nunca são usados como
+decoração. Os nomes das variáveis (`--brass`, `--navy-mid`) ficaram do
+sistema de cores anterior para não obrigar a reescrever todo o CSS;
+o que importa é o valor atual de cada uma, não o nome.
 
 ---
 
@@ -56,39 +57,39 @@ sítio (hierarquia, espaço), não de que falta cor.
 
 | Papel | Fonte | Uso |
 |---|---|---|
-| Display / afirmações | `Fraunces` (opsz 9–144, peso 400–600) | Títulos, a tagline, headlines da landing |
-| Corpo / UI | `IBM Plex Sans` (400/500/600) | Texto de interface, botões, labels |
-| Dados | `IBM Plex Mono` (400–600) | **Toda** cifra monetária, percentagem, código de rubrica, referência legal — sem exceção |
+| Tudo — títulos, corpo, UI, dados | `Inter` (400–800, itálico 400/500) | Única família tipográfica da marca |
 
-A regra da monoespaçada para números não é estética — é o que faz o
-Antecipa "parecer um extrato": alinhamento vertical de casas decimais,
-leitura rápida de várias linhas de valores. Nunca formatar um número em
-`IBM Plex Sans`.
+Títulos e afirmações usam Inter a 700; corpo e labels a 400–600. Cifras
+monetárias e percentagens usam `font-variant-numeric: tabular-nums`
+(classe `.num`) para manter o alinhamento vertical das casas decimais
+sem precisar de uma família separada — os tokens `--font-display`,
+`--font-body` e `--font-mono` apontam todos para Inter.
 
 ---
 
 ## 4. O símbolo
 
-Um círculo — o ciclo fiscal anual — atravessado por um ponteiro que já
-ultrapassa o seu limite. A app já sabe o resultado antes de o ciclo
-terminar; o ponteiro "chegou antes da hora". É o único elemento gráfico
-de assinatura da marca — não se introduzem outros ícones decorativos
-ao lado dele.
+Um documento fiscal com "IRS" sobre uma calculadora, ladeado por dois
+arcos em azul — a ideia de "antecipação": o resultado já calculado
+antes do documento oficial fechar. É o único elemento gráfico de
+assinatura da marca — não se introduzem outros ícones decorativos ao
+lado dele.
 
-A versão refinada (`assets/mark.svg`) acrescenta um único detalhe de
-precisão: um anel fino à volta da ponta do ponteiro, como a joia de um
-mecanismo de relógio. É a única complexidade extra que o símbolo tem —
-resiste a ficar pequeno (favicon 16px) e a ficar grande (hero da
-landing) sem parecer nem vazio nem carregado.
+Fonte: `assets/mark.svg` (mark isolado) e `icons/icon-source.svg`
+(versão em badge, com fundo `--paper` e cantos arredondados, usada
+para os ícones PWA).
 
-- **Aro**: `currentColor` ou `--navy-mid` — pode adaptar-se a fundo
-  claro ou escuro.
-- **Ponteiro e ponta**: sempre `--brass` / `--brass-light` — isto
-  nunca muda, é a assinatura cromática da marca.
+- **Cores fixas**: ao contrário da versão anterior, o símbolo não se
+  adapta via `currentColor` — os arcos e a folha de dados usam sempre
+  `--navy-mid`/`--brass-light`, a calculadora usa `--navy-deep`.
+- **Variante sobre fundo escuro**: quando o símbolo aparece sobre
+  `--navy-deep` (cabeçalho da app), a calculadora troca para
+  `--navy-mid`/`--brass-light` em vez de `--navy-deep`, senão
+  desaparece contra o fundo — ver o `<svg class="brand-mark">` em
+  `app/index.html`.
 - **Uso**: cabeçalho da app (32px), landing (28px, em lockup com a
-  wordmark), ícones PWA (72–512px, sobre fundo `--navy-deep` com
-  cantos arredondados), favicon (16/32px, versão simplificada
-  automática por via do tamanho).
+  wordmark), ícones PWA (72–512px), favicon (16/32px — a sigla "IRS"
+  deixa de ser legível a este tamanho, o que é esperado).
 - **Não fazer**: não duplicar o símbolo lado a lado como padrão
   decorativo; não o rodar; não o usar como marca de água exceto no PDF
   para contabilista (onde a marca de água é texto, não o símbolo).
