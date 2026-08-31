@@ -412,6 +412,7 @@ input:focus, select:focus { border-color: var(--brass); }
 }
 
 /* ---------- Bottom nav (mobile) ---------- */
+.bottom-nav[hidden] { display: none; } /* [hidden] perde para .bottom-nav{display:flex} sem isto — mesma especificidade, a regra de autor ganha à UA stylesheet */
 .bottom-nav {
   position: sticky;
   bottom: 0;

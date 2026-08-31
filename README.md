@@ -6,15 +6,16 @@ PWA local-first (vanilla HTML/CSS/JS, ES modules) que simula o IRS português m�
 
 ## Como correr localmente
 
-Não há build step. Basta servir a pasta com qualquer servidor estático (não abrir `index.html` diretamente com `file://`, porque os módulos ES e o service worker exigem `http(s)://`):
+Não há build step. Basta servir a pasta raiz com qualquer servidor estático (não abrir os `index.html` diretamente com `file://`, porque os módulos ES e o service worker exigem `http(s)://`):
 
 ```bash
 cd antecipa
 python3 -m http.server 8080
-# abrir http://localhost:8080
+# landing:  http://localhost:8080/
+# app:      http://localhost:8080/app/
 ```
 
-Para publicar no GitHub Pages: colocar esta pasta na raiz do repositório (ou em `/docs`) e ativar Pages nas definições do repositório.
+Publicado em produção via GitHub Pages, a partir da raiz do repositório: https://delfos-iq.github.io/antecipa/ (landing) e https://delfos-iq.github.io/antecipa/app/ (a app em si).
 
 ## O que está feito nesta v1
 
@@ -24,8 +25,9 @@ Para publicar no GitHub Pages: colocar esta pasta na raiz do repositório (ou em
 - **Onboarding de 5 passos**, **ventanas mensais 1–12** (acordeão, separação por pessoa em tabs/mega-cartões conforme o ecrã), **Ventana 13 (acumulado)** e **Ventana 14 (simulação)** com desglose linha a linha e modo comparação.
 - **Parsers de talão e recibo verde** por regex sobre texto extraído via pdf.js, com **ecrã de confirmação editável obrigatório** antes de gravar qualquer rubrica.
 - **Exportação em PDF** (jsPDF) — versão pessoal e versão técnica para contabilista, com marca de água e mapeamento à numeração oficial.
-- **PWA**: manifest.json, ícones 72–512px a partir do símbolo de marca, service worker cache-first (`antecipa-v1.0`).
-- Identidade visual aplicada tal como especificada: paleta navy/brass, Fraunces + IBM Plex Sans + IBM Plex Mono, símbolo do ponteiro que atravessa o círculo.
+- **PWA**: manifest.json, ícones 72–512px a partir do símbolo de marca, service worker cache-first (`antecipa-v1.1`).
+- **Landing pública** (`index.html` na raiz) — apresentação de marca separada da app instalável, com o mesmo sistema de tokens. Ver `BRAND.md` para a identidade completa.
+- Identidade visual aplicada tal como especificada: paleta navy/brass, Fraunces + IBM Plex Sans + IBM Plex Mono, símbolo do ponteiro que atravessa o círculo — refinado numa segunda passada de design (ver `BRAND.md`).
 
 ## O que precisa da sua atenção antes de usar a sério
 
@@ -48,13 +50,17 @@ Parsing universal por IA, monetização/paywall, notificações, navegação mul
 
 ```
 antecipa/
-├── index.html, manifest.json, sw.js, style.css, app.js
-├── data/          — legislacao-2026.js, i18n.js
-├── engine/        — calculo-irs.js, projecao.js, quociente.js
-├── parsers/       — parser-talao.js, parser-recibo-verde.js, pdf-text.js
-├── storage/       — db.js (IndexedDB)
-├── export/        — pdf-export.js
-├── ui/            — onboarding.js, ventanas-mensais.js, ventana-13.js, ventana-14.js, components/
-├── icons/         — ícones PWA 72–512px + fonte SVG
-└── tests/         — test-engine.mjs (sanity check, não faz parte do app)
+├── index.html, landing.css          — landing pública (raiz do site)
+├── icons/                            — ícones PWA + favicons, partilhados por landing e app
+├── assets/mark.svg                   — fonte do símbolo de marca
+├── BRAND.md                          — identidade de marca (paleta, tipografia, voz, uso do símbolo)
+└── app/                               — a PWA instalável
+    ├── index.html, manifest.json, sw.js, style.css, app.js
+    ├── data/          — legislacao-2026.js, i18n.js
+    ├── engine/        — calculo-irs.js, projecao.js, quociente.js
+    ├── parsers/       — parser-talao.js, parser-recibo-verde.js, pdf-text.js
+    ├── storage/       — db.js (IndexedDB)
+    ├── export/        — pdf-export.js
+    ├── ui/            — onboarding.js, ventanas-mensais.js, ventana-13.js, ventana-14.js, components/
+    └── tests/         — test-engine.mjs (sanity check, não faz parte do app)
 ```

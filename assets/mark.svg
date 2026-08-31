@@ -1,0 +1,22 @@
+<!--
+  Antecipa — marca de assinatura (versão refinada)
+
+  Conceito original mantido tal como definido no prompt de build: um
+  círculo (o ciclo fiscal anual) atravessado por um ponteiro que já
+  ultrapassa o seu limite — a app já sabe o resultado antes do ciclo
+  terminar. Esta versão afina proporções e acrescenta um único detalhe
+  de precisão (o anel fino à volta da ponta do ponteiro, como a joia de
+  um mecanismo de relógio) para que a marca resista a ser usada muito
+  pequena (favicon) e muito grande (hero da landing) sem perder rigor.
+
+  Transparente por natureza — usa currentColor no aro para funcionar
+  sobre fundo claro ou escuro; a ponta mantém sempre o brass (é o único
+  acento quente da marca, nunca deve mudar de cor consoante o fundo).
+-->
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Antecipa">
+  <circle cx="50" cy="50" r="34" fill="none" stroke="currentColor" stroke-width="3"/>
+  <line x1="50" y1="50" x2="76" y2="24" stroke="#A9843F" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="50" cy="50" r="4.5" fill="#A9843F"/>
+  <circle cx="76" cy="24" r="6" fill="none" stroke="#A9843F" stroke-width="1.5"/>
+  <circle cx="76" cy="24" r="3" fill="#A9843F"/>
+</svg>

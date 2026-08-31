@@ -3,7 +3,7 @@ name: CI
 # Verificação de sintaxe de todos os módulos JS em cada push/PR — mesmo
 # princípio da suite de Liberdade Fiscal (ver Delfos-IQ/LiberdadeFiscal),
 # reduzido aqui porque o Antecipa v1 ainda não tem suite de testes
-# automatizada (só o sanity check em tests/test-engine.mjs).
+# automatizada (só o sanity check em app/tests/test-engine.mjs).
 
 on:
   push:
@@ -23,4 +23,4 @@ jobs:
             node --check "$f" || exit 1
           done
       - name: Correr o motor de cálculo (sanity check)
-        run: node tests/test-engine.mjs
+        run: node app/tests/test-engine.mjs

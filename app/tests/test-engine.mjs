@@ -4,7 +4,7 @@
 // real (secção 12) exige testar contra uma Demonstração de Liquidação
 // verdadeira, o que só o utilizador pode fornecer.
 
-import { calcularDeclaracao, compararRegimes } from "./engine/calculo-irs.js";
+import { calcularDeclaracao, compararRegimes } from "../engine/calculo-irs.js";
 
 const rubricasA = [
   { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 1800 * 14 },

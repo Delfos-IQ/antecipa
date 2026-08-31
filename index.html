@@ -2,57 +2,169 @@
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Antecipa — o seu IRS, um ano antes da hora</title>
-  <meta name="description" content="Antecipa: simulação de IRS alinhada com a fórmula oficial, mês a mês, um ano antes da campanha de entrega." />
+  <meta name="description" content="Carregue os seus talões e recibos verdes mês a mês. O Antecipa replica a fórmula oficial de IRS e diz-lhe, hoje, se vai pagar ou receber." />
   <meta name="theme-color" content="#141A2B" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" />
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="landing.css" />
+
+  <meta property="og:title" content="Antecipa — o seu IRS, um ano antes da hora" />
+  <meta property="og:description" content="Simulação de IRS alinhada com a fórmula oficial da AT, mês a mês, com os seus dados a ficarem só no seu dispositivo." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://delfos-iq.github.io/antecipa/" />
 </head>
 <body>
-  <div id="app">
-    <header class="app-header">
-      <div class="app-header__row">
-        <svg class="brand-mark" viewBox="0 0 100 100" role="img" aria-label="Antecipa">
-          <circle cx="50" cy="50" r="38" fill="none" stroke="#2B3555" stroke-width="4"/>
-          <line x1="50" y1="50" x2="80" y2="20" stroke="#A9843F" stroke-width="6" stroke-linecap="round"/>
-          <circle cx="50" cy="50" r="6" fill="#A9843F"/>
-          <circle cx="84" cy="16" r="5.5" fill="#A9843F"/>
+
+  <header class="site-header">
+    <div class="wrap site-header__row">
+      <a href="./" class="lockup" aria-label="Antecipa">
+        <svg width="28" height="28" viewBox="0 0 100 100" role="img" aria-hidden="true">
+          <circle cx="50" cy="50" r="34" fill="none" stroke="#2B3555" stroke-width="3"/>
+          <line x1="50" y1="50" x2="76" y2="24" stroke="#A9843F" stroke-width="5" stroke-linecap="round"/>
+          <circle cx="50" cy="50" r="4.5" fill="#A9843F"/>
+          <circle cx="76" cy="24" r="6" fill="none" stroke="#D4B876" stroke-width="1.5"/>
+          <circle cx="76" cy="24" r="3" fill="#D4B876"/>
         </svg>
-        <span class="brand-wordmark">antecipa</span>
+        <span class="lockup__word">antecipa</span>
+      </a>
+      <a href="app/" class="btn btn-secondary">Abrir o Antecipa</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero__grid">
+        <div>
+          <p class="hero__eyebrow">Para quem já quer saber, não adivinhar</p>
+          <h1>O seu IRS, um ano antes da hora.</h1>
+          <p class="hero__corpo">
+            Carregue os seus talões e recibos verdes mês a mês. O Antecipa vai
+            replicando a fórmula oficial da Autoridade Tributária à medida que
+            os dados chegam — e diz-lhe, hoje, se vai pagar ou receber.
+          </p>
+          <div class="hero__ctas">
+            <a href="app/" class="btn btn-primary">Começar a antecipar</a>
+            <a href="#como-funciona" class="btn btn-secondary">Ver como funciona</a>
+          </div>
+        </div>
+
+        <div class="hero__mock" aria-hidden="true">
+          <div class="mock-card">
+            <div class="mock-card__bar">
+              <span>antecipa.</span>
+              <span>Simulação — 2026</span>
+            </div>
+            <div class="mock-card__body">
+              <p class="mock-card__label">Com o que já sabemos, o Estado deve-lhe dinheiro.</p>
+              <p class="mock-card__valor num">847,32&nbsp;€</p>
+              <p class="mock-card__confianca">Já sabemos 67% deste ano com números reais — o resto é a nossa melhor projeção.</p>
+            </div>
+          </div>
+          <p class="mock-card__legenda">Simulação real de um agregado com 8 meses carregados</p>
+        </div>
       </div>
-    </header>
+    </section>
 
-    <main class="app-main" id="main-view" aria-live="polite"></main>
+    <section class="section" id="confianca">
+      <div class="wrap section__grid section__grid--split">
+        <div class="prose">
+          <h2>Não é uma estimativa. É a fórmula oficial, linha a linha.</h2>
+          <p class="section__corpo">
+            A maioria das calculadoras de IRS adivinha um valor redondo a
+            partir do seu salário. O Antecipa faz o oposto: segue a mesma
+            cadeia de cálculo da Demonstração de Liquidação da AT —
+            rendimento global, deduções específicas, quociente familiar,
+            deduções à coleta — e mostra-lhe cada linha, com a referência
+            legal ao lado.
+          </p>
+        </div>
+        <div class="desglose-mock">
+          <div class="desglose-mock__linha">
+            <span class="desglose-mock__num">1</span>
+            <span>Rendimento Global<span class="desglose-mock__legal">art.º 1º e 22º CIRS</span></span>
+            <span class="desglose-mock__valor num">25.200,00&nbsp;€</span>
+          </div>
+          <div class="desglose-mock__linha">
+            <span class="desglose-mock__num">3</span>
+            <span>Rendimento Coletável<span class="desglose-mock__legal">art.º 22º CIRS</span></span>
+            <span class="desglose-mock__valor num">20.612,91&nbsp;€</span>
+          </div>
+          <div class="desglose-mock__linha">
+            <span class="desglose-mock__num">5</span>
+            <span>Quociente Familiar<span class="desglose-mock__legal">art.º 69º CIRS</span></span>
+            <span class="desglose-mock__valor num">1,00</span>
+          </div>
+          <div class="desglose-mock__linha">
+            <span class="desglose-mock__num">9</span>
+            <span>Coleta Líquida<span class="desglose-mock__legal">art.º 78º CIRS</span></span>
+            <span class="desglose-mock__valor num">3.163,18&nbsp;€</span>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <nav class="bottom-nav" id="bottom-nav" hidden>
-      <button class="bottom-nav__item" data-rota="mensal" aria-current="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        Meses
-      </button>
-      <button class="bottom-nav__item" data-rota="acumulado">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
-        Acumulado
-      </button>
-      <button class="bottom-nav__item" data-rota="simulacao">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 12l5-5"/></svg>
-        Simulação
-      </button>
-    </nav>
-  </div>
+    <section class="section" id="como-funciona">
+      <div class="wrap">
+        <h2 style="margin-bottom: var(--space-6);">Três passos, mês a mês</h2>
+        <div class="passos">
+          <div class="passo">
+            <p class="passo__numero">1</p>
+            <h3>Carregue o que já tem</h3>
+            <p>Um talão de vencimento, um recibo verde — o que for chegando, mês a mês. Cada valor fica guardado só no seu dispositivo.</p>
+          </div>
+          <div class="passo">
+            <p class="passo__numero">2</p>
+            <h3>O Antecipa preenche o resto</h3>
+            <p>Os meses que ainda não chegaram são projetados a partir do que já sabe de si — nunca inventados, sempre etiquetados como projeção.</p>
+          </div>
+          <div class="passo">
+            <p class="passo__numero">3</p>
+            <h3>Veja o resultado, com a conta aberta</h3>
+            <p>Um valor a pagar ou a devolver, com o desglose completo por trás — e a percentagem do ano que já é real, não projeção.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <!-- Libs externas — só para parsing de PDF e exportação de PDF. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
-  <script>
-    if (window.pdfjsLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
-    }
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <section class="section">
+      <div class="wrap">
+        <div class="privacidade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></svg>
+          <div>
+            <h2>Os seus dados não saem do seu telemóvel</h2>
+            <p>Sem contas, sem servidor, sem terceiros. Tudo o que carregar fica no seu dispositivo — só sai de lá se for você a exportar um PDF e a decidir partilhá-lo.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <script type="module" src="app.js"></script>
+    <section class="section">
+      <div class="wrap">
+        <h2 style="margin-bottom: var(--space-6);">Dois cenários. Uma resposta simples.</h2>
+        <div class="voz-grid">
+          <p class="voz-card voz-card--devolver">"Com o que já sabemos, o Estado deve-lhe dinheiro."</p>
+          <p class="voz-card voz-card--pagar">"Vai faltar pagar. Ainda tem tempo para se preparar."</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="wrap">
+      <h2>Comece a antecipar o seu IRS</h2>
+      <a href="app/" class="btn btn-primary">Abrir o Antecipa</a>
+      <div class="rodape__linha">
+        <span>antecipa. — Delfos-IQ</span>
+        <span>Motor de cálculo partilhado com Liberdade Fiscal — produtos e marcas separados</span>
+      </div>
+      <p class="rodape__disclaimer">
+        Simulação orientativa com base nos documentos carregados. Não substitui a declaração oficial de IRS nem aconselhamento fiscal certificado.
+      </p>
+    </div>
+  </footer>
+
 </body>
 </html>

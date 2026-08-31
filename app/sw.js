@@ -5,7 +5,7 @@
 // qualquer módulo mudar — sem isso, utilizadores que já instalaram a PWA
 // não veem a atualização.
 
-const CACHE_NAME = "antecipa-v1.0";
+const CACHE_NAME = "antecipa-v1.1";
 
 const ASSETS_ESTATICOS = [
   "./",
@@ -29,8 +29,8 @@ const ASSETS_ESTATICOS = [
   "./ui/ventana-14.js",
   "./ui/components/symbol.js",
   "./ui/components/confirmacao.js",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
+  "../icons/icon-192.png",
+  "../icons/icon-512.png",
 ];
 
 self.addEventListener("install", (event) => {

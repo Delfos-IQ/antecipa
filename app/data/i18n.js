@@ -66,7 +66,7 @@ export const pt = {
 
   mensal: {
     semDocumentos: "Ainda sem documentos este mês. Carregue o primeiro para começar a antecipar.",
-    adicionarDocumento: "Adicionar documento",
+    adicionarDocumento: "Carregar talão ou recibo verde",
     tipoTalao: "Talão",
     tipoReciboVerde: "Recibo verde",
     origemReal: "Real",
@@ -86,8 +86,8 @@ export const pt = {
     titulo: "Simulação",
     aDevolver: "Com o que já sabemos, o Estado deve-lhe dinheiro.",
     aPagar: "Vai faltar pagar. Ainda tem tempo para se preparar.",
-    confiancaPrefixo: "Baseado em",
-    confiancaSufixo: "dos meses com dados reais",
+    confiancaPrefixo: "Já sabemos",
+    confiancaSufixo: "deste ano com números reais — o resto é a nossa melhor projeção.",
     verCalculoCompleto: "Ver cálculo completo",
     fecharCalculoCompleto: "Fechar cálculo completo",
     maisVantajoso: "Mais vantajoso",
@@ -100,4 +100,52 @@ export const pt = {
   },
 
   nav: { mensal: "Meses", acumulado: "Acumulado", simulacao: "Simulação", definicoes: "Definições" },
+
+  // Copy da landing pública (index.html na raiz do site — ver secção
+  // "Landing pública" do BRAND.md). Vive aqui por coerência, ainda que a
+  // landing seja HTML estático e não carregue este módulo diretamente.
+  landing: {
+    heroEyebrow: "Para quem já quer saber, não adivinhar",
+    heroTitulo: "O seu IRS, um ano antes da hora.",
+    heroCorpo:
+      "Carregue os seus talões e recibos verdes mês a mês. O Antecipa vai replicando a fórmula oficial da Autoridade Tributária à medida que os dados chegam — e diz-lhe, hoje, se vai pagar ou receber.",
+    heroCtaPrimario: "Começar a antecipar",
+    heroCtaSecundario: "Ver como funciona",
+    heroLegenda: "Simulação real de um agregado com 8 meses carregados",
+
+    confiancaTitulo: "Não é uma estimativa. É a fórmula oficial, linha a linha.",
+    confiancaCorpo:
+      "A maioria das calculadoras de IRS adivinha um valor redondo a partir do seu salário. O Antecipa faz o oposto: segue a mesma cadeia de cálculo da Demonstração de Liquidação da AT — rendimento global, deduções específicas, quociente familiar, deduções à coleta — e mostra-lhe cada linha, com a referência legal ao lado.",
+
+    passos: [
+      {
+        numero: "1",
+        titulo: "Carregue o que já tem",
+        corpo: "Um talão de vencimento, um recibo verde — o que for chegando, mês a mês. Cada valor fica guardado só no seu dispositivo.",
+      },
+      {
+        numero: "2",
+        titulo: "O Antecipa preenche o resto",
+        corpo: "Os meses que ainda não chegaram são projetados a partir do que já sabe de si — nunca inventados, sempre etiquetados como projeção.",
+      },
+      {
+        numero: "3",
+        titulo: "Veja o resultado, com a conta aberta",
+        corpo: "Um valor a pagar ou a devolver, com o desglose completo por trás — e a % do ano que já é real, não projeção.",
+      },
+    ],
+
+    privacidadeTitulo: "Os seus dados não saem do seu telemóvel",
+    privacidadeCorpo:
+      "Sem contas, sem servidor, sem terceiros. Tudo o que carregar fica no seu dispositivo — só sai de lá se for você a exportar um PDF e a decidir partilhá-lo.",
+
+    vozTitulo: "Dois cenários. Uma resposta simples.",
+    vozDevolver: "Com o que já sabemos, o Estado deve-lhe dinheiro.",
+    vozPagar: "Vai faltar pagar. Ainda tem tempo para se preparar.",
+
+    rodapeCta: "Comece a antecipar o seu IRS",
+    rodapeCtaBotao: "Abrir o Antecipa",
+    rodapeDisclaimer:
+      "Simulação orientativa com base nos documentos carregados. Não substitui a declaração oficial de IRS nem aconselhamento fiscal certificado.",
+  },
 };
