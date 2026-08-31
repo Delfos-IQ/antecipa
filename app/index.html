@@ -44,14 +44,11 @@
     </nav>
   </div>
 
-  <!-- Libs externas — só para parsing de PDF e exportação de PDF. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
-  <script>
-    if (window.pdfjsLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js";
-    }
-  </script>
+  <!-- Libs externas — só para parsing de PDF e exportação de PDF.
+       pdf.js deixou de publicar um build UMD a partir da v4 (só .mjs),
+       por isso é carregado como módulo ES dentro de parsers/pdf-text.js
+       (import() dinâmico), não aqui. jsPDF ainda publica UMD e continua
+       a carregar-se assim, expondo window.jspdf. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <script type="module" src="app.js"></script>
