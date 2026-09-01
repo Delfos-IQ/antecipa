@@ -2,17 +2,9 @@
 // Ventanas 1–12: acordeão mensal com separação por pessoa (secção 8.2).
 
 import { pt } from "../data/i18n.js";
-import {
-  getPessoas,
-  getDocumentosDoMes,
-  saveDocumento,
-  saveRubricas,
-  getRubricasDoDocumento,
-  getModeloEntidade,
-  guardarCorrecoesEntidade,
-} from "../storage/db.js";
+import { getPessoas, getDocumentosDoMes, saveDocumento, saveRubricas, getRubricasDoDocumento } from "../storage/db.js";
 import { extrairTextoPdf } from "../parsers/pdf-text.js";
-import { parsearTalao, aplicarCorrecoesAprendidas } from "../parsers/parser-talao.js";
+import { parsearTalao } from "../parsers/parser-talao.js";
 import { parsearReciboVerde } from "../parsers/parser-recibo-verde.js";
 import { abrirConfirmacao } from "./components/confirmacao.js";
 
@@ -197,19 +189,12 @@ function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
     try {
       const buffer = await file.arrayBuffer();
       const texto = await extrairTextoPdf(buffer);
-      let resultado = tipoEscolhido === "recibo_verde" ? parsearReciboVerde(texto) : parsearTalao(texto);
-
-      const nifEmpregador = resultado.metadados?.nif ?? null;
-      if (tipoEscolhido === "talao" && nifEmpregador) {
-        const modelo = await getModeloEntidade(nifEmpregador);
-        if (modelo?.correcoes) resultado = aplicarCorrecoesAprendidas(resultado, modelo.correcoes);
-      }
+      const resultado = tipoEscolhido === "recibo_verde" ? parsearReciboVerde(texto) : parsearTalao(texto);
 
       abrirConfirmacao({
         resultadoParsing: resultado,
         tipo: tipoEscolhido,
-        nifEmpregador,
-        onConfirmar: async (rubricasConfirmadas, correcoesAprendidas) => {
+        onConfirmar: async (rubricasConfirmadas) => {
           const documento = await saveDocumento({
             pessoaId,
             mes,
@@ -220,9 +205,6 @@ function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
             nomeFicheiroOriginal: file.name,
           });
           await saveRubricas(documento.id, rubricasConfirmadas);
-          if (nifEmpregador && correcoesAprendidas && Object.keys(correcoesAprendidas).length) {
-            await guardarCorrecoesEntidade(nifEmpregador, correcoesAprendidas);
-          }
           onGravado();
         },
       });

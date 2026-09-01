@@ -6,22 +6,26 @@
 // ou dois valores. Trabalha sobre o texto já reconstruído em ordem de
 // leitura por parsers/pdf-text.js — que separa tabelas lado a lado
 // (Abonos / Descontos) em linhas independentes e marca as da coluna
-// direita com "»" (ver MARCADOR_COLUNA_DIREITA). Isto continua a ser
-// parsing por regex tolerante a variações de layout, não por
-// coordenadas fixas — a única coisa "posicional" é a reconstrução da
-// ordem de leitura, feita uma vez em pdf-text.js.
+// direita com "»" (ver MARCADOR_COLUNA_DIREITA).
 //
-// O resultado NUNCA é gravado diretamente em `rubricas` — passa sempre
-// pelo ecrã de confirmação editável (secção 6.3 / ui/confirmacao.js)
-// antes de persistir.
+// O que a app precisa de um talão, na prática, são só 4 números — bruto,
+// IRS retido, Segurança Social, líquido (motor de cálculo em
+// engine/calculo-irs.js só soma por categoria/tipo, nunca olha para
+// rubricas individuais). Por isso o parsing linha a linha abaixo serve
+// só para classificar cada desconto como IRS/SS/outro e somar — não é
+// mostrado ao utilizador rubrica a rubrica (isso era fricção sem
+// benefício real; ver ui/components/confirmacao.js). Os 4 totais também
+// são lidos diretamente das linhas "Total Ilíquido/Descontos/Líquido"
+// do documento sempre que existem, que são mais fiáveis do que somar
+// linha a linha.
+//
+// O resultado NUNCA é gravado diretamente — passa sempre pelo ecrã de
+// confirmação editável (secção 6.3 / ui/confirmacao.js) antes de persistir.
 
 import { MARCADOR_COLUNA_DIREITA } from "./pdf-text.js";
 
 // Uma linha de rubrica, já reconstruída em ordem de leitura, tem a forma:
 //   [»]CÓD SUBCÓD DESCRIÇÃO... DD/MM [a)] NÚM [NÚM [NÚM]]
-// - 3 números do lado esquerdo (abono) = quantidade, valor s/ redução, valor c/ redução
-// - 2 números do lado esquerdo (abono) = valor s/ redução, valor c/ redução (sem quantidade)
-// - 2 números do lado direito (desconto, marcado com ») = incidência, desconto
 const REGEX_LINHA_RUBRICA =
   /^(»)?\s*(\d{3})[\s-]?(\d{3})\s+(.+?)\s+(\d{2}\/\d{2})\s*(?:[a-z]\)\s*)?((?:[\d.]+,\d{2}\s*){1,3})$/;
 
@@ -38,6 +42,10 @@ function paraNumero(valorTexto) {
   const limpo = String(valorTexto).trim().replace(/\./g, "").replace(",", ".");
   const n = parseFloat(limpo);
   return Number.isFinite(n) ? n : null;
+}
+
+function arredondar(n) {
+  return Math.round(n * 100) / 100;
 }
 
 function extrairMetadados(texto) {
@@ -78,7 +86,7 @@ function extrairTotais(texto) {
 function parsearLinhaRubrica(linha) {
   const match = linha.match(REGEX_LINHA_RUBRICA);
   if (!match) return null;
-  const [, marcador, codigo, subcodigo, descricaoBruta, data, numerosTexto] = match;
+  const [, marcador, , , descricaoBruta, , numerosTexto] = match;
   const descricao = descricaoBruta.trim();
   const numeros = numerosTexto
     .trim()
@@ -88,85 +96,72 @@ function parsearLinhaRubrica(linha) {
   if (numeros.length < 2) return null;
 
   const ehDesconto = marcador === MARCADOR_COLUNA_DIREITA;
-
-  const base = {
-    codigo: `${codigo}-${subcodigo}`,
-    descricao,
-    data,
-    categoria: "A",
-    categoriaIRS: CODIGOS_DESCONTO_IRS.test(descricao),
-    categoriaSS: CODIGOS_DESCONTO_SS.test(descricao),
-  };
-
-  if (ehDesconto) {
-    // Coluna direita: incidência, desconto (sempre 2 números).
-    const [incidencia, desconto] = numeros;
-    return {
-      ...base,
-      tipo: "desconto",
-      valorSemRedu: incidencia,
-      valorComRedu: desconto,
-    };
-  }
-
-  // Coluna esquerda (abono): 3 números = quantidade + 2 valores;
-  // 2 números = só os 2 valores (rubricas fixas, sem quantidade).
-  const [quantidade, valorSemRedu, valorComRedu] =
-    numeros.length === 3 ? numeros : [null, numeros[0], numeros[1]];
+  const valorComRedu = numeros[numeros.length - 1];
 
   return {
-    ...base,
-    tipo: "abono",
-    quantidade,
-    valorSemRedu,
+    descricao,
+    tipo: ehDesconto ? "desconto" : "abono",
     valorComRedu,
+    categoriaIRS: ehDesconto && CODIGOS_DESCONTO_IRS.test(descricao),
+    categoriaSS: ehDesconto && CODIGOS_DESCONTO_SS.test(descricao),
   };
+}
+
+// Reduz as rubricas individuais aos 4 números que a app realmente usa.
+// Os totais impressos no documento (quando existem) têm prioridade sobre
+// a soma das rubricas — são uma única leitura direta, menos sujeita a uma
+// linha mal reconhecida do que somar dezenas de linhas.
+function calcularResumo(rubricas, totais) {
+  const somaAbonos = rubricas.filter((r) => r.tipo === "abono").reduce((s, r) => s + r.valorComRedu, 0);
+  const somaDescIRS = rubricas.filter((r) => r.tipo === "desconto" && r.categoriaIRS).reduce((s, r) => s + r.valorComRedu, 0);
+  const somaDescSS = rubricas.filter((r) => r.tipo === "desconto" && r.categoriaSS).reduce((s, r) => s + r.valorComRedu, 0);
+  const somaDescOutros = rubricas
+    .filter((r) => r.tipo === "desconto" && !r.categoriaIRS && !r.categoriaSS)
+    .reduce((s, r) => s + r.valorComRedu, 0);
+
+  const bruto = totais.iliquido ?? (rubricas.length ? arredondar(somaAbonos) : null);
+  const irsRetido = arredondar(somaDescIRS);
+  const segurancaSocial = arredondar(somaDescSS);
+  const descontosTotal = totais.descontos ?? (rubricas.length ? arredondar(somaDescIRS + somaDescSS + somaDescOutros) : null);
+  const outrosDescontos = descontosTotal !== null ? arredondar(Math.max(descontosTotal - irsRetido - segurancaSocial, 0)) : arredondar(somaDescOutros);
+  const liquido =
+    totais.liquido ??
+    (bruto !== null && descontosTotal !== null ? arredondar(bruto - descontosTotal) : null);
+
+  return { bruto, irsRetido, segurancaSocial, outrosDescontos, liquido };
 }
 
 /**
  * @param {string} texto - texto extraído do PDF (parsers/pdf-text.js)
- * @returns {{metadados: Object, totais: Object, rubricas: Array, confianca: "alta"|"media"|"baixa"}}
+ * @returns {{metadados: Object, resumo: Object, confianca: "alta"|"media"|"baixa"}}
  */
 export function parsearTalao(texto) {
   const metadados = extrairMetadados(texto);
   const totais = extrairTotais(texto);
-  const rubricas = [];
 
+  const rubricas = [];
   for (const linha of texto.split("\n")) {
     const rubrica = parsearLinhaRubrica(linha);
     if (rubrica) rubricas.push(rubrica);
   }
 
-  // Confere a soma das rubricas com os totais impressos no documento —
-  // sinal forte de que a leitura está correta (ou não).
-  const somaAbonos = rubricas.filter((r) => r.tipo === "abono").reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
-  const somaDescontos = rubricas.filter((r) => r.tipo === "desconto").reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
-  const iliquidoConfere = totais.iliquido !== null && Math.abs(somaAbonos - totais.iliquido) < 0.02;
-  const descontosConferem = totais.descontos !== null && Math.abs(somaDescontos - totais.descontos) < 0.02;
+  const resumo = calcularResumo(rubricas, totais);
+
+  // Confiança: os 3 totais impressos foram encontrados e batem certo entre
+  // si (bruto - descontos ≈ líquido), ou pelo menos bruto e líquido foram
+  // encontrados de alguma forma.
+  const somaDescontos = arredondar(resumo.irsRetido + resumo.segurancaSocial + resumo.outrosDescontos);
+  const bateCerto =
+    resumo.bruto !== null && resumo.liquido !== null && Math.abs(resumo.bruto - somaDescontos - resumo.liquido) < 0.02;
 
   let confianca;
-  if (rubricas.length >= 3 && iliquidoConfere && descontosConferem) {
+  if (totais.iliquido !== null && totais.descontos !== null && totais.liquido !== null && bateCerto) {
     confianca = "alta";
-  } else if (rubricas.length > 0 && (totais.liquido !== null || iliquidoConfere || descontosConferem)) {
+  } else if (resumo.bruto !== null && resumo.liquido !== null) {
     confianca = "media";
   } else {
     confianca = "baixa";
   }
 
-  return { metadados, totais, rubricas, confianca };
-}
-
-/**
- * Aplica correções que o utilizador já ensinou para esta entidade
- * empregadora (ver storage/db.js — getModeloEntidade/guardarCorrecoesEntidade)
- * ao resultado de parsearTalao, antes de mostrar o ecrã de confirmação.
- * `correcoes` é um mapa código de rubrica → { descricao?, tipo?, categoria? }.
- */
-export function aplicarCorrecoesAprendidas(resultado, correcoes) {
-  if (!correcoes || !Object.keys(correcoes).length) return resultado;
-  const rubricas = resultado.rubricas.map((r) => {
-    const correcao = r.codigo ? correcoes[r.codigo] : null;
-    return correcao ? { ...r, ...correcao } : r;
-  });
-  return { ...resultado, rubricas };
+  return { metadados, resumo, confianca };
 }
