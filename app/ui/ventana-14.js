@@ -77,7 +77,18 @@ export async function renderVentana14({ container, anoFiscal }) {
   const percentagemMediaReal =
     rubricasPorPessoa.reduce((a, p) => a + p.percentagemMesesReais, 0) / (rubricasPorPessoa.length || 1);
 
-  const inputBase = { anoFiscal, deducoesColeta, percentagemMesesReais: percentagemMediaReal };
+  // ADSE descontada no talão é tratada como despesa de saúde/seguro de
+  // saúde para efeitos de dedução à coleta (art.º 78º-C CIRS) — ainda não
+  // confirmado linha a linha contra fonte oficial (ver data/legislacao-2026.js),
+  // por isso soma-se ao valor de despesas de saúde já indicado manualmente
+  // pelo utilizador em vez de o substituir.
+  const totalAdseAno = rubricasPorPessoa.reduce(
+    (acc, p) => acc + p.rubricas.filter((r) => r.tipo === "desconto" && r.categoriaADSE).reduce((s, r) => s + (r.valorComRedu ?? 0), 0),
+    0
+  );
+  const deducoesColetaComAdse = { ...deducoesColeta, saude: (deducoesColeta.saude ?? 0) + totalAdseAno };
+
+  const inputBase = { anoFiscal, deducoesColeta: deducoesColetaComAdse, percentagemMesesReais: percentagemMediaReal };
 
   let resultadoUnico = null;
   let comparacao = null;

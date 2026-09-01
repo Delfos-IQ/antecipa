@@ -3,12 +3,26 @@
 // (secção 6.3) — protege contra erros de extração desde o v1 e é a base
 // sobre a qual assentará a validação quando o parser passar a IA (v2).
 //
-// Talão de vencimento: mostra só os 4 números que a app realmente usa
-// (bruto, IRS retido, Segurança Social, líquido) em vez de cada rubrica
-// do documento — o motor de cálculo só soma por categoria/tipo, nunca
-// olha para rubricas individuais, e mostrar 15+ linhas editáveis para
-// confirmar 4 números era fricção sem benefício. Recibo verde continua
-// com a lista de linhas, que já é curta (só bruto e retenção).
+// Talão de vencimento: mostra o documento original (PDF) ao lado dos
+// valores lidos, em vez de só uma lista de campos às cegas — assim dá
+// para conferir cada número contra o documento real. Os descontos que a
+// app não conseguiu classificar com confiança aparecem numa lista à
+// parte onde se pode corrigir a categoria; se pedir para "lembrar", essa
+// correspondência fica guardada por entidade empregadora (NIF) e aplica-
+// -se sozinha da próxima vez (ver storage/db.js, parsers/parser-talao.js
+// — chaveDescricao/classificarDesconto). Cada pessoa com o seu próprio
+// talão ensina a app a lê-lo, sem depender de um layout fixo.
+
+import { chaveDescricao } from "../../parsers/parser-talao.js";
+import { carregarPdfJs } from "../../parsers/pdf-text.js";
+
+const ROTULOS_CATEGORIA = {
+  irs: "IRS",
+  ss: "Segurança Social",
+  sindicato: "Sindicato",
+  adse: "ADSE",
+  outros: "Outros",
+};
 
 function campoResumo({ campo, rotulo, valor }) {
   return `
@@ -18,22 +32,51 @@ function campoResumo({ campo, rotulo, valor }) {
     </div>`;
 }
 
-function renderTalao(resultadoParsing) {
-  const r = resultadoParsing.resumo ?? {};
+function renderTalao(resultadoParsing, resumo, linhas) {
+  const r = resumo ?? {};
   return `
     <p class="muted">
       ${
         resultadoParsing.confianca === "baixa"
           ? "Não conseguimos ler este documento com confiança — reveja os valores com atenção ou preencha-os manualmente."
-          : "Confira estes 4 valores com o documento original. Pode corrigir qualquer um deles."
+          : "Confira estes valores com o documento ao lado. Pode corrigir qualquer um deles."
       }
     </p>
     <div class="stack">
       ${campoResumo({ campo: "bruto", rotulo: "Vencimento bruto", valor: r.bruto })}
       ${campoResumo({ campo: "irsRetido", rotulo: "IRS retido", valor: r.irsRetido })}
       ${campoResumo({ campo: "segurancaSocial", rotulo: "Segurança Social", valor: r.segurancaSocial })}
+      ${campoResumo({ campo: "sindicato", rotulo: "Sindicato", valor: r.sindicato })}
+      ${campoResumo({ campo: "adse", rotulo: "ADSE", valor: r.adse })}
       ${campoResumo({ campo: "liquido", rotulo: "Líquido", valor: r.liquido })}
     </div>
+    ${
+      linhas.length
+        ? `
+    <details class="linhas-classificadas" style="margin-top:var(--space-4)">
+      <summary class="muted">Como classificámos cada desconto (toque para corrigir)</summary>
+      <div class="stack" style="margin-top:var(--space-2)">
+        ${linhas
+          .map(
+            (l, i) => `
+          <div class="row" style="gap:var(--space-2);align-items:center;justify-content:space-between">
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.descricao} — ${l.valorComRedu.toFixed(2)}€</span>
+            <select data-linha-categoria="${i}" style="flex-shrink:0;width:auto;min-height:auto;padding:6px 8px">
+              ${Object.entries(ROTULOS_CATEGORIA)
+                .map(([v, rotulo]) => `<option value="${v}" ${l.categoriaClassificada === v ? "selected" : ""}>${rotulo}</option>`)
+                .join("")}
+            </select>
+          </div>`
+          )
+          .join("")}
+      </div>
+    </details>
+    <label class="row" style="gap:var(--space-2);align-items:flex-start;margin-top:var(--space-3);">
+      <input type="checkbox" data-action="lembrar" checked style="margin-top:3px" />
+      <span class="muted">Se corrigir alguma classificação acima, lembrar para a próxima vez que carregar um talão desta entidade.</span>
+    </label>`
+        : ""
+    }
   `;
 }
 
@@ -82,33 +125,98 @@ function renderListaRubricas(rubricas, tipo) {
   `;
 }
 
-export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancelar }) {
+// Desenha a primeira página do PDF original num <canvas>, para o
+// utilizador conferir os valores lidos contra o documento real. Se o
+// desenho falhar por algum motivo (ficheiro inválido, etc.), falha em
+// silêncio — a confirmação continua a funcionar sem a pré-visualização.
+async function montarPreviaPdf(container, ficheiro) {
+  if (!ficheiro) return;
+  try {
+    const pdfjsLib = await carregarPdfJs();
+    const buffer = await ficheiro.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let paginaAtual = 1;
+
+    container.innerHTML = `
+      <div class="previa-pdf__toolbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
+        <button class="btn btn-ghost" data-action="pagina-anterior" ${pdf.numPages <= 1 ? "disabled" : ""}>‹</button>
+        <span class="muted previa-pdf__pagina">Página 1 / ${pdf.numPages}</span>
+        <button class="btn btn-ghost" data-action="pagina-seguinte" ${pdf.numPages <= 1 ? "disabled" : ""}>›</button>
+      </div>
+      <div class="previa-pdf__canvas-wrap" style="overflow:auto;border-radius:8px;border:1px solid var(--linha, #e2e5ea)">
+        <canvas class="previa-pdf__canvas" style="display:block;width:100%;height:auto"></canvas>
+      </div>
+    `;
+    const canvas = container.querySelector(".previa-pdf__canvas");
+    const rotulo = container.querySelector(".previa-pdf__pagina");
+
+    async function desenharPagina(numero) {
+      const page = await pdf.getPage(numero);
+      const viewport = page.getViewport({ scale: 1.4 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext("2d");
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      rotulo.textContent = `Página ${numero} / ${pdf.numPages}`;
+    }
+
+    container.querySelector('[data-action="pagina-anterior"]')?.addEventListener("click", () => {
+      if (paginaAtual > 1) desenharPagina((paginaAtual -= 1));
+    });
+    container.querySelector('[data-action="pagina-seguinte"]')?.addEventListener("click", () => {
+      if (paginaAtual < pdf.numPages) desenharPagina((paginaAtual += 1));
+    });
+
+    await desenharPagina(paginaAtual);
+  } catch (err) {
+    console.warn("[Antecipa] Não foi possível desenhar a pré-visualização do PDF:", err);
+  }
+}
+
+export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar, onCancelar }) {
   const overlay = document.createElement("div");
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
   overlay.style.cssText =
-    "position:fixed;inset:0;background:rgba(20,26,43,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;";
+    "position:fixed;inset:0;background:rgba(20,26,43,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:var(--space-3);";
 
   const ehTalao = tipo === "talao";
   // Cópia local editável do resumo (talão) ou da lista de rubricas (recibo verde).
   const resumo = ehTalao ? { ...(resultadoParsing.resumo ?? {}) } : null;
+  const linhasDesconto = ehTalao ? (resultadoParsing.linhasDesconto ?? []).map((l) => ({ ...l })) : null;
   const rubricas = !ehTalao ? (resultadoParsing.rubricas ?? []).map((r) => ({ ...r })) : null;
 
   const painel = document.createElement("div");
   painel.className = "card";
   painel.style.cssText =
-    "width:100%;max-width:640px;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;padding:var(--space-5);";
+    "width:100%;max-width:980px;max-height:92vh;overflow:auto;border-radius:16px;padding:var(--space-5);display:flex;flex-wrap:wrap;gap:var(--space-5);";
 
   function render() {
     painel.innerHTML = `
-      <h2>Confirme os valores extraídos</h2>
-      ${ehTalao ? renderTalao(resultadoParsing) : renderListaRubricas(rubricas, tipo)}
-      <div class="onboarding__nav">
-        <button class="btn btn-ghost" data-action="cancelar">Cancelar</button>
-        <button class="btn btn-primary" data-action="confirmar">Guardar</button>
+      <div style="flex:1 1 380px;min-width:280px">
+        <h2>Confirme os valores extraídos</h2>
+        ${ehTalao ? renderTalao(resultadoParsing, resumo, linhasDesconto) : renderListaRubricas(rubricas, tipo)}
+        <div class="onboarding__nav">
+          <button class="btn btn-ghost" data-action="cancelar">Cancelar</button>
+          <button class="btn btn-primary" data-action="confirmar">Guardar</button>
+        </div>
       </div>
+      <div class="previa-pdf" style="flex:1 1 320px;min-width:240px"></div>
     `;
     ligar();
+    montarPreviaPdf(painel.querySelector(".previa-pdf"), ficheiro);
+  }
+
+  // Recalcula os 4 campos de desconto por categoria a partir da
+  // classificação atual das linhas (o utilizador pode ter reclassificado
+  // alguma). Bruto e Líquido continuam a vir dos totais do documento.
+  function recalcularAPartirDasLinhas() {
+    const somas = { irs: 0, ss: 0, sindicato: 0, adse: 0, outros: 0 };
+    for (const l of linhasDesconto) somas[l.categoriaClassificada] += l.valorComRedu;
+    resumo.irsRetido = Math.round(somas.irs * 100) / 100;
+    resumo.segurancaSocial = Math.round(somas.ss * 100) / 100;
+    resumo.sindicato = Math.round(somas.sindicato * 100) / 100;
+    resumo.adse = Math.round(somas.adse * 100) / 100;
   }
 
   function ligar() {
@@ -116,6 +224,14 @@ export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancel
       painel.querySelectorAll("[data-campo-resumo]").forEach((el) =>
         el.addEventListener("input", (e) => {
           resumo[e.target.dataset.campoResumo] = e.target.value === "" ? null : Number(e.target.value);
+        })
+      );
+      painel.querySelectorAll("[data-linha-categoria]").forEach((el) =>
+        el.addEventListener("change", (e) => {
+          const idx = Number(e.target.dataset.linhaCategoria);
+          linhasDesconto[idx].categoriaClassificada = e.target.value;
+          recalcularAPartirDasLinhas();
+          render();
         })
       );
     } else {
@@ -139,9 +255,29 @@ export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancel
     }
     painel.querySelector('[data-action="cancelar"]').addEventListener("click", fechar);
     painel.querySelector('[data-action="confirmar"]').addEventListener("click", () => {
-      onConfirmar(ehTalao ? rubricasFinaisDoResumo(resumo) : rubricas.filter((r) => r.descricao && r.valorComRedu));
+      if (ehTalao) {
+        const lembrar = painel.querySelector('[data-action="lembrar"]')?.checked ?? false;
+        const correcoes = lembrar ? detetarCorrecoes() : {};
+        onConfirmar(rubricasFinaisDoResumo(resumo), correcoes);
+      } else {
+        onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu));
+      }
       fechar();
     });
+  }
+
+  // Compara a categoria final de cada linha (depois de eventuais correções
+  // do utilizador) com a que a app tinha classificado sozinha — só o que
+  // mudou vale a pena lembrar para a próxima vez.
+  function detetarCorrecoes() {
+    const correcoes = {};
+    for (const original of resultadoParsing.linhasDesconto ?? []) {
+      const atual = linhasDesconto.find((l) => l.descricao === original.descricao && l.valorComRedu === original.valorComRedu);
+      if (atual && atual.categoriaClassificada !== original.categoriaClassificada) {
+        correcoes[chaveDescricao(original.descricao)] = atual.categoriaClassificada;
+      }
+    }
+    return correcoes;
   }
 
   function fechar() {
@@ -154,16 +290,21 @@ export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancel
   render();
 }
 
-// Reconstrói as rubricas internas (formato que engine/calculo-irs.js espera)
-// a partir dos 4 números do resumo, já com os valores que o utilizador
-// eventualmente corrigiu. "Outros descontos" é recalculado para que
-// bruto - irs - ss - outros continue a bater certo com o líquido editado.
+// Reconstrói as rubricas internas (formato que engine/calculo-irs.js
+// espera) a partir dos números confirmados. "Outros descontos" é
+// recalculado para que bruto - descontos continue a bater certo com o
+// líquido editado.
 function rubricasFinaisDoResumo(resumo) {
   const bruto = resumo.bruto ?? 0;
   const irsRetido = resumo.irsRetido ?? 0;
   const segurancaSocial = resumo.segurancaSocial ?? 0;
-  const liquido = resumo.liquido ?? bruto - irsRetido - segurancaSocial;
-  const outrosDescontos = Math.max(Math.round((bruto - irsRetido - segurancaSocial - liquido) * 100) / 100, 0);
+  const sindicato = resumo.sindicato ?? 0;
+  const adse = resumo.adse ?? 0;
+  const liquido = resumo.liquido ?? bruto - irsRetido - segurancaSocial - sindicato - adse;
+  const outrosDescontos = Math.max(
+    Math.round((bruto - irsRetido - segurancaSocial - sindicato - adse - liquido) * 100) / 100,
+    0
+  );
 
   const rubricas = [{ descricao: "Vencimento bruto", categoria: "A", tipo: "abono", valorComRedu: bruto }];
   if (irsRetido) {
@@ -171,6 +312,12 @@ function rubricasFinaisDoResumo(resumo) {
   }
   if (segurancaSocial) {
     rubricas.push({ descricao: "Segurança Social", categoria: "A", tipo: "desconto", valorComRedu: segurancaSocial, categoriaSS: true });
+  }
+  if (sindicato) {
+    rubricas.push({ descricao: "Sindicato", categoria: "A", tipo: "desconto", valorComRedu: sindicato, categoriaSindicato: true });
+  }
+  if (adse) {
+    rubricas.push({ descricao: "ADSE", categoria: "A", tipo: "desconto", valorComRedu: adse, categoriaADSE: true });
   }
   if (outrosDescontos) {
     rubricas.push({ descricao: "Outros descontos", categoria: "A", tipo: "desconto", valorComRedu: outrosDescontos });

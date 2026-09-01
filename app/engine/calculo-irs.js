@@ -48,12 +48,25 @@ function calcularRendimentoGlobal(rubricasPorPessoa) {
 
 /**
  * 2. Deduções Específicas
- * Categoria A: dedução legal fixa por sujeito passivo com rendimento A > 0.
+ * Categoria A: dedução legal fixa por sujeito passivo com rendimento A > 0,
+ * substituída pelo valor mais alto (valorComQuotizacaoSindical) para quem
+ * tiver quotização sindical descontada no ano (rubrica marcada
+ * categoriaSindicato — ver parsers/parser-talao.js e ui/confirmacao.js).
  * Categoria B (regime simplificado): coeficiente por tipo de atividade,
  * com mínimo garantido de 15% do rendimento bruto se superior.
  */
-function calcularDeducoesEspecificas({ rendimentoGlobal, numPessoasComCategoriaA, tabela, coeficienteB }) {
-  const deducaoA = numPessoasComCategoriaA * tabela.deducaoEspecificaCategoriaA.valorFixo;
+function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabela, coeficienteB }) {
+  let deducaoA = 0;
+  for (const rubricas of rubricasPorPessoa) {
+    const temCategoriaA = rubricas.some((r) => r.tipo === "abono" && r.categoria === "A");
+    if (!temCategoriaA) continue;
+    const temQuotizacaoSindical = rubricas.some(
+      (r) => r.tipo === "desconto" && r.categoriaSindicato && (r.valorComRedu ?? 0) > 0
+    );
+    deducaoA += temQuotizacaoSindical
+      ? tabela.deducaoEspecificaCategoriaA.valorComQuotizacaoSindical
+      : tabela.deducaoEspecificaCategoriaA.valorFixo;
+  }
 
   const coefAplicavel = coeficienteB ?? tabela.coeficientesSimplificadoB.prestacaoServicosGeral;
   const deducaoBPorCoeficiente = rendimentoGlobal.categoriaB * (1 - coefAplicavel);
@@ -318,14 +331,10 @@ export function calcularDeclaracao(input) {
 
   const tabela = obterTabelaFiscal(anoFiscal, dataReferencia);
 
-  const numPessoasComCategoriaA = rubricasPorPessoa.filter((rubricas) =>
-    rubricas.some((r) => r.tipo === "abono" && r.categoria === "A")
-  ).length;
-
   const rendimentoGlobal = calcularRendimentoGlobal(rubricasPorPessoa);
   const deducoesEspecificas = calcularDeducoesEspecificas({
     rendimentoGlobal,
-    numPessoasComCategoriaA,
+    rubricasPorPessoa,
     tabela,
     coeficienteB,
   });

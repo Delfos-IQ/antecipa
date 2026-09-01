@@ -8,7 +8,9 @@ const PDF_JS_VERSAO = "4.0.379";
 const PDF_JS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSAO}`;
 
 let pdfjsLibPromise = null;
-function carregarPdfJs() {
+// Exportado para que ui/components/confirmacao.js possa desenhar a página
+// do PDF no ecrã de confirmação sem carregar o pdf.js uma segunda vez.
+export function carregarPdfJs() {
   if (!pdfjsLibPromise) {
     pdfjsLibPromise = import(/* webpackIgnore: true */ `${PDF_JS_BASE}/pdf.min.mjs`).then((mod) => {
       mod.GlobalWorkerOptions.workerSrc = `${PDF_JS_BASE}/pdf.worker.min.mjs`;

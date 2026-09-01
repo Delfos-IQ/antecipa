@@ -8,16 +8,22 @@
 // (Abonos / Descontos) em linhas independentes e marca as da coluna
 // direita com "»" (ver MARCADOR_COLUNA_DIREITA).
 //
-// O que a app precisa de um talão, na prática, são só 4 números — bruto,
-// IRS retido, Segurança Social, líquido (motor de cálculo em
-// engine/calculo-irs.js só soma por categoria/tipo, nunca olha para
-// rubricas individuais). Por isso o parsing linha a linha abaixo serve
-// só para classificar cada desconto como IRS/SS/outro e somar — não é
-// mostrado ao utilizador rubrica a rubrica (isso era fricção sem
-// benefício real; ver ui/components/confirmacao.js). Os 4 totais também
-// são lidos diretamente das linhas "Total Ilíquido/Descontos/Líquido"
-// do documento sempre que existem, que são mais fiáveis do que somar
-// linha a linha.
+// O que a app precisa de um talão, na prática, é um pequeno conjunto de
+// números agregados — bruto, IRS retido, Segurança Social, quotização
+// sindical, ADSE, líquido (ver ui/components/confirmacao.js e
+// engine/calculo-irs.js, que usam a quotização sindical para ativar a
+// dedução específica mais alta, e a ADSE como despesa de saúde nas
+// deduções à coleta — esta última ainda não confirmada linha a linha
+// contra fonte oficial, ver data/legislacao-2026.js). O parsing linha a
+// linha abaixo classifica cada desconto numa destas categorias e soma;
+// os totais impressos no documento ("Total Ilíquido/Descontos/Líquido")
+// têm prioridade sobre a soma quando existem, por serem uma leitura
+// direta em vez de somar dezenas de linhas.
+//
+// `correcoes` (opcional): mapa chaveDescricao(descrição) → categoria,
+// aprendido no ecrã de confirmação quando o utilizador reclassifica uma
+// linha (ver storage/db.js: getModeloEntidade/guardarCorrecoesEntidade).
+// Sobrepõe-se à classificação automática por regex.
 //
 // O resultado NUNCA é gravado diretamente — passa sempre pelo ecrã de
 // confirmação editável (secção 6.3 / ui/confirmacao.js) antes de persistir.
@@ -29,8 +35,14 @@ import { MARCADOR_COLUNA_DIREITA } from "./pdf-text.js";
 const REGEX_LINHA_RUBRICA =
   /^(»)?\s*(\d{3})[\s-]?(\d{3})\s+(.+?)\s+(\d{2}\/\d{2})\s*(?:[a-z]\)\s*)?((?:[\d.]+,\d{2}\s*){1,3})$/;
 
-const CODIGOS_DESCONTO_IRS = /IRS|IMPOSTO SOBRE O RENDIMENTO/i;
-const CODIGOS_DESCONTO_SS = /SEGURAN[ÇC]A SOCIAL|SS\b|S\.S\./i;
+const CATEGORIAS_DESCONTO = ["irs", "ss", "sindicato", "adse", "outros"];
+
+const PADROES_DESCONTO = [
+  ["irs", /IRS|IMPOSTO SOBRE O RENDIMENTO/i],
+  ["ss", /SEGURAN[ÇC]A SOCIAL|SS\b|S\.S\./i],
+  ["sindicato", /\bSIND[A-ZÀ-Ú.]*|QUOTIZA[ÇC][ÃA]O SINDICAL/i],
+  ["adse", /\bADSE\b/i],
+];
 
 const MESES_PT = {
   janeiro: 1, fevereiro: 2, março: 3, marco: 3, abril: 4, maio: 5, junho: 6,
@@ -46,6 +58,28 @@ function paraNumero(valorTexto) {
 
 function arredondar(n) {
   return Math.round(n * 100) / 100;
+}
+
+// Chave estável para uma descrição de rubrica — usada para aprender/aplicar
+// correções por entidade empregadora. Remove parênteses (ex.: "(1%)", que
+// muda de mês para mês) e dígitos/pontuação, para que a mesma rubrica
+// continue a corresponder mesmo com um valor percentual diferente.
+export function chaveDescricao(descricao) {
+  return (descricao ?? "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/[0-9.,%]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function classificarDesconto(descricao, correcoes) {
+  const correcao = correcoes?.[chaveDescricao(descricao)];
+  if (correcao && CATEGORIAS_DESCONTO.includes(correcao)) return correcao;
+  for (const [categoria, regex] of PADROES_DESCONTO) {
+    if (regex.test(descricao)) return categoria;
+  }
+  return "outros";
 }
 
 function extrairMetadados(texto) {
@@ -83,7 +117,7 @@ function extrairTotais(texto) {
   return { iliquido, descontos, liquido };
 }
 
-function parsearLinhaRubrica(linha) {
+function parsearLinhaRubrica(linha, correcoes) {
   const match = linha.match(REGEX_LINHA_RUBRICA);
   if (!match) return null;
   const [, marcador, , , descricaoBruta, , numerosTexto] = match;
@@ -98,59 +132,61 @@ function parsearLinhaRubrica(linha) {
   const ehDesconto = marcador === MARCADOR_COLUNA_DIREITA;
   const valorComRedu = numeros[numeros.length - 1];
 
-  return {
-    descricao,
-    tipo: ehDesconto ? "desconto" : "abono",
-    valorComRedu,
-    categoriaIRS: ehDesconto && CODIGOS_DESCONTO_IRS.test(descricao),
-    categoriaSS: ehDesconto && CODIGOS_DESCONTO_SS.test(descricao),
-  };
+  if (!ehDesconto) {
+    return { descricao, tipo: "abono", valorComRedu };
+  }
+  return { descricao, tipo: "desconto", valorComRedu, categoriaClassificada: classificarDesconto(descricao, correcoes) };
 }
 
-// Reduz as rubricas individuais aos 4 números que a app realmente usa.
-// Os totais impressos no documento (quando existem) têm prioridade sobre
-// a soma das rubricas — são uma única leitura direta, menos sujeita a uma
-// linha mal reconhecida do que somar dezenas de linhas.
+// Reduz as rubricas individuais aos números que a app usa: um total por
+// categoria de desconto, mais bruto/líquido. Os totais impressos no
+// documento (quando existem) têm prioridade sobre a soma das linhas.
 function calcularResumo(rubricas, totais) {
   const somaAbonos = rubricas.filter((r) => r.tipo === "abono").reduce((s, r) => s + r.valorComRedu, 0);
-  const somaDescIRS = rubricas.filter((r) => r.tipo === "desconto" && r.categoriaIRS).reduce((s, r) => s + r.valorComRedu, 0);
-  const somaDescSS = rubricas.filter((r) => r.tipo === "desconto" && r.categoriaSS).reduce((s, r) => s + r.valorComRedu, 0);
-  const somaDescOutros = rubricas
-    .filter((r) => r.tipo === "desconto" && !r.categoriaIRS && !r.categoriaSS)
-    .reduce((s, r) => s + r.valorComRedu, 0);
+  const somaPorCategoria = Object.fromEntries(CATEGORIAS_DESCONTO.map((c) => [c, 0]));
+  for (const r of rubricas) {
+    if (r.tipo === "desconto") somaPorCategoria[r.categoriaClassificada] += r.valorComRedu;
+  }
 
   const bruto = totais.iliquido ?? (rubricas.length ? arredondar(somaAbonos) : null);
-  const irsRetido = arredondar(somaDescIRS);
-  const segurancaSocial = arredondar(somaDescSS);
-  const descontosTotal = totais.descontos ?? (rubricas.length ? arredondar(somaDescIRS + somaDescSS + somaDescOutros) : null);
-  const outrosDescontos = descontosTotal !== null ? arredondar(Math.max(descontosTotal - irsRetido - segurancaSocial, 0)) : arredondar(somaDescOutros);
+  const irsRetido = arredondar(somaPorCategoria.irs);
+  const segurancaSocial = arredondar(somaPorCategoria.ss);
+  const sindicato = arredondar(somaPorCategoria.sindicato);
+  const adse = arredondar(somaPorCategoria.adse);
+  const somaClassificados = irsRetido + segurancaSocial + sindicato + adse;
+  const descontosTotal =
+    totais.descontos ?? (rubricas.length ? arredondar(somaClassificados + somaPorCategoria.outros) : null);
+  const outrosDescontos =
+    descontosTotal !== null ? arredondar(Math.max(descontosTotal - somaClassificados, 0)) : arredondar(somaPorCategoria.outros);
   const liquido =
-    totais.liquido ??
-    (bruto !== null && descontosTotal !== null ? arredondar(bruto - descontosTotal) : null);
+    totais.liquido ?? (bruto !== null && descontosTotal !== null ? arredondar(bruto - descontosTotal) : null);
 
-  return { bruto, irsRetido, segurancaSocial, outrosDescontos, liquido };
+  return { bruto, irsRetido, segurancaSocial, sindicato, adse, outrosDescontos, liquido };
 }
 
 /**
  * @param {string} texto - texto extraído do PDF (parsers/pdf-text.js)
- * @returns {{metadados: Object, resumo: Object, confianca: "alta"|"media"|"baixa"}}
+ * @param {Object} [correcoes] - mapa chaveDescricao(descrição) → categoria, aprendido para esta entidade
+ * @returns {{metadados: Object, resumo: Object, linhasDesconto: Array, confianca: "alta"|"media"|"baixa"}}
  */
-export function parsearTalao(texto) {
+export function parsearTalao(texto, correcoes = {}) {
   const metadados = extrairMetadados(texto);
   const totais = extrairTotais(texto);
 
   const rubricas = [];
   for (const linha of texto.split("\n")) {
-    const rubrica = parsearLinhaRubrica(linha);
+    const rubrica = parsearLinhaRubrica(linha, correcoes);
     if (rubrica) rubricas.push(rubrica);
   }
 
   const resumo = calcularResumo(rubricas, totais);
+  // Linhas de desconto classificadas, para o ecrã de confirmação mostrar a
+  // correspondência ao lado do documento e permitir corrigi-la.
+  const linhasDesconto = rubricas.filter((r) => r.tipo === "desconto");
 
-  // Confiança: os 3 totais impressos foram encontrados e batem certo entre
-  // si (bruto - descontos ≈ líquido), ou pelo menos bruto e líquido foram
-  // encontrados de alguma forma.
-  const somaDescontos = arredondar(resumo.irsRetido + resumo.segurancaSocial + resumo.outrosDescontos);
+  const somaDescontos = arredondar(
+    resumo.irsRetido + resumo.segurancaSocial + resumo.sindicato + resumo.adse + resumo.outrosDescontos
+  );
   const bateCerto =
     resumo.bruto !== null && resumo.liquido !== null && Math.abs(resumo.bruto - somaDescontos - resumo.liquido) < 0.02;
 
@@ -163,5 +199,5 @@ export function parsearTalao(texto) {
     confianca = "baixa";
   }
 
-  return { metadados, resumo, confianca };
+  return { metadados, resumo, linhasDesconto, confianca };
 }
