@@ -3,7 +3,7 @@
 // (secção 6.3) — protege contra erros de extração desde o v1 e é a base
 // sobre a qual assentará a validação quando o parser passar a IA (v2).
 
-export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancelar }) {
+export function abrirConfirmacao({ resultadoParsing, tipo, nifEmpregador, onConfirmar, onCancelar }) {
   const overlay = document.createElement("div");
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
@@ -11,6 +11,13 @@ export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancel
     "position:fixed;inset:0;background:rgba(20,26,43,.55);display:flex;align-items:flex-end;justify-content:center;z-index:50;";
 
   const rubricas = resultadoParsing.rubricas.map((r) => ({ ...r }));
+  // Guarda-se uma cópia do que foi extraído automaticamente para poder
+  // comparar com o que o utilizador editar — é essa diferença que diz à
+  // app o que ela devia ter lido, para lembrar da próxima vez (ver
+  // storage/db.js: guardarCorrecoesEntidade).
+  const rubricasOriginais = resultadoParsing.rubricas.map((r) => ({ ...r }));
+  const podeAprender = tipo === "talao" && !!nifEmpregador;
+  let lembrarCorrecoes = true;
 
   const painel = document.createElement("div");
   painel.className = "card";
@@ -64,12 +71,38 @@ export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancel
           .join("")}
       </div>
       <button class="btn btn-secondary btn-block" data-action="adicionar" style="margin-top:var(--space-3)">+ Adicionar linha manual</button>
+      ${
+        podeAprender
+          ? `<label class="row" style="gap:var(--space-2);align-items:flex-start;margin-top:var(--space-4);">
+              <input type="checkbox" data-action="lembrar" ${lembrarCorrecoes ? "checked" : ""} style="margin-top:3px" />
+              <span class="muted">Se corrigir alguma coisa acima, lembrar destas correções da próxima vez que carregar um talão desta entidade.</span>
+            </label>`
+          : ""
+      }
       <div class="onboarding__nav">
         <button class="btn btn-ghost" data-action="cancelar">Cancelar</button>
         <button class="btn btn-primary" data-action="confirmar">Guardar ${rubricas.length} rubrica${rubricas.length === 1 ? "" : "s"}</button>
       </div>
     `;
     ligar();
+  }
+
+  // Compara o que ficou depois da edição do utilizador com o que a app
+  // tinha extraído sozinha — por código de rubrica — para saber o que
+  // vale a pena lembrar da próxima vez.
+  function detetarCorrecoes() {
+    const correcoes = {};
+    for (const original of rubricasOriginais) {
+      if (!original.codigo) continue;
+      const atual = rubricas.find((r) => r.codigo === original.codigo);
+      if (!atual) continue;
+      const diff = {};
+      if (atual.descricao !== original.descricao) diff.descricao = atual.descricao;
+      if (atual.tipo !== original.tipo) diff.tipo = atual.tipo;
+      if (atual.categoria !== original.categoria) diff.categoria = atual.categoria;
+      if (Object.keys(diff).length) correcoes[original.codigo] = diff;
+    }
+    return correcoes;
   }
 
   function ligar() {
@@ -90,9 +123,13 @@ export function abrirConfirmacao({ resultadoParsing, tipo, onConfirmar, onCancel
       rubricas.push({ descricao: "", tipo: "abono", categoria: tipo === "recibo_verde" ? "B" : "A", valorComRedu: 0 });
       render();
     });
+    painel.querySelector('[data-action="lembrar"]')?.addEventListener("change", (e) => {
+      lembrarCorrecoes = e.target.checked;
+    });
     painel.querySelector('[data-action="cancelar"]').addEventListener("click", fechar);
     painel.querySelector('[data-action="confirmar"]').addEventListener("click", () => {
-      onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu));
+      const correcoes = podeAprender && lembrarCorrecoes ? detetarCorrecoes() : {};
+      onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu), correcoes);
       fechar();
     });
   }

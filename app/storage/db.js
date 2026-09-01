@@ -4,7 +4,7 @@
 // nada daqui é enviado para nenhum servidor.
 
 const DB_NAME = "antecipa";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   household: { keyPath: "id" },
@@ -16,6 +16,11 @@ const STORES = {
   deducoesColeta: { keyPath: "id" }, // id = `${anoFiscal}:${pessoaId||'household'}`
   declaracao: { keyPath: "id", autoIncrement: true },
   simulacaoAnual: { keyPath: "declaracaoId" },
+  // Correções que o utilizador ensinou à app para uma entidade empregadora
+  // específica (identificada pelo NIF), quando a leitura automática de um
+  // talão sai errada — ver ui/components/confirmacao.js. Aplicadas antes do
+  // ecrã de confirmação em uploads seguintes da mesma entidade.
+  modelosEntidade: { keyPath: "nif" },
 };
 
 let dbPromise = null;
@@ -188,6 +193,32 @@ export async function getDeducoesColeta(anoFiscal, pessoaId = "household") {
 export async function saveDeducoesColeta(anoFiscal, pessoaId, valores) {
   const id = `${anoFiscal}:${pessoaId}`;
   await db.put("deducoesColeta", { id, anoFiscal, pessoaId, ...valores });
+}
+
+// --- Correções aprendidas por entidade empregadora (talões) -----------------
+//
+// Quando o utilizador corrige, no ecrã de confirmação, a descrição, o tipo
+// ou a categoria de uma rubrica identificada por código (ex.: "211-001"),
+// pode pedir à app para se lembrar dessa correção para a mesma entidade
+// (NIF do empregador). Da próxima vez que um talão dessa entidade for
+// carregado, a correção é aplicada automaticamente antes da confirmação —
+// e pode sempre ser corrigida de novo se algo mudar.
+
+export async function getModeloEntidade(nif) {
+  if (!nif) return null;
+  return db.get("modelosEntidade", nif);
+}
+
+export async function guardarCorrecoesEntidade(nif, novasCorrecoes) {
+  if (!nif || !Object.keys(novasCorrecoes).length) return null;
+  const atual = (await getModeloEntidade(nif)) ?? { nif, correcoes: {} };
+  const modelo = {
+    nif,
+    correcoes: { ...atual.correcoes, ...novasCorrecoes },
+    atualizadoEm: new Date().toISOString(),
+  };
+  await db.put("modelosEntidade", modelo);
+  return modelo;
 }
 
 export async function cacheSimulacaoAnual(declaracaoId, simulacao) {
