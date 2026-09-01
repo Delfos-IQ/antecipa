@@ -21,7 +21,10 @@ export const legislacaoFiscal = [
     fonte:
       "Lei do Orçamento do Estado 2026 (Lei 73-A/2025), art.º 68º CIRS. " +
       "Compilado via comparafacil.pt/escaloes-irs-2026 e especialistadoirs.pt/blog/escaloes-irs-2026-tabela-atualizada " +
-      "(confirmar contra Diário da República antes de uso em produção).",
+      "(confirmar contra Diário da República antes de uso em produção). NOTA: um recálculo interno por continuidade " +
+      "matemática entre escalões sugere que parcelaAbater dos escalões 4-7 poderia ser ~2€ mais alto (ex.: escalão 4: " +
+      "1476.53 em vez de 1474.53); no entanto, dois cálculos independentes (calculapt.pt e especialistadoirs.pt) " +
+      "confirmam exatamente os valores já aqui codificados — mantidos como estão, discrepância documentada para futura revisão.",
 
     // Escalões de rendimento coletável (continente). Cada escalão define o
     // limite superior, a taxa marginal aplicável a esse escalão, e a
@@ -48,13 +51,35 @@ export const legislacaoFiscal = [
     ],
 
     // Dedução específica por sujeito passivo com rendimentos de Categoria A
-    // (trabalho dependente) — art.º 25º CIRS.
+    // (trabalho dependente) — art.º 25º/1 CIRS. valorFixo = 8,54 × IAS 2026
+    // (537,13€ — CONFIRMADO, dois cálculos independentes batem certo: ver
+    // fonte). Se as contribuições obrigatórias p/ segurança social do ano
+    // forem superiores ao valorFixo, usa-se o valor das contribuições (raro,
+    // não implementado nesta versão).
     deducaoEspecificaCategoriaA: {
-      valorFixo: 4587.09,
-      valorComQuotizacaoSindical: 4834.17, // se houver quotização p/ ordem/associação profissional dedutível
-      // Se as contribuições obrigatórias p/ segurança social do ano forem
-      // superiores ao valorFixo, usa-se o valor das contribuições (raro).
-      fonte: "art.º 25º CIRS, valores 2026 via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
+      valorFixo: 4587.09, // 8.54 × 537.13 (IAS 2026) = 4587.0902 ≈ 4587.09
+      confirmado: true,
+      fonte:
+        "art.º 25º/1 CIRS. IAS 2026 = 537,13€ confirmado em apcmc.pt/legislacao/ias-para-2026-fixado-em-e-53713 " +
+        "e e-konomista.pt/indexante-dos-apoios-sociais (dois cálculos independentes); fórmula 8,54×IAS confirmada " +
+        "por retrocálculo do valor 2025 (522,50€ × 8,54 = 4.462,15€, valor que bate certo com a 'Demonstração de " +
+        "Liquidação' real de referência usada nesta sessão).",
+    },
+
+    // Quotização sindical (quota paga a sindicato, art.º 25º/4 CIRS) — NÃO é
+    // um valor fixo alternativo à dedução específica acima; é uma dedução
+    // ADICIONAL igual ao valor pago majorado em 100% (i.e., o dobro do
+    // valor pago), com o limite de 1% do rendimento bruto de Categoria A do
+    // próprio sujeito passivo. Ex.: 100€ pagos → 200€ dedutíveis (aspe.pt).
+    majoracaoQuotizacaoSindical: {
+      percentagem: 1, // majoração de 100% (dobro do valor pago)
+      limitePercentagemRendimentoBruto: 0.01, // 1% do rendimento bruto de Categoria A
+      confirmado: true,
+      fonte:
+        "jornaldenegocios.pt/economia/emprego/detalhe/majoracao-de-quotas-sindicais-em-irs-vai-subir-para-100 " +
+        "(majoração 50%→100%, Lei do OE) e aspe.pt/dedução-das-quotas-sindicais-no-irs (exemplo numérico e limite de 1% " +
+        "do rendimento de Categoria A). Substitui a versão anterior desta tabela, que tratava isto incorretamente " +
+        "como uma troca para um valor fixo alternativo (valorComQuotizacaoSindical) em vez de uma dedução proporcional.",
     },
 
     // Coeficientes do regime simplificado — Categoria B (art.º 31º CIRS).
@@ -79,40 +104,63 @@ export const legislacaoFiscal = [
 
     // Limites de deduções à coleta (art.º 78º-A a 78º-E CIRS).
     limitesDeducoes: {
+      // CONFIRMADO via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html. O
+      // valor real tem mais escalões do que este motor modela (600€ padrão;
+      // 726€ para dependente único ≤3 anos; 900€ para 2º e seguintes ≤6
+      // anos) — mantemos o modelo simplificado (primeiro/segundoEseguintes)
+      // já existente, mas com os valores certos de referência; um cálculo
+      // rigoroso por posição/idade fica para uma iteração futura.
       dependentes: {
-        primeiro: 600, // dedução geral por dependente (ordem de grandeza — confirmar)
-        segundoEseguintesAte3Anos: 750,
-        fonte: "art.º 78º-A CIRS — confirmar valores exatos por posição do dependente",
+        primeiro: 600,
+        segundoEseguintesAte3Anos: 900,
+        confirmado: true,
+        fonte:
+          "art.º 78º-A CIRS — pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html (600€ padrão; 726€ dependente único " +
+          "≤3 anos; 900€ 2º e seguintes ≤6 anos — modelo simplificado nesta app, ver nota acima).",
       },
-      saude: { percentagem: 0.15, limite: 1000, fonte: "art.º 78º-C CIRS" },
-      educacao: { percentagem: 0.3, limite: 800, fonte: "art.º 78º-D CIRS" },
+      saude: {
+        percentagem: 0.15,
+        limite: 1000,
+        confirmado: true,
+        fonte: "art.º 78º-C CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
+      },
+      educacao: {
+        percentagem: 0.3,
+        limite: 800,
+        confirmado: true,
+        fonte: "art.º 78º-D CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
+      },
       ppr: {
         percentagem: 0.2,
         limiteAte35Anos: 800,
         limite35a50Anos: 700,
         limiteMais50Anos: 600,
-        fonte: "art.º 78º CIRS / regime PPR",
+        confirmado: true,
+        fonte: "art.º 78º CIRS / regime PPR — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
       },
       encargosHabitacao: {
         percentagem: 0.15,
         limite: 750,
         limiteInterior: 1000,
-        fonte: "art.º 78º CIRS — regime transitório de rendas/juros de habitação própria",
+        fonte: "art.º 78º CIRS — regime transitório de rendas/juros de habitação própria (NÃO confirmado nesta sessão)",
       },
-      exigenciaFatura: { limite: 250, fonte: "IVAucher / dedução por exigência de fatura, art.º 78º CIRS" },
+      exigenciaFatura: { limite: 250, fonte: "IVAucher / dedução por exigência de fatura, art.º 78º CIRS (NÃO confirmado nesta sessão)" },
       despesasGeraisFamiliares: {
         percentagem: 0.35,
         limiteCasal: 500,
         limiteSolteiro: 250,
-        fonte: "art.º 78º CIRS — despesas gerais familiares",
+        confirmado: true,
+        fonte: "art.º 78º CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
       },
     },
 
     // Mínimo de existência (art.º 70º CIRS) — rendimento líquido abaixo do
-    // qual não há lugar a tributação (ajustado anualmente ao IAS).
+    // qual não há lugar a tributação (14 × retribuição mínima mensal
+    // garantida prevista para 2026, 920€/mês).
     minimoExistencia: {
-      valorAnual: 12180, // ordem de grandeza baseada em 1,5 × 14 × IAS aproximado — CONFIRMAR
-      fonte: "art.º 70º CIRS — confirmar valor exato indexado ao IAS de 2026",
+      valorAnual: 12880,
+      confirmado: true,
+      fonte: "art.º 70º CIRS — eco.sapo.pt/2025/10/09/quem-ganha-ate-920-euros-nao-vai-pagar-irs-em-2026 (14 × 920€)",
     },
 
     // Benefício municipal — participação variável de IRS que alguns

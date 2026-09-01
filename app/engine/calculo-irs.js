@@ -48,24 +48,36 @@ function calcularRendimentoGlobal(rubricasPorPessoa) {
 
 /**
  * 2. Deduções Específicas
- * Categoria A: dedução legal fixa por sujeito passivo com rendimento A > 0,
- * substituída pelo valor mais alto (valorComQuotizacaoSindical) para quem
- * tiver quotização sindical descontada no ano (rubrica marcada
- * categoriaSindicato — ver parsers/parser-talao.js e ui/confirmacao.js).
+ * Categoria A: dedução legal fixa por sujeito passivo com rendimento A > 0
+ * (art.º 25º/1 CIRS). A quotização sindical (quota paga a sindicato) NÃO
+ * substitui esse valor fixo — é uma dedução adicional, própria, igual ao
+ * dobro (majoração de 100%) do valor efetivamente pago, com o limite de 1%
+ * do rendimento bruto de Categoria A do próprio sujeito passivo (art.º 25º/4
+ * CIRS). Ver tabela.majoracaoQuotizacaoSindical — confirmado via Jornal de
+ * Negócios (majoração 50%→100%) e aspe.pt (exemplo: 100€ pagos → 200€
+ * dedutíveis, limite 1% do rendimento de Categoria A).
  * Categoria B (regime simplificado): coeficiente por tipo de atividade,
  * com mínimo garantido de 15% do rendimento bruto se superior.
  */
 function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabela, coeficienteB }) {
   let deducaoA = 0;
+  const majoracao = tabela.majoracaoQuotizacaoSindical ?? { percentagem: 1, limitePercentagemRendimentoBruto: 0.01 };
   for (const rubricas of rubricasPorPessoa) {
-    const temCategoriaA = rubricas.some((r) => r.tipo === "abono" && r.categoria === "A");
-    if (!temCategoriaA) continue;
-    const temQuotizacaoSindical = rubricas.some(
-      (r) => r.tipo === "desconto" && r.categoriaSindicato && (r.valorComRedu ?? 0) > 0
+    const rendimentoBrutoCategoriaAPessoa = rubricas
+      .filter((r) => r.tipo === "abono" && r.categoria === "A")
+      .reduce((s, r) => s + (r.valorComRedu ?? r.valorSemRedu ?? 0), 0);
+    if (rendimentoBrutoCategoriaAPessoa <= 0) continue;
+
+    const quotaSindicalPaga = rubricas
+      .filter((r) => r.tipo === "desconto" && r.categoriaSindicato)
+      .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
+
+    const deducaoSindical = Math.min(
+      quotaSindicalPaga * (1 + majoracao.percentagem),
+      rendimentoBrutoCategoriaAPessoa * majoracao.limitePercentagemRendimentoBruto
     );
-    deducaoA += temQuotizacaoSindical
-      ? tabela.deducaoEspecificaCategoriaA.valorComQuotizacaoSindical
-      : tabela.deducaoEspecificaCategoriaA.valorFixo;
+
+    deducaoA += tabela.deducaoEspecificaCategoriaA.valorFixo + Math.max(0, deducaoSindical);
   }
 
   const coefAplicavel = coeficienteB ?? tabela.coeficientesSimplificadoB.prestacaoServicosGeral;
