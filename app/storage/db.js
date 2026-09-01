@@ -197,12 +197,15 @@ export async function saveDeducoesColeta(anoFiscal, pessoaId, valores) {
 
 // --- Correções aprendidas por entidade empregadora (talões) -----------------
 //
-// Quando o utilizador corrige, no ecrã de confirmação, a descrição, o tipo
-// ou a categoria de uma rubrica identificada por código (ex.: "211-001"),
-// pode pedir à app para se lembrar dessa correção para a mesma entidade
-// (NIF do empregador). Da próxima vez que um talão dessa entidade for
-// carregado, a correção é aplicada automaticamente antes da confirmação —
-// e pode sempre ser corrigida de novo se algo mudar.
+// Quando o utilizador reclassifica, no ecrã de confirmação, a que
+// categoria pertence uma linha de desconto (ex.: uma rubrica que a app
+// meteu em "Outros" era na verdade Sindicato), pode pedir à app para se
+// lembrar dessa correspondência para a mesma entidade (NIF do
+// empregador). `correcoes` é um mapa chaveDescricao(descrição) →
+// categoria ("irs"|"ss"|"sindicato"|"adse"|"outros"), aplicado
+// automaticamente da próxima vez que um talão dessa entidade for
+// carregado — ver parsers/parser-talao.js (chaveDescricao,
+// classificarDesconto). Pode sempre ser corrigida de novo se algo mudar.
 
 export async function getModeloEntidade(nif) {
   if (!nif) return null;
@@ -227,4 +230,70 @@ export async function cacheSimulacaoAnual(declaracaoId, simulacao) {
 
 export async function getSimulacaoAnual(declaracaoId) {
   return db.get("simulacaoAnual", declaracaoId);
+}
+
+// --- Higiene multi-ano fiscal (secção "Perfil") -----------------------------
+//
+// A app guarda documentos/rubricas/ajustes com um campo `anoFiscal`, mas
+// nunca ofereceu uma forma de os separar de novo depois de o utilizador
+// mudar de exercício (ex.: passar de 2026 para 2027). As funções abaixo
+// dão-lhe essa gestão: listar que anos têm dados, exportar tudo (backup)
+// antes de limpar, e limpar por ano ou por completo.
+
+export async function getAnosFiscaisComDados() {
+  const anos = new Set();
+  for (const d of await db.getAll("documentos")) anos.add(d.anoFiscal);
+  for (const a of await db.getAll("ajusteManual")) anos.add(a.anoFiscal);
+  for (const dc of await db.getAll("deducoesColeta")) anos.add(dc.anoFiscal);
+  const household = await getHousehold();
+  if (household?.anoFiscalAtivo) anos.add(household.anoFiscalAtivo);
+  return [...anos].sort((a, b) => a - b);
+}
+
+// Dump completo de todas as stores, incluindo dados não específicos de ano
+// (household, pessoas, dependentes, modelosEntidade) — pensado para servir
+// de backup do utilizador (JSON descarregável) antes de qualquer limpeza.
+export async function exportarTudo() {
+  const stores = Object.keys(STORES);
+  const dump = {};
+  for (const nome of stores) dump[nome] = await db.getAll(nome);
+  return { versao: DB_VERSION, exportadoEm: new Date().toISOString(), stores: dump };
+}
+
+// Apaga apenas os dados ligados a um ano fiscal (documentos + as suas
+// rubricas, ajustes manuais, deduções à coleta e declarações/simulações
+// guardadas). Não toca em household/pessoas/dependentes/modelosEntidade —
+// isso é identidade do agregado, não específico do ano.
+export async function limparAnoFiscal(anoFiscal) {
+  const documentos = (await db.getAll("documentos")).filter((d) => d.anoFiscal === anoFiscal);
+  for (const doc of documentos) {
+    const rubricas = await getRubricasDoDocumento(doc.id);
+    for (const r of rubricas) await db.delete("rubricas", r.id);
+    await db.delete("documentos", doc.id);
+  }
+  const ajustes = (await db.getAll("ajusteManual")).filter((a) => a.anoFiscal === anoFiscal);
+  for (const a of ajustes) await db.delete("ajusteManual", a.id);
+
+  const deducoes = (await db.getAll("deducoesColeta")).filter((dc) => dc.anoFiscal === anoFiscal);
+  for (const dc of deducoes) await db.delete("deducoesColeta", dc.id);
+
+  const declaracoes = (await db.getAll("declaracao")).filter((d) => d.anoFiscal === anoFiscal);
+  for (const d of declaracoes) {
+    await db.delete("simulacaoAnual", d.id).catch(() => {});
+    await db.delete("declaracao", d.id);
+  }
+}
+
+// Reposição total: apaga TODOS os dados, incluindo agregado/pessoas — a app
+// volta a pedir o onboarding do zero. Usado só a partir do Perfil, com
+// confirmação explícita (e, idealmente, depois de exportar um backup).
+export async function limparTudo() {
+  for (const nome of Object.keys(STORES)) await db.clear(nome);
+}
+
+// Muda o ano fiscal ativo (o que é mostrado por omissão nas ventanas
+// mensal/acumulado/simulação) sem apagar nada — os dados de anos
+// anteriores continuam lá, só deixam de ser os que abrem por omissão.
+export async function definirAnoFiscalAtivo(anoFiscal) {
+  return saveHousehold({ anoFiscalAtivo: anoFiscal });
 }

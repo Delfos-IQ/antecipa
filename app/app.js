@@ -5,10 +5,14 @@ import { criarOnboarding, precisaOnboarding } from "./ui/onboarding.js";
 import { renderVentanasMensais } from "./ui/ventanas-mensais.js";
 import { renderVentana13 } from "./ui/ventana-13.js";
 import { renderVentana14 } from "./ui/ventana-14.js";
+import { renderVentanaPerfil } from "./ui/ventana-perfil.js";
 import { getHousehold } from "./storage/db.js";
+import { pt } from "./data/i18n.js";
 
 const main = document.getElementById("main-view");
 const bottomNav = document.getElementById("bottom-nav");
+const bannerLegalTexto = document.getElementById("legal-banner-texto");
+if (bannerLegalTexto) bannerLegalTexto.textContent = pt.bannerLegal.texto;
 
 async function bootstrap() {
   if (await precisaOnboarding()) {
@@ -42,6 +46,8 @@ async function navegar(rota, opcoes = {}) {
     await renderVentana13({ container: main, anoFiscal });
   } else if (rota === "simulacao") {
     await renderVentana14({ container: main, anoFiscal });
+  } else if (rota === "perfil") {
+    await renderVentanaPerfil({ container: main, anoFiscal, onAnoFiscalMudou: () => {} });
   }
 }
 

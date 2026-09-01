@@ -125,6 +125,24 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
+/* ---------- Banner legal (sempre visível, todas as ventanas) ---------- */
+.legal-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: #fdf2e2;
+  color: #7a5216;
+  border-bottom: 1px solid #f0d9ad;
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.legal-banner svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: #b8791a; }
+
+/* ---------- Ventana Perfil ---------- */
+.section-title { font-weight: 600; }
+.doc-card__data { color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex;
@@ -361,6 +379,47 @@ input:focus, select:focus { border-color: var(--brass); }
   color: var(--muted);
 }
 .timeline i[data-real="true"] { background: var(--brass-soft); color: var(--brass); font-weight: 600; }
+
+.metric-tile[data-cor="devolver"] { background: var(--devolver); }
+.metric-tile[data-cor="devolver"] .metric-tile__label { color: #d5ecdf; }
+.metric-tile[data-cor="pagar"] { background: var(--pagar); }
+.metric-tile[data-cor="pagar"] .metric-tile__label { color: #f3dede; }
+
+.descontos-barra {
+  display: flex;
+  height: 22px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: var(--space-3);
+  background: var(--hairline);
+}
+.descontos-barra span { display: block; }
+.descontos-legenda { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+.descontos-legenda__item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; }
+.descontos-legenda__item i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.descontos-legenda__item strong { font-family: var(--font-mono); }
+
+.mes-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: var(--space-3);
+  height: 120px;
+}
+.mes-barras__col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+.mes-barras__track {
+  flex: 1;
+  width: 100%;
+  max-width: 22px;
+  display: flex;
+  align-items: flex-end;
+  background: var(--paper);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.mes-barras__fill { width: 100%; background: var(--hairline); }
+.mes-barras__fill[data-real="true"] { background: var(--brass); }
+.mes-barras__label { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
 
 /* ---------- Ventana 14 — simulação ---------- */
 .resultado-selo {

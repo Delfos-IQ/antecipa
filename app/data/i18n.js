@@ -80,6 +80,15 @@ export const pt = {
     segurancaSocial: "Segurança Social",
     taxaEfetiva: "Taxa de desconto efetiva",
     rendimentoIliquido: "Rendimento ilíquido acumulado",
+    sindicato: "Quotização sindical",
+    adse: "ADSE",
+    liquidoAcumulado: "Líquido acumulado",
+    descontosTitulo: "Como se reparte o que foi descontado",
+    porMesTitulo: "Rendimento líquido por mês",
+    semDados: "Ainda sem dados este ano. Carregue documentos nos Meses para ver o acumulado.",
+    mesesComDados: "meses com dados reais",
+    coberturaLabel: "Cobertura do ano",
+    de12: "de 12",
   },
 
   ventana14: {
@@ -102,7 +111,34 @@ export const pt = {
     exportarContabilista: "Versão para contabilista",
   },
 
-  nav: { mensal: "Meses", acumulado: "Acumulado", simulacao: "Simulação", definicoes: "Definições" },
+  nav: { mensal: "Meses", acumulado: "Acumulado", simulacao: "Simulação", perfil: "Perfil", definicoes: "Definições" },
+
+  bannerLegal: {
+    texto:
+      "O Antecipa é uma ferramenta de simulação e apoio à decisão. Não é aconselhamento fiscal certificado e não substitui a declaração oficial de IRS entregue no Portal das Finanças.",
+  },
+
+  perfil: {
+    titulo: "Perfil",
+    agregadoTitulo: "O seu agregado",
+    situacaoLabel: "Situação",
+    anoFiscalTitulo: "Ano fiscal ativo",
+    anoFiscalCorpo:
+      "Os documentos, ajustes e simulações ficam sempre associados a um ano fiscal. Mude aqui o ano ativo para começar um novo exercício (ex.: 2027) sem perder o histórico do anterior.",
+    novoAno: "+ Começar novo ano",
+    higieneTitulo: "Dados guardados neste dispositivo",
+    higieneCorpo:
+      "Todos os dados ficam só no seu dispositivo. Recomendamos exportar um backup antes de limpar qualquer coisa.",
+    exportarTudo: "Exportar todos os dados (JSON)",
+    limparAno: "Limpar dados do ano ",
+    limparTudo: "Limpar tudo e recomeçar do zero",
+    confirmarLimparAno: "Tem a certeza que quer apagar todos os documentos, ajustes e simulações do ano",
+    confirmarLimparTudo:
+      "Tem a certeza que quer apagar TODOS os dados da app, incluindo o agregado e as pessoas? Vai ser pedido para configurar tudo de novo.",
+    confirmarLimparAvisoBackup: "Esta ação não pode ser desfeita. Considere exportar um backup primeiro.",
+    navegacaoTitulo: "Navegação",
+    voltarBoasVindas: "Voltar ao ecrã de boas-vindas",
+  },
 
   // Copy da landing pública (index.html na raiz do site — ver secção
   // "Landing pública" do BRAND.md). Vive aqui por coerência, ainda que a

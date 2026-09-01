@@ -21,7 +21,16 @@ function formatarMoeda(valor) {
   // espaço reduzido (.moeda), para não parecer desalinhado em fonte mono.
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" })
     .format(valor ?? 0)
-    .replace(" €", '<span class="moeda">€</span>');
+    .replace(" €", '<span class="moeda">€</span>');
+}
+
+function formatarDataHora(iso) {
+  if (!iso) return "";
+  try {
+    return new Intl.DateTimeFormat("pt-PT", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
+  } catch {
+    return "";
+  }
 }
 
 export async function renderVentanasMensais({ container, anoFiscal, mesParaAbrir }) {
@@ -161,6 +170,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
           <span class="tag" data-tipo="${doc.tipo}">${doc.tipo === "recibo_verde" ? pt.mensal.tipoReciboVerde : pt.mensal.tipoTalao}</span>
           <span class="doc-card__valor num">${formatarMoeda(totalLiquido)}</span>
         </div>
+        ${doc.dataUpload ? `<p class="doc-card__data">Carregado a ${formatarDataHora(doc.dataUpload)}</p>` : ""}
         <details>
           <summary>${doc.rubricas.length} rubrica${doc.rubricas.length === 1 ? "" : "s"}</summary>
           ${doc.rubricas
