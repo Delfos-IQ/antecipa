@@ -165,14 +165,27 @@ export const legislacaoFiscal = [
           "ver nota acima), mantido 750€ (crncontabilidade.pt/blog/deducao-de-rendas-no-irs-em-2026-valor-maximo-" +
           "condicoes-e-como-declarar). limitePrimeiroEscalao (1.050€) confirmado por 2 fontes independentes.",
       },
-      // IVAucher / dedução por exigência de fatura — CONFIRMADO por 2
-      // fontes independentes (coverflex.com, executivedigest.sapo.pt):
-      // 250€ por agregado familiar/ano, cobrindo restauração, reparação
-      // de veículos, ginásios, cultura e transportes públicos.
+      // Dedução por exigência de fatura (art.º 78º-F CIRS, "IVAucher"-like)
+      // — 15% do IVA suportado em setores como restauração, reparação de
+      // veículos, cabeleireiros/estética, veterinários, hotelaria, ginásios,
+      // até 250€ por agregado familiar/ano (CONFIRMADO por 2 fontes
+      // independentes: coverflex.com, executivedigest.sapo.pt). Transportes
+      // públicos (passes mensais e bilhetes) são a EXCEÇÃO dentro desta
+      // mesma dedução: 100% do IVA suportado (não 15%), mas partilhando o
+      // MESMO teto de 250€/agregado — não é um plafond adicional separado
+      // (CONFIRMADO por 2 fontes: eco.sapo.pt/2023/02/16/bilhetes-dos-
+      // transportes-abatem-no-irs-e-entram-como-passes-mensais-no-portal-e-
+      // fatura, e idealista.pt/news/financas/fiscalidade/2026/02/24/74061).
       exigenciaFatura: {
+        percentagem: 0.15,
+        percentagemTransportesPublicos: 1.0,
         limite: 250,
         confirmado: true,
-        fonte: "art.º 78º CIRS (IVAucher) — coverflex.com/pt/blog/despesas-dedutiveis-no-irs e executivedigest.sapo.pt",
+        fonte:
+          "art.º 78º-F CIRS (dedução por exigência de fatura) — coverflex.com/pt/blog/despesas-dedutiveis-no-irs, " +
+          "executivedigest.sapo.pt, eco.sapo.pt/2023/02/16/bilhetes-dos-transportes-abatem-no-irs-e-entram-como-" +
+          "passes-mensais-no-portal-e-fatura (100% IVA em transportes públicos, mesmo teto de 250€) e " +
+          "idealista.pt/news/financas/fiscalidade/2026/02/24/74061-despesas-dedutiveis-em-irs-tudo-o-que-precisas-de-saber.",
       },
       despesasGeraisFamiliares: {
         percentagem: 0.35,
@@ -195,6 +208,22 @@ export const legislacaoFiscal = [
     // Benefício municipal — participação variável de IRS que alguns
     // municípios revertem ao contribuinte (0% a 0,30% da coleta).
     beneficioMunicipalMaximo: 0.003,
+
+    // Tributação autónoma de mais-valias e rendimentos de capitais não
+    // englobados (art.º 72º/1 CIRS) — taxa fixa de 28%, aplicada à parte
+    // (mais-valias mobiliárias, juros, dividendos, etc.) que o sujeito
+    // passivo opta por NÃO englobar no rendimento global. CONFIRMADO por
+    // fonte primária: a "Demonstração de Liquidação de IRS" real usada
+    // nesta sessão de auditoria mostra exatamente esta taxa aplicada a
+    // "Rendimentos capitais não englobados" e "Mais-valias não englobadas"
+    // (linha 17, discriminação das tributações autónomas). Existe também
+    // uma taxa agravada de 35% para rendimentos de jurisdições com regime
+    // fiscal claramente mais favorável (lista negra, art.º 72º/12 CIRS) —
+    // caso raro, fora do âmbito do v1 (não modelado).
+    taxaAutonomaMaisValias: 0.28,
+    taxaAutonomaMaisValiasFonte:
+      "art.º 72º/1 CIRS — confirmado por fonte primária (Demonstração de Liquidação de IRS real, linha 17, " +
+      "\"Discriminação da linha 17\": 28,00% sobre rendimentos de capitais e mais-valias não englobados).",
   },
 ];
 

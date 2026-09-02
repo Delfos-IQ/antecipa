@@ -202,12 +202,13 @@ function calcularTaxaSolidariedade({ rendimentoColetavel, tabela }) {
  * Importância apurada + taxa de solidariedade + tributações autónomas
  * (capitais não englobados a taxa fixa, se aplicável).
  */
-function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoesAutonomas = 0 }) {
-  const total = importanciaApurada.total + taxaSolidariedade.total + tributacoesAutonomas;
+function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoesAutonomas = 0, tributacaoCapitalAutonoma = 0 }) {
+  const total = importanciaApurada.total + taxaSolidariedade.total + tributacoesAutonomas + tributacaoCapitalAutonoma;
   return {
     linhaOficial: 7,
     referenciaLegal: "art.º 68º + 68º-A + 72º CIRS",
     tributacoesAutonomas: round2(tributacoesAutonomas),
+    tributacaoCapitalAutonoma: round2(tributacaoCapitalAutonoma),
     total: round2(Math.max(total, 0)),
   };
 }
@@ -278,7 +279,26 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, 
       : limites.encargosHabitacao.limite;
   const habitacao = clamp((deducoesColeta.habitacao || 0) * limites.encargosHabitacao.percentagem, limiteHabitacao);
 
-  const exigenciaFatura = clamp(deducoesColeta.exigenciaFatura || 0, limites.exigenciaFatura.limite);
+  // Exigência de fatura (IVAucher, art.º 78º-F CIRS): 15% do IVA suportado
+  // nas categorias "normais" (restauração, reparação automóvel, e outras —
+  // cabeleireiros, veterinários, hotelaria, ginásios) + 100% nos transportes
+  // públicos (passes mensais/bilhetes), todos a partilhar o MESMO teto de
+  // 250€/agregado (ver nota em legislacao-2026.js). Mantém-se também o
+  // campo legado `exigenciaFatura` (valor já pré-calculado, para quem
+  // preferir inserir diretamente o total que o e-Fatura mostra) — soma-se
+  // aos restantes antes do teto.
+  const baseNormal =
+    (deducoesColeta.exigenciaFaturaRestauracao || 0) +
+    (deducoesColeta.exigenciaFaturaReparacaoAutomovel || 0) +
+    (deducoesColeta.exigenciaFaturaOutras || 0);
+  const baseTransportes = deducoesColeta.exigenciaFaturaPassesMensais || 0;
+  const exigenciaFaturaCalculada =
+    baseNormal * (limites.exigenciaFatura.percentagem ?? 0.15) +
+    baseTransportes * (limites.exigenciaFatura.percentagemTransportesPublicos ?? 1);
+  const exigenciaFatura = clamp(
+    exigenciaFaturaCalculada + (deducoesColeta.exigenciaFatura || 0),
+    limites.exigenciaFatura.limite
+  );
 
   const despesasGerais = clamp(
     (deducoesColeta.despesasGerais || 0) * limites.despesasGeraisFamiliares.percentagem,
@@ -399,7 +419,9 @@ function calcularResultado({ coletaLiquida, retencoesAcumuladas }) {
  * @param {string} input.regime - "individual" | "conjunta" | "separada"
  * @param {Array<Array<Object>>} input.rubricasPorPessoa - rubricas de cada pessoa incluída
  * @param {Array<Object>} input.dependentes - dependentes atribuídos a esta declaração
- * @param {Object} input.deducoesColeta - { saude, educacao, ppr, habitacao, exigenciaFatura, despesasGerais, duplaTributacao }
+ * @param {Object} input.deducoesColeta - { saude, educacao, ppr, habitacao, exigenciaFaturaRestauracao,
+ *   exigenciaFaturaReparacaoAutomovel, exigenciaFaturaPassesMensais, exigenciaFaturaOutras, despesasGerais,
+ *   duplaTributacao, maisValias }
  * @param {number} [input.coeficienteB] - override do coeficiente simplificado B
  * @param {number} [input.percentagemMesesReais] - 0..1, fiabilidade da projeção
  * @param {string} [input.dataReferencia]
@@ -448,7 +470,20 @@ export function calcularDeclaracao(input) {
     tabela,
   });
   const taxaSolidariedade = calcularTaxaSolidariedade({ rendimentoColetavel: rendimentoColetavelResult, tabela });
-  const coletaTotal = calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoesAutonomas });
+  // Mais-valias e rendimentos de capitais não englobados (art.º 72º/1
+  // CIRS) — tributados autonomamente à taxa fixa da tabela (28% em 2026,
+  // confirmado por fonte primária, ver legislacao-2026.js), fora do
+  // englobamento progressivo. Introduzido como campo próprio e desacoplado
+  // do fluxo de rubricas de categoria E/G (que continua a englobar-se
+  // normalmente via rendimentoGlobal.categoriaEG, para quem optar por essa
+  // via manual no ecrã de confirmação).
+  const tributacaoCapitalAutonoma = round2((deducoesColeta.maisValias || 0) * (tabela.taxaAutonomaMaisValias ?? 0.28));
+  const coletaTotal = calcularColetaTotal({
+    importanciaApurada,
+    taxaSolidariedade,
+    tributacoesAutonomas,
+    tributacaoCapitalAutonoma,
+  });
   const deducoesAColeta = calcularDeducoesAColeta({
     deducoesColeta,
     dependentes,

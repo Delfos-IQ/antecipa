@@ -149,6 +149,41 @@ export const pt = {
     confirmarLimparAvisoBackup: "Esta ação não pode ser desfeita. Considere exportar um backup primeiro.",
     navegacaoTitulo: "Navegação",
     voltarBoasVindas: "Voltar ao ecrã de boas-vindas",
+
+    deducoesTitulo: "Deduções e outros rendimentos",
+    deducoesCorpo:
+      "Valores anuais do agregado que aproximam a simulação da Demonstração de Liquidação real. Pode deixar em branco o que não se aplicar — não é preciso preencher tudo.",
+    deducoesGuardar: "Os valores ficam gravados automaticamente ao sair de cada campo.",
+    deducoesGrupos: {
+      saudeEducacao: {
+        titulo: "Saúde, educação e PPR",
+        saude: { label: "Despesas de saúde", hint: "Total anual em faturas de saúde (consultas, farmácia). Dedução de 15%, até 1.000€." },
+        educacao: { label: "Despesas de educação", hint: "Propinas, livros, material escolar. Dedução de 30%, até 800€ (mais nas regiões do interior)." },
+        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 400-800€ conforme a idade." },
+        habitacao: { label: "Renda ou juros de crédito habitação", hint: "Renda de casa própria e permanente, ou juros de crédito à habitação contraído até 2011. Dedução de 15%." },
+      },
+      familia: {
+        titulo: "Despesas gerais familiares",
+        despesasGerais: { label: "Despesas gerais familiares", hint: "Base de incidência (35%) das despesas gerais do agregado (roupa, combustível, etc.) — o valor que consta do Portal das Finanças, não já a dedução calculada. Até 250€ (500€ em casal)." },
+      },
+      exigenciaFatura: {
+        titulo: "Exigência de fatura (categorias do e-Fatura)",
+        corpoHint:
+          "Introduza o valor anual gasto em cada categoria (com IVA incluído), tal como aparece no Portal e-Fatura. O Antecipa aplica a percentagem legal e o teto de 250€/agregado (partilhado entre estas categorias).",
+        exigenciaFaturaRestauracao: { label: "Restauração", hint: "Refeições em restaurantes, cafés. Dedução de 15% do IVA." },
+        exigenciaFaturaReparacaoAutomovel: { label: "Reparação automóvel", hint: "Oficinas e reparação de veículos. Dedução de 15% do IVA." },
+        exigenciaFaturaPassesMensais: { label: "Passes mensais / transportes públicos", hint: "Passes e bilhetes de transportes públicos. Dedução de 100% do IVA (mesmo teto de 250€)." },
+        exigenciaFaturaOutras: { label: "Outras (cabeleireiros, veterinários, hotelaria, ginásios...)", hint: "Restantes categorias do e-Fatura sujeitas a esta dedução. Dedução de 15% do IVA." },
+      },
+      capital: {
+        titulo: "Ganhos de capital",
+        maisValias: { label: "Mais-valias e rendimentos de capitais não englobados", hint: "Ganhos de capital (ex.: venda de ações) e rendimentos de capitais (juros, dividendos) que não engloba no rendimento global. Tributados à parte, a 28%." },
+      },
+      outras: {
+        titulo: "Outras deduções",
+        duplaTributacao: { label: "Crédito por dupla tributação internacional", hint: "Imposto pago no estrangeiro sobre rendimento também tributado em Portugal, dedutível nos termos de acordo ou convenção." },
+      },
+    },
   },
 
   // Copy da landing pública (index.html na raiz do site — ver secção

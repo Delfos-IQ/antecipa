@@ -188,9 +188,20 @@ export async function getDeducoesColeta(anoFiscal, pessoaId = "household") {
     educacao: 0,
     ppr: 0,
     habitacao: 0,
-    exigenciaFatura: 0,
+    // Exigência de fatura (IVAucher) desdobrada por categoria do e-Fatura,
+    // para que o utilizador introduza o que já vê lá diretamente — o motor
+    // aplica 15% (ou 100% em transportes) e o teto de 250€/agregado
+    // (ver data/legislacao-2026.js, limitesDeducoes.exigenciaFatura).
+    exigenciaFaturaRestauracao: 0,
+    exigenciaFaturaReparacaoAutomovel: 0,
+    exigenciaFaturaPassesMensais: 0,
+    exigenciaFaturaOutras: 0, // cabeleireiros, veterinários, hotelaria, ginásios, etc.
     despesasGerais: 0,
     duplaTributacao: 0,
+    // Mais-valias e rendimentos de capitais não englobados (art.º 72º/1
+    // CIRS) — tributados autonomamente à taxa fixa (ver
+    // tabela.taxaAutonomaMaisValias), fora do englobamento progressivo.
+    maisValias: 0,
   };
 }
 
