@@ -104,19 +104,24 @@ export const legislacaoFiscal = [
 
     // Limites de deduções à coleta (art.º 78º-A a 78º-E CIRS).
     limitesDeducoes: {
-      // CONFIRMADO via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html. O
-      // valor real tem mais escalões do que este motor modela (600€ padrão;
-      // 726€ para dependente único ≤3 anos; 900€ para 2º e seguintes ≤6
-      // anos) — mantemos o modelo simplificado (primeiro/segundoEseguintes)
-      // já existente, mas com os valores certos de referência; um cálculo
-      // rigoroso por posição/idade fica para uma iteração futura.
+      // CONFIRMADO por 3 fontes independentes: pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html,
+      // doutorfinancas.pt/impostos/irs/guia-irs-para-quem-tem-dependentes-nao-perca-beneficios,
+      // e info.portaldasfinancas.gov.pt (texto do art.º 78º-A CIRS). Modelo
+      // de 3 escalões por posição/idade, agora implementado a sério em
+      // engine/calculo-irs.js (valorDeducaoPorDependente) — deixou de ser
+      // um modelo simplificado. Precisa da data de nascimento do
+      // dependente (campo `dataNascimento`, gerido em Perfil); sem essa
+      // data, aplica-se sempre o valor base (sem majoração), por omissão
+      // conservadora.
       dependentes: {
-        primeiro: 600,
-        segundoEseguintesAte3Anos: 900,
+        primeiro: 600, // 1º dependente, ou qualquer dependente sem data de nascimento
+        primeiroComMajoracaoAte3Anos: 726, // 1º dependente com menos de 3 anos a 31/12
+        segundoEmDianteAte6Anos: 900, // 2º dependente em diante, com até 6 anos a 31/12
         confirmado: true,
         fonte:
-          "art.º 78º-A CIRS — pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html (600€ padrão; 726€ dependente único " +
-          "≤3 anos; 900€ 2º e seguintes ≤6 anos — modelo simplificado nesta app, ver nota acima).",
+          "art.º 78º-A CIRS — pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html, doutorfinancas.pt e " +
+          "info.portaldasfinancas.gov.pt (texto do artigo). Guarda partilhada: cada sujeito passivo deduz metade " +
+          "do valor aplicável (dependente.guarda === 'partilhada' em código).",
       },
       saude: {
         percentagem: 0.15,
@@ -138,13 +143,37 @@ export const legislacaoFiscal = [
         confirmado: true,
         fonte: "art.º 78º CIRS / regime PPR — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
       },
+      // Rendas de habitação própria e permanente (art.º 78º-E CIRS).
+      // Percentagem (15%) confirmada por 3 fontes (coverflex.com,
+      // santander.pt/salto, crncontabilidade.pt). O limite geral para
+      // 2026, porém, TEM FONTES A DIVERGIR: crncontabilidade.pt diz 750€
+      // (mantido — é o valor já codificado e o único a bater certo com
+      // uma segunda leitura), santander.pt/salto diz 700€, e
+      // executivedigest.sapo.pt diz 900€. O limite mais alto para o 1º
+      // escalão de rendimento (1.050€) está confirmado por 2 fontes
+      // independentes (santander.pt/salto e crncontabilidade.pt) e já é
+      // usado no motor. Juros de empréstimos à habitação contraídos até
+      // 2011 (mesma percentagem, 15%) não têm limite confirmado nesta
+      // sessão — `limite` abaixo cobre só rendas por agora.
       encargosHabitacao: {
         percentagem: 0.15,
         limite: 750,
-        limiteInterior: 1000,
-        fonte: "art.º 78º CIRS — regime transitório de rendas/juros de habitação própria (NÃO confirmado nesta sessão)",
+        limitePrimeiroEscalao: 1050,
+        confirmado: false,
+        fonte:
+          "art.º 78º-E CIRS — percentagem (15%) confirmada; limite geral DIVERGENTE entre fontes (700€ a 900€, " +
+          "ver nota acima), mantido 750€ (crncontabilidade.pt/blog/deducao-de-rendas-no-irs-em-2026-valor-maximo-" +
+          "condicoes-e-como-declarar). limitePrimeiroEscalao (1.050€) confirmado por 2 fontes independentes.",
       },
-      exigenciaFatura: { limite: 250, fonte: "IVAucher / dedução por exigência de fatura, art.º 78º CIRS (NÃO confirmado nesta sessão)" },
+      // IVAucher / dedução por exigência de fatura — CONFIRMADO por 2
+      // fontes independentes (coverflex.com, executivedigest.sapo.pt):
+      // 250€ por agregado familiar/ano, cobrindo restauração, reparação
+      // de veículos, ginásios, cultura e transportes públicos.
+      exigenciaFatura: {
+        limite: 250,
+        confirmado: true,
+        fonte: "art.º 78º CIRS (IVAucher) — coverflex.com/pt/blog/despesas-dedutiveis-no-irs e executivedigest.sapo.pt",
+      },
       despesasGeraisFamiliares: {
         percentagem: 0.35,
         limiteCasal: 500,

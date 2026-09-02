@@ -122,6 +122,17 @@ export const pt = {
     titulo: "Perfil",
     agregadoTitulo: "O seu agregado",
     situacaoLabel: "Situação",
+    dependentesTitulo: "Dependentes",
+    dependentesCorpo:
+      "Cada dependente conta para o quociente familiar e para a dedução à coleta (art.º 78º-A CIRS) — o valor exato depende da idade a 31 de dezembro e de ser o 1º dependente ou não.",
+    dependenteNomePlaceholder: "Nome",
+    guardaPartilhada: "Guarda partilhada",
+    remover: "Remover",
+    idadeEm: "Idade em",
+    anos: "anos",
+    semDataNascimento: "Sem data de nascimento — aplicado o valor base, sem majoração por idade.",
+    semDependentes: "Ainda sem dependentes registados.",
+    adicionarDependente: "+ Adicionar dependente",
     anoFiscalTitulo: "Ano fiscal ativo",
     anoFiscalCorpo:
       "Os documentos, ajustes e simulações ficam sempre associados a um ano fiscal. Mude aqui o ano ativo para começar um novo exercício (ex.: 2027) sem perder o histórico do anterior.",

@@ -15,7 +15,13 @@
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-const sum = (arr, fn) => arr.reduce((acc, x) => acc + (fn ? fn(x) : x), 0);
+// NOTA (corrigido nesta sessão): a versão anterior não passava o índice a
+// `fn`, pelo que qualquer chamador que distinguisse "1º" de "2º e
+// seguintes" por posição (ex.: calcularDeducoesAColeta/porDependentes)
+// ficava sempre a tratar todos os itens como "2º e seguintes" — bug
+// silencioso, nunca dava erro, só um valor errado. `getModeloEntidade`/
+// quociente não são afetados (não usam o índice).
+const sum = (arr, fn) => arr.reduce((acc, x, i) => acc + (fn ? fn(x, i) : x), 0);
 
 /**
  * 1. Rendimento Global
@@ -210,7 +216,44 @@ function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoe
  * 8. Deduções à Coleta
  * Aplica os limites do art.º 78º por categoria, respeitando tetos.
  */
-function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime }) {
+// Idade do dependente a 31 de dezembro do ano fiscal (data legalmente
+// relevante para os escalões etários do art.º 78º-A CIRS). `dataNascimento`
+// pode faltar (dependentes criados antes desta funcionalidade existir, ou
+// sem data preenchida) — nesse caso assume-se idade "adulta" (sem
+// majoração), a opção mais conservadora (não infla a dedução por engano).
+function idadeDoDependenteNoAno(dependente, anoFiscal) {
+  if (!dependente?.dataNascimento) return null;
+  const nascimento = new Date(dependente.dataNascimento);
+  if (Number.isNaN(nascimento.getTime())) return null;
+  const referencia = new Date(`${anoFiscal}-12-31`);
+  let idade = referencia.getFullYear() - nascimento.getFullYear();
+  const aindaNaoFezAnos =
+    referencia.getMonth() < nascimento.getMonth() ||
+    (referencia.getMonth() === nascimento.getMonth() && referencia.getDate() < nascimento.getDate());
+  if (aindaNaoFezAnos) idade -= 1;
+  return idade;
+}
+
+// Dedução por dependente (art.º 78º-A CIRS) — modelo real de 3 escalões,
+// confirmado nesta sessão contra 3 fontes independentes (pwc.pt,
+// doutorfinancas.pt, info.portaldasfinancas.gov.pt): 600€ base por
+// dependente; 726€ para o 1º dependente com menos de 3 anos (majoração de
+// 126€); 900€ para o 2º dependente em diante com até 6 anos. Se a guarda
+// for partilhada, o valor de cada dependente é dividido a meio (cada
+// sujeito passivo só pode deduzir metade) — mesmo critério já usado no
+// quociente familiar (calcularQuocienteFamiliar).
+function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limites) {
+  const idade = idadeDoDependenteNoAno(dependente, anoFiscal);
+  let valor;
+  if (posicao === 0) {
+    valor = idade !== null && idade < 3 ? limites.dependentes.primeiroComMajoracaoAte3Anos : limites.dependentes.primeiro;
+  } else {
+    valor = idade !== null && idade <= 6 ? limites.dependentes.segundoEmDianteAte6Anos : limites.dependentes.primeiro;
+  }
+  return dependente?.guarda === "partilhada" ? round2(valor / 2) : valor;
+}
+
+function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, anoFiscal, escalaoAplicado }) {
   const limites = tabela.limitesDeducoes;
   const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
@@ -222,10 +265,18 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime }
     limites.ppr.limiteAte35Anos // simplificação v1: usar o teto mais alto; refinar por idade em v1.1
   );
 
-  const habitacao = clamp(
-    (deducoesColeta.habitacao || 0) * limites.encargosHabitacao.percentagem,
-    limites.encargosHabitacao.limite
-  );
+  // Limite de rendas de habitação: mais alto (limitePrimeiroEscalao) para
+  // quem tem rendimento (por quociente) dentro do 1º escalão de IRS — o
+  // mesmo escalão já calculado na Importância Apurada (linha 6), para
+  // ficar consistente com o quociente familiar em vez de comparar o
+  // rendimento coletável bruto. Ver nota em data/legislacao-2026.js sobre
+  // a divergência de fontes no limite geral.
+  const dentroDoPrimeiroEscalao = escalaoAplicado?.limite === tabela.escaloes?.[0]?.limite;
+  const limiteHabitacao =
+    dentroDoPrimeiroEscalao && limites.encargosHabitacao.limitePrimeiroEscalao
+      ? limites.encargosHabitacao.limitePrimeiroEscalao
+      : limites.encargosHabitacao.limite;
+  const habitacao = clamp((deducoesColeta.habitacao || 0) * limites.encargosHabitacao.percentagem, limiteHabitacao);
 
   const exigenciaFatura = clamp(deducoesColeta.exigenciaFatura || 0, limites.exigenciaFatura.limite);
 
@@ -234,9 +285,7 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime }
     regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro
   );
 
-  const porDependentes = sum(dependentes, (d, i) =>
-    i === 0 ? limites.dependentes.primeiro : limites.dependentes.segundoEseguintesAte3Anos
-  );
+  const porDependentes = sum(dependentes, (d, i) => valorDeducaoPorDependente(d, i, anoFiscal, limites));
 
   const duplaTributacao = round2(deducoesColeta.duplaTributacao || 0);
 
@@ -263,14 +312,45 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime }
  * 9. Coleta Líquida
  * Coleta Total − Deduções à Coleta − Benefício Municipal.
  */
-function calcularColetaLiquida({ coletaTotal, deducoesAColeta, tabela, participacaoMunicipal = 0 }) {
+// Mínimo de existência (art.º 70º CIRS) — SIMPLIFICAÇÃO, não a fórmula
+// oficial exata. A regra real deduz um valor variável ao rendimento
+// coletável ANTES do cálculo do imposto, através de uma fórmula com vários
+// ramos (por escalão de rendimento, com multiplicadores 2,3× e 1,4× sobre
+// o excesso acima de um limiar L calculado a partir dos limites de
+// despesas gerais e do 1º escalão) — não conseguimos confirmar essa
+// fórmula com precisão suficiente nesta sessão para a implementar sem
+// risco de dar um valor errado. Em vez disso, aplicamos aqui uma
+// aproximação conservadora e claramente documentada: garantir que o
+// rendimento líquido de IRS (rendimento global − coleta) nunca fica
+// abaixo do `minimoExistencia.valorAnual`, reduzindo a coleta até esse
+// ponto (nunca abaixo de 0) quando isso se aplicar — só para sujeitos
+// passivos cujo rendimento seja predominantemente de Categoria A ou B,
+// como exige o art.º 70º. Isto replica o EFEITO final da lei (ninguém com
+// rendimentos baixos de trabalho fica com menos que o mínimo de
+// existência líquido), mas não é o cálculo linha a linha oficial — não
+// usar este valor para preencher uma declaração real sem confirmar contra
+// a fórmula exata do Portal das Finanças.
+function aplicarMinimoExistencia({ coletaAntes, rendimentoGlobal, tabela }) {
+  const minimo = tabela.minimoExistencia;
+  if (!minimo?.valorAnual) return coletaAntes;
+  const total = rendimentoGlobal.total || 0;
+  if (total <= 0) return coletaAntes;
+  const predominanteAouB = (rendimentoGlobal.categoriaA + rendimentoGlobal.categoriaB) / total >= 0.5;
+  if (!predominanteAouB) return coletaAntes;
+  const rendimentoLiquidoAposImposto = total - coletaAntes;
+  if (rendimentoLiquidoAposImposto >= minimo.valorAnual) return coletaAntes;
+  return Math.max(0, round2(total - minimo.valorAnual));
+}
+
+function calcularColetaLiquida({ coletaTotal, deducoesAColeta, tabela, participacaoMunicipal = 0, rendimentoGlobal }) {
   const beneficioMunicipal = round2(
     coletaTotal.total * Math.min(participacaoMunicipal, tabela.beneficioMunicipalMaximo)
   );
-  const total = Math.max(coletaTotal.total - deducoesAColeta.total - beneficioMunicipal, 0);
+  const antesDoMinimo = Math.max(coletaTotal.total - deducoesAColeta.total - beneficioMunicipal, 0);
+  const total = aplicarMinimoExistencia({ coletaAntes: antesDoMinimo, rendimentoGlobal, tabela });
   return {
     linhaOficial: 9,
-    referenciaLegal: "art.º 78º CIRS + Lei das Finanças Locais",
+    referenciaLegal: "art.º 78º CIRS + Lei das Finanças Locais + art.º 70º CIRS (mínimo de existência, aproximado)",
     beneficioMunicipal,
     total: round2(total),
   };
@@ -369,8 +449,21 @@ export function calcularDeclaracao(input) {
   });
   const taxaSolidariedade = calcularTaxaSolidariedade({ rendimentoColetavel: rendimentoColetavelResult, tabela });
   const coletaTotal = calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoesAutonomas });
-  const deducoesAColeta = calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime });
-  const coletaLiquida = calcularColetaLiquida({ coletaTotal, deducoesAColeta, tabela, participacaoMunicipal });
+  const deducoesAColeta = calcularDeducoesAColeta({
+    deducoesColeta,
+    dependentes,
+    tabela,
+    regime,
+    anoFiscal,
+    escalaoAplicado: importanciaApurada.escalaoAplicado,
+  });
+  const coletaLiquida = calcularColetaLiquida({
+    coletaTotal,
+    deducoesAColeta,
+    tabela,
+    participacaoMunicipal,
+    rendimentoGlobal,
+  });
   const retencoesAcumuladas = calcularRetencoesAcumuladas(rubricasPorPessoa);
   const resultado = calcularResultado({ coletaLiquida, retencoesAcumuladas });
 

@@ -133,6 +133,10 @@ export async function saveDependente(dependente) {
   return { ...dependente, id };
 }
 
+export async function removeDependente(id) {
+  return db.delete("dependentes", id);
+}
+
 export async function getDocumentosDoMes(mes, anoFiscal, pessoaId) {
   const todos = await db.getAllByIndex("documentos", "mes_ano_pessoa", [mes, anoFiscal, pessoaId]);
   return todos;

@@ -9,12 +9,31 @@ import {
   getHousehold,
   getPessoas,
   saveHousehold,
+  getDependentes,
+  saveDependente,
+  removeDependente,
   getAnosFiscaisComDados,
   exportarTudo,
   limparAnoFiscal,
   limparTudo,
   definirAnoFiscalAtivo,
 } from "../storage/db.js";
+
+// Mesma lógica de idadeDoDependenteNoAno em engine/calculo-irs.js — aqui só
+// para mostrar ao utilizador que escalão se aplica a cada dependente,
+// nunca usada para o cálculo em si (esse continua a viver só no motor).
+function idadeNoAno(dataNascimento, anoFiscal) {
+  if (!dataNascimento) return null;
+  const nascimento = new Date(dataNascimento);
+  if (Number.isNaN(nascimento.getTime())) return null;
+  const referencia = new Date(`${anoFiscal}-12-31`);
+  let idade = referencia.getFullYear() - nascimento.getFullYear();
+  const aindaNaoFezAnos =
+    referencia.getMonth() < nascimento.getMonth() ||
+    (referencia.getMonth() === nascimento.getMonth() && referencia.getDate() < nascimento.getDate());
+  if (aindaNaoFezAnos) idade -= 1;
+  return idade;
+}
 
 function formatarDataHora(iso) {
   if (!iso) return "";
@@ -43,6 +62,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
   async function montar() {
     const household = await getHousehold();
     const pessoas = await getPessoas();
+    const dependentes = (await getDependentes()).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     const anos = await getAnosFiscaisComDados();
     const anoAtivo = household?.anoFiscalAtivo ?? anoFiscal;
 
@@ -61,6 +81,36 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         ${pessoas
           .map((p) => `<p class="muted" style="margin-top:2px">${p.nome || p.id}${p.nif ? ` · NIF ${p.nif}` : ""}</p>`)
           .join("")}
+      </div>
+
+      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+        <p class="section-title">${pt.perfil.dependentesTitulo}</p>
+        <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.dependentesCorpo}</p>
+        ${
+          dependentes.length
+            ? dependentes
+                .map((d) => {
+                  const idade = idadeNoAno(d.dataNascimento, anoAtivo);
+                  return `
+              <div class="doc-card" style="margin-bottom:var(--space-2)">
+                <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
+                  <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="flex:1 1 140px" />
+                  <input type="date" data-dep-campo="dataNascimento" data-dep-id="${d.id}" value="${d.dataNascimento ?? ""}" style="flex:1 1 150px;width:auto" />
+                  <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">
+                    <input type="checkbox" data-dep-campo="guarda" data-dep-id="${d.id}" ${d.guarda === "partilhada" ? "checked" : ""} />
+                    ${pt.perfil.guardaPartilhada}
+                  </label>
+                  <button class="btn btn-ghost" data-action="remover-dependente" data-dep-id="${d.id}" style="color:var(--pagar)">${pt.perfil.remover}</button>
+                </div>
+                <p class="muted" style="margin-top:var(--space-2);font-size:0.8rem">
+                  ${idade !== null ? `${pt.perfil.idadeEm} ${anoAtivo}: ${idade} ${pt.perfil.anos}` : pt.perfil.semDataNascimento}
+                </p>
+              </div>`;
+                })
+                .join("")
+            : `<p class="empty-state">${pt.perfil.semDependentes}</p>`
+        }
+        <button class="btn btn-secondary btn-block" data-action="adicionar-dependente" style="margin-top:var(--space-2)">${pt.perfil.adicionarDependente}</button>
       </div>
 
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
@@ -95,6 +145,47 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
     `;
+
+    // Guarda todos os campos de todas as linhas de dependente antes de
+    // voltar a desenhar o painel (montar() reconstrói tudo do zero a
+    // partir do que está gravado). Sem isto, editar a data de nascimento
+    // de uma linha provocava um re-render que perdia qualquer alteração
+    // ainda não confirmada (blur) no campo "Nome" da mesma linha — mesma
+    // classe de bug já vista no ecrã de confirmação (ver
+    // ui/components/confirmacao.js): nunca ler/gravar a partir de uma
+    // cópia desatualizada quando há mais do que um caminho de edição.
+    async function gravarTodosOsCamposVisiveis() {
+      const porId = new Map();
+      container.querySelectorAll("[data-dep-campo]").forEach((el) => {
+        const id = Number(el.dataset.depId);
+        const dependenteOriginal = dependentes.find((d) => d.id === id) ?? { id };
+        const atual = porId.get(id) ?? { ...dependenteOriginal };
+        const campo = el.dataset.depCampo;
+        atual[campo] = campo === "guarda" ? (el.checked ? "partilhada" : "exclusiva") : el.value;
+        porId.set(id, atual);
+      });
+      for (const dependente of porId.values()) await saveDependente(dependente);
+    }
+
+    container.querySelectorAll("[data-dep-campo]").forEach((el) => {
+      const evento = el.type === "checkbox" || el.type === "date" ? "change" : "blur";
+      el.addEventListener(evento, async () => {
+        await gravarTodosOsCamposVisiveis();
+        await montar();
+      });
+    });
+
+    container.querySelectorAll('[data-action="remover-dependente"]').forEach((el) =>
+      el.addEventListener("click", async () => {
+        await removeDependente(Number(el.dataset.depId));
+        await montar();
+      })
+    );
+
+    container.querySelector('[data-action="adicionar-dependente"]')?.addEventListener("click", async () => {
+      await saveDependente({ nome: "", dataNascimento: "", guarda: "exclusiva" });
+      await montar();
+    });
 
     container.querySelector("#perfil-ano-select")?.addEventListener("change", async (e) => {
       const novoAno = Number(e.target.value);
