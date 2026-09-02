@@ -125,7 +125,9 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
-/* ---------- Banner legal (sempre visível, todas as ventanas) ---------- */
+/* ---------- Banner legal (sempre visível, exceto durante o onboarding —
+   ver app.js) ---------- */
+.legal-banner[hidden] { display: none; } /* mesma razão que .bottom-nav[hidden] acima: sem isto, a regra de display:flex abaixo ganha ao [hidden] da UA stylesheet */
 .legal-banner {
   display: flex;
   align-items: flex-start;
@@ -237,15 +239,6 @@ input:focus, select:focus { border-color: var(--brass); }
   line-height: 1.5;
 }
 .onboarding__nav { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-6); }
-.onboarding__aviso-legal {
-  margin-top: var(--space-4);
-  padding: var(--space-3);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius);
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
 
 @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -257,8 +250,13 @@ input:focus, select:focus { border-color: var(--brass); }
   display: flex;
   gap: var(--space-4);
   align-items: flex-start;
+  margin-bottom: var(--space-4);
 }
+.privacy-note:last-of-type { margin-bottom: 0; }
 .privacy-note svg { flex: none; width: 28px; height: 28px; color: var(--brass-light); }
+/* Aviso legal — mesma caixa, ícone âmbar (mesma cor do banner global) em
+   vez de azul, para se distinguir do aviso de privacidade ao lado. */
+.privacy-note--aviso svg { color: #e0a94c; }
 .privacy-note p { color: inherit; margin: 0; }
 
 /* ---------- Cards / accordion (ventanas mensais) ---------- */

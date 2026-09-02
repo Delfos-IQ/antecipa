@@ -12,16 +12,24 @@ import { pt } from "./data/i18n.js";
 
 const main = document.getElementById("main-view");
 const bottomNav = document.getElementById("bottom-nav");
+const legalBanner = document.querySelector(".legal-banner");
 const bannerLegalTexto = document.getElementById("legal-banner-texto");
 if (bannerLegalTexto) bannerLegalTexto.textContent = pt.bannerLegal.texto;
 
 async function bootstrap() {
   if (await precisaOnboarding()) {
     bottomNav.hidden = true;
+    // O passo "privacidade" do onboarding já mostra este aviso legal
+    // dentro do próprio fluxo (mesmo destaque visual que o aviso de
+    // privacidade) — o banner amarelo global fica escondido durante todo
+    // o onboarding para não duplicar a mensagem, e volta a aparecer
+    // assim que a app "normal" arranca.
+    if (legalBanner) legalBanner.hidden = true;
     criarOnboarding({
       container: main,
       onConcluido: async ({ abrirUpload }) => {
         bottomNav.hidden = false;
+        if (legalBanner) legalBanner.hidden = false;
         await navegar("mensal", { abrirUpload });
       },
     });

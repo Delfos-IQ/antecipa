@@ -58,13 +58,22 @@ export function criarOnboarding({ container, onConcluido }) {
           </div>`;
 
       case 1:
+        // O aviso legal vem primeiro, com o mesmo destaque visual (mesma
+        // caixa escura) do aviso de privacidade — pedido do Dani para não
+        // ficar como um texto secundário. O banner amarelo global
+        // (legal-banner, sempre visível no resto da app) é escondido só
+        // durante o onboarding para não duplicar esta mensagem — ver
+        // toggleBannerLegal() em app.js.
         return `
           <h2>${pt.onboarding.privacidade.titulo}</h2>
+          <div class="privacy-note privacy-note--aviso">
+            ${iconeAviso()}
+            <p>${pt.bannerLegal.texto}</p>
+          </div>
           <div class="privacy-note">
             ${iconeCadeado()}
             <p>${pt.onboarding.privacidade.corpo}</p>
           </div>
-          <p class="onboarding__aviso-legal">${pt.bannerLegal.texto}</p>
           ${navegacao(true, pt.onboarding.privacidade.cta)}`;
 
       case 2:
@@ -181,6 +190,13 @@ export function criarOnboarding({ container, onConcluido }) {
 
   function iconeCadeado() {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M7 10V7a5 5 0 0110 0v3"/></svg>`;
+  }
+
+  // Mesmo ícone do banner legal global (index.html) — para o aviso ficar
+  // reconhecível como "a mesma mensagem", só que aqui dentro da caixa
+  // escura em vez do banner amarelo.
+  function iconeAviso() {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`;
   }
 
   function ligarEventos(wrap) {
