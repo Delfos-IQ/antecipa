@@ -161,6 +161,9 @@ export const pt = {
     higieneTitulo: "Dados guardados neste dispositivo",
     higieneCorpo:
       "Todos os dados ficam só no seu dispositivo. Recomendamos exportar um backup antes de limpar qualquer coisa.",
+    revisaoFiscalPrefixo: "Dados fiscais revistos em",
+    revisaoFiscalProxima: "próxima revisão prevista",
+    copyrightTexto: "Daniel Lanzas — Antecipa, simulador de IRS — todos os direitos reservados.",
     exportarTudo: "Exportar todos os dados (JSON)",
     limparAno: "Limpar dados do ano ",
     limparTudo: "Limpar tudo e recomeçar do zero",

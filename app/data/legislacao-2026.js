@@ -227,6 +227,17 @@ export const legislacaoFiscal = [
   },
 ];
 
+// Metadados de revisão da tabela fiscal acima — quando foi verificada pela
+// última vez contra fontes fiscais, e quando está prevista a próxima
+// revisão (normalmente à volta da entrada em vigor do Orçamento do Estado
+// seguinte). Fonte única para os avisos mostrados na landing (index.html,
+// via import direto deste módulo) e em Perfil (ui/ventana-perfil.js) — ao
+// rever a legislação para um novo ano, atualizar só aqui.
+export const revisaoFiscal = {
+  dataRevisao: "setembro de 2026",
+  proximaRevisaoPrevista: "março de 2027",
+};
+
 /**
  * Devolve a tabela fiscal aplicável a uma determinada data (ou ao ano
  * fiscal, por omissão 1 de janeiro desse ano), escolhendo a entrada mais

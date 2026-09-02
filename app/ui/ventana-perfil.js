@@ -10,6 +10,7 @@
 // definição de conta como o resto desta ventana.
 
 import { pt } from "../data/i18n.js";
+import { revisaoFiscal } from "../data/legislacao-2026.js";
 import {
   getHousehold,
   getPessoas,
@@ -141,6 +142,9 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.higieneTitulo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.higieneCorpo}</p>
+        <p class="field-hint" style="margin-bottom:var(--space-3)">
+          ${pt.perfil.revisaoFiscalPrefixo} ${revisaoFiscal.dataRevisao} · ${pt.perfil.revisaoFiscalProxima}: ${revisaoFiscal.proximaRevisaoPrevista}.
+        </p>
         <div class="stack" style="gap:var(--space-2)">
           <button class="btn btn-secondary btn-block" data-action="exportar-tudo">${pt.perfil.exportarTudo}</button>
           <button class="btn btn-ghost btn-block" data-action="limpar-ano" style="color:var(--pagar)">
@@ -158,6 +162,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       </div>
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
+      <p class="copyright-line">© ${new Date().getFullYear()} ${pt.perfil.copyrightTexto}</p>
     `;
 
     // Guarda todos os campos de todas as linhas de dependente antes de

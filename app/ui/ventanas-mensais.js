@@ -164,10 +164,18 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
     const totalLiquido = doc.rubricas
       .filter((r) => r.tipo === "abono")
       .reduce((a, r) => a + (r.valorComRedu ?? 0), 0);
+    // Pedido do utilizador (02/09/2026): quando há dois sujeitos passivos
+    // já identificados em Perfil (nome preenchido), mostrar de quem é cada
+    // documento diretamente no cartão — não só pelo separador ativo — para
+    // dar mais contexto ao relance (ex.: ao rever vários meses seguidos).
+    // Quem não quiser isto basta não preencher o nome em Perfil: sem nome,
+    // não aparece nada aqui (nunca cai para o id interno da pessoa).
+    const pessoaDoDoc = duasPessoas ? pessoas.find((p) => p.id === doc.pessoaId) : null;
     return `
       <div class="doc-card">
         <div class="doc-card__row">
           <span class="tag" data-tipo="${doc.tipo}">${doc.tipo === "recibo_verde" ? pt.mensal.tipoReciboVerde : pt.mensal.tipoTalao}</span>
+          ${pessoaDoDoc?.nome ? `<span class="doc-card__pessoa">${pessoaDoDoc.nome}</span>` : ""}
           <span class="doc-card__valor num">${formatarMoeda(totalLiquido)}</span>
         </div>
         ${doc.dataUpload ? `<p class="doc-card__data">Carregado a ${formatarDataHora(doc.dataUpload)}</p>` : ""}

@@ -134,6 +134,10 @@
           <div>
             <h2>Os seus dados não saem do telemóvel ou do computador</h2>
             <p>Sem contas, sem servidor, sem terceiros. Tudo o que carregar fica no seu dispositivo — só sai de lá se for você a exportar um PDF e a decidir partilhá-lo.</p>
+            <!-- Texto de fallback (sem JS) igual ao que o script no fundo da
+                 página injeta a partir de app/data/legislacao-2026.js — essa
+                 é a única fonte de verdade, só se atualiza lá. -->
+            <p class="privacidade__revisao" id="revisao-fiscal-texto">Dados fiscais revistos em setembro de 2026 · próxima revisão prevista: março de 2027.</p>
           </div>
         </div>
       </div>
@@ -162,8 +166,26 @@
       <p class="rodape__disclaimer">
         Simulação orientativa com base nos documentos carregados. Não substitui a declaração oficial de IRS nem aconselhamento fiscal certificado.
       </p>
+      <p class="rodape__copyright">© <span id="ano-copyright">2026</span> Daniel Lanzas — Antecipa, simulador de IRS — todos os direitos reservados.</p>
     </div>
   </footer>
 
+  <!-- Import direto do módulo de dados fiscais da app só para manter esta
+       página estática sincronizada com uma única fonte de verdade (a data
+       de revisão fiscal) — não carrega mais nada da app, e falha em
+       silêncio (mantendo o texto estático já no HTML) se o módulo não
+       carregar por algum motivo. -->
+  <script type="module">
+    import { revisaoFiscal } from "./app/data/legislacao-2026.js";
+    const elRevisao = document.getElementById("revisao-fiscal-texto");
+    if (elRevisao) {
+      elRevisao.textContent =
+        `Dados fiscais revistos em ${revisaoFiscal.dataRevisao} · próxima revisão prevista: ${revisaoFiscal.proximaRevisaoPrevista}.`;
+    }
+  </script>
+  <script>
+    const elAno = document.getElementById("ano-copyright");
+    if (elAno) elAno.textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
