@@ -18,9 +18,13 @@
         <!-- Sobre o fundo escuro do cabeçalho usa-se a versão em badge
              (fundo claro arredondado) do logotipo, tal como a arte de
              referência mostra para o ícone da app — ver secção 4 do
-             BRAND.md. -->
-        <img class="brand-mark" src="../assets/mark-badge.png" alt="Antecipa" width="44" height="44" />
-        <span class="brand-wordmark">antecipa</span>
+             BRAND.md. Liga à landing pública (../) — os dados ficam todos
+             na IndexedDB do dispositivo, por isso voltar à app depois não
+             perde nada, é só navegação. -->
+        <a href="../" class="app-header__logo" aria-label="Antecipa — voltar à página inicial">
+          <img class="brand-mark" src="../assets/mark-badge.png" alt="" width="44" height="44" />
+          <span class="brand-wordmark">antecipa</span>
+        </a>
       </div>
     </header>
 
@@ -32,13 +36,13 @@
     <main class="app-main" id="main-view" aria-live="polite"></main>
 
     <nav class="bottom-nav" id="bottom-nav" hidden>
-      <button class="bottom-nav__item" data-rota="mensal" aria-current="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        Meses
-      </button>
       <button class="bottom-nav__item" data-rota="acumulado">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M12 20V4M20 20v-7"/></svg>
         Dashboard
+      </button>
+      <button class="bottom-nav__item" data-rota="mensal" aria-current="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        Meses
       </button>
       <button class="bottom-nav__item" data-rota="deducoes">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3v18M4 8h5M4 13h5M4 18h5M15 3v18M15 8h5M15 13h5"/></svg>

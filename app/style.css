@@ -103,6 +103,15 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   max-width: var(--max-content-wide);
   margin: 0 auto;
 }
+.app-header__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: 8px;
+  transition: opacity 0.15s ease;
+}
+.app-header__logo:hover { opacity: 0.85; }
+.app-header__logo:focus-visible { outline: 2px solid var(--brass-light); outline-offset: 3px; }
 .brand-mark {
   width: 44px;
   height: 44px;
@@ -169,6 +178,11 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .btn-ghost:hover { color: var(--text); background: rgba(20, 26, 43, 0.04); }
 .btn-block { width: 100%; }
 .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+/* O botão do ano ativo na lista de Perfil usa [disabled] só para impedir
+   o clique (já está selecionado) — não é uma ação indisponível, é o
+   estado atual, por isso mantém-se legível em vez do cinza apagado
+   genérico acima. */
+[data-action="usar-ano"][disabled] { opacity: 1; color: var(--navy-deep); cursor: default; }
 
 /* ---------- Forms ---------- */
 label { display: block; font-weight: 500; margin-bottom: var(--space-1); font-size: 0.9rem; }
@@ -363,6 +377,58 @@ input:focus, select:focus { border-color: var(--brass); }
 .empty-state-card p { color: var(--muted); margin-bottom: var(--space-5); }
 
 /* ---------- Ventana 13 — acumulado ---------- */
+.ventana13-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.ventana13-header h2 { margin-bottom: 0; }
+
+/* Relógio "vidro" — data/hora grandes, canto superior direito, estilo
+   widget macOS: fundo translúcido com blur sobre a paleta navy/paper já
+   existente (ver BRAND.md), sem introduzir cores novas. Atualiza-se
+   sozinho via setTimeout recursivo em ventana-13.js, que para de se
+   reagendar assim que #glass-clock deixa de estar ligado ao documento
+   (o utilizador navegou para outra ventana) — não há destroy() explícito
+   no router da app, por isso o próprio widget é responsável por não
+   deixar um temporizador a correr no vazio. */
+.glass-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 10px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 6px 20px rgba(11, 29, 58, 0.1);
+}
+.glass-clock__hora {
+  font-family: var(--font-mono);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--navy-deep);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.glass-clock__data {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: capitalize;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .glass-clock { padding: 8px 14px; border-radius: 14px; }
+  .glass-clock__hora { font-size: 1.4rem; }
+  .glass-clock__data { font-size: 0.68rem; }
+}
+
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

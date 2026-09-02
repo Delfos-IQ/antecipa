@@ -58,6 +58,45 @@ function calcularPlafonds(deducoesColeta, tabela, regime) {
   ];
 }
 
+// Relógio "vidro" no cabeçalho do Dashboard — pedido explícito do
+// utilizador (02/09/2026): "fecha e hora en grande, arriba a la derecha,
+// como en apple mac... en modo cristal". Formato de 24h e data curta
+// pt-PT; a hora é a informação mais lida à distância por isso tem
+// destaque tipográfico maior do que a data.
+function formatarRelogio(agora) {
+  const hora = new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit" }).format(agora);
+  const data = new Intl.DateTimeFormat("pt-PT", { weekday: "short", day: "2-digit", month: "short" }).format(agora);
+  return { hora, data };
+}
+
+function renderGlassClock() {
+  const { hora, data } = formatarRelogio(new Date());
+  return `
+    <div class="glass-clock" id="glass-clock" role="status" aria-label="Data e hora atuais">
+      <span class="glass-clock__hora" id="glass-clock-hora">${hora}</span>
+      <span class="glass-clock__data" id="glass-clock-data">${data}</span>
+    </div>`;
+}
+
+// Sem lifecycle de "destroy" explícito no router (app.js só faz
+// main.innerHTML = "" ao navegar) — o próprio tick verifica se o widget
+// ainda está ligado ao documento antes de se reagendar, e se não estiver
+// (o utilizador saiu do Dashboard) simplesmente para, sem deixar
+// temporizadores a acumular em navegações repetidas.
+function iniciarRelogioVivo(container) {
+  const tick = () => {
+    const elClock = container.querySelector("#glass-clock");
+    if (!elClock || !elClock.isConnected) return;
+    const { hora, data } = formatarRelogio(new Date());
+    const elHora = container.querySelector("#glass-clock-hora");
+    const elData = container.querySelector("#glass-clock-data");
+    if (elHora) elHora.textContent = hora;
+    if (elData) elData.textContent = data;
+    setTimeout(tick, 15000);
+  };
+  setTimeout(tick, 15000);
+}
+
 function renderPlafonds(plafonds, temAlgumaDeducao) {
   return `
     <p class="section-title" style="margin-top:var(--space-6)">${pt.ventana13.plafondsTitulo}</p>
@@ -119,10 +158,14 @@ export async function renderVentana13({ container, anoFiscal }) {
 
   if (documentos.length === 0) {
     container.innerHTML = `
-      <h2>${pt.ventana13.titulo}</h2>
+      <div class="ventana13-header">
+        <h2>${pt.ventana13.titulo}</h2>
+        ${renderGlassClock()}
+      </div>
       <p class="empty-state">${pt.ventana13.semDados}</p>
       ${renderPlafonds(plafonds, temAlgumaDeducao)}
     `;
+    iniciarRelogioVivo(container);
     return;
   }
 
@@ -157,7 +200,10 @@ export async function renderVentana13({ container, anoFiscal }) {
   ].filter((c) => c.valor > 0);
 
   container.innerHTML = `
-    <h2>${pt.ventana13.titulo}</h2>
+    <div class="ventana13-header">
+      <h2>${pt.ventana13.titulo}</h2>
+      ${renderGlassClock()}
+    </div>
     <div class="metrics-grid">
       <div class="metric-tile" data-cor="devolver">
         <div class="metric-tile__label">${pt.ventana13.liquidoAcumulado}</div>
@@ -255,4 +301,5 @@ export async function renderVentana13({ container, anoFiscal }) {
 
     ${renderPlafonds(plafonds, temAlgumaDeducao)}
   `;
+  iniciarRelogioVivo(container);
 }

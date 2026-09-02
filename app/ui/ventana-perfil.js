@@ -121,11 +121,20 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.anoFiscalTitulo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.anoFiscalCorpo}</p>
-        <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
-          <select id="perfil-ano-select" style="width:auto;min-height:auto;padding:8px 10px">
-            ${anosDisponiveis.map((a) => `<option value="${a}" ${a === anoAtivo ? "selected" : ""}>${a}</option>`).join("")}
-          </select>
-          <button class="btn btn-secondary" data-action="novo-ano">${pt.perfil.novoAno}</button>
+        <div class="stack" style="gap:var(--space-2)">
+          ${anosDisponiveis
+            .map((a) => {
+              const ativo = a === anoAtivo;
+              return `
+              <div class="row" data-ano-linha="${a}" style="gap:var(--space-2);align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid ${ativo ? "var(--brass)" : "var(--hairline)"};border-radius:8px">
+                <button class="btn btn-ghost" data-action="usar-ano" data-ano="${a}" ${ativo ? "disabled" : ""} style="padding:4px 8px;font-weight:${ativo ? 700 : 400};flex:1;text-align:left">
+                  ${a}${ativo ? ` · ${pt.perfil.anoAtivoLabel}` : ""}
+                </button>
+                ${ativo ? "" : `<button class="btn btn-ghost" data-action="remover-ano" data-ano="${a}" style="color:var(--pagar);flex:none">${pt.perfil.removerAno}</button>`}
+              </div>`;
+            })
+            .join("")}
+          <button class="btn btn-secondary" data-action="novo-ano" style="margin-top:var(--space-1)">${pt.perfil.novoAno}</button>
         </div>
       </div>
 
@@ -192,12 +201,29 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       await montar();
     });
 
-    container.querySelector("#perfil-ano-select")?.addEventListener("change", async (e) => {
-      const novoAno = Number(e.target.value);
-      await definirAnoFiscalAtivo(novoAno);
-      onAnoFiscalMudou?.(novoAno);
-      await montar();
-    });
+    container.querySelectorAll('[data-action="usar-ano"]').forEach((el) =>
+      el.addEventListener("click", async () => {
+        const novoAno = Number(el.dataset.ano);
+        await definirAnoFiscalAtivo(novoAno);
+        onAnoFiscalMudou?.(novoAno);
+        await montar();
+      })
+    );
+
+    container.querySelectorAll('[data-action="remover-ano"]').forEach((el) =>
+      el.addEventListener("click", async () => {
+        const ano = Number(el.dataset.ano);
+        const confirmar = window.confirm(
+          `${pt.perfil.confirmarRemoverAno} ${ano}?\n\n${pt.perfil.confirmarRemoverAnoCorpo}\n${pt.perfil.confirmarLimparAvisoBackup}`
+        );
+        if (!confirmar) return;
+        await limparAnoFiscal(ano);
+        // O ano removido nunca é o ativo (o botão não aparece nesse caso),
+        // por isso não é preciso escolher um ano de recurso aqui — o ano
+        // ativo mantém-se o que já estava.
+        await montar();
+      })
+    );
 
     container.querySelector('[data-action="novo-ano"]')?.addEventListener("click", async () => {
       const proximo = Math.max(...anosDisponiveis, anoAtivo) + 1;

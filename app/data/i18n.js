@@ -151,8 +151,13 @@ export const pt = {
     adicionarDependente: "+ Adicionar dependente",
     anoFiscalTitulo: "Ano fiscal ativo",
     anoFiscalCorpo:
-      "Os documentos, ajustes e simulações ficam sempre associados a um ano fiscal. Mude aqui o ano ativo para começar um novo exercício (ex.: 2027) sem perder o histórico do anterior.",
+      "Os documentos, ajustes e simulações ficam sempre associados a um ano fiscal. Toque num ano para o tornar ativo, comece um novo exercício, ou remova um ano criado por engano.",
+    anoAtivoLabel: "ativo",
+    usarAno: "Usar",
+    removerAno: "Remover",
     novoAno: "+ Começar novo ano",
+    confirmarRemoverAno: "Tem a certeza que quer remover o ano",
+    confirmarRemoverAnoCorpo: "Isto apaga todos os documentos, ajustes e simulações desse ano.",
     higieneTitulo: "Dados guardados neste dispositivo",
     higieneCorpo:
       "Todos os dados ficam só no seu dispositivo. Recomendamos exportar um backup antes de limpar qualquer coisa.",
@@ -236,7 +241,7 @@ export const pt = {
       },
     ],
 
-    privacidadeTitulo: "Os seus dados não saem do seu telemóvel",
+    privacidadeTitulo: "Os seus dados não saem do telemóvel ou do computador",
     privacidadeCorpo:
       "Sem contas, sem servidor, sem terceiros. Tudo o que carregar fica no seu dispositivo — só sai de lá se for você a exportar um PDF e a decidir partilhá-lo.",
 
