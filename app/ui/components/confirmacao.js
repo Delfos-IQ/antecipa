@@ -129,6 +129,16 @@ function renderListaRubricas(rubricas, tipo) {
 // utilizador conferir os valores lidos contra o documento real. Se o
 // desenho falhar por algum motivo (ficheiro inválido, etc.), falha em
 // silêncio — a confirmação continua a funcionar sem a pré-visualização.
+// Níveis de zoom disponíveis (multiplicador sobre o "ajustar à largura"
+// inicial). O utilizador queixou-se de que a pré-visualização vinha
+// minúscula e ilegível dentro da coluna estreita do modal — o problema
+// não era só a largura da coluna (ver painel.style.cssText mais abaixo,
+// também alargada), mas o facto de o texto de um talão típico só fica
+// legível bastante acima do "ajustar à largura". Por isso: arranca já
+// num zoom 1.6× e permite ir até 3×, com o wrap a fazer scroll.
+const ZOOM_NIVEIS = [1, 1.3, 1.6, 2, 2.5, 3];
+const ZOOM_INICIAL = 1.6;
+
 async function montarPreviaPdf(container, ficheiro) {
   if (!ficheiro) return;
   try {
@@ -136,28 +146,53 @@ async function montarPreviaPdf(container, ficheiro) {
     const buffer = await ficheiro.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
     let paginaAtual = 1;
+    let zoomAtual = ZOOM_INICIAL;
 
     container.innerHTML = `
-      <div class="previa-pdf__toolbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2)">
-        <button class="btn btn-ghost" data-action="pagina-anterior" ${pdf.numPages <= 1 ? "disabled" : ""}>‹</button>
-        <span class="muted previa-pdf__pagina">Página 1 / ${pdf.numPages}</span>
-        <button class="btn btn-ghost" data-action="pagina-seguinte" ${pdf.numPages <= 1 ? "disabled" : ""}>›</button>
+      <div class="previa-pdf__toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);margin-bottom:var(--space-2);flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:4px">
+          <button class="btn btn-ghost" data-action="pagina-anterior" ${pdf.numPages <= 1 ? "disabled" : ""}>‹</button>
+          <span class="muted previa-pdf__pagina">Página 1 / ${pdf.numPages}</span>
+          <button class="btn btn-ghost" data-action="pagina-seguinte" ${pdf.numPages <= 1 ? "disabled" : ""}>›</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <button class="btn btn-ghost" data-action="zoom-menos" title="Diminuir zoom" style="padding:4px 12px">−</button>
+          <span class="muted previa-pdf__zoom" style="min-width:44px;text-align:center;font-size:0.8rem"></span>
+          <button class="btn btn-ghost" data-action="zoom-mais" title="Aumentar zoom" style="padding:4px 12px">+</button>
+        </div>
       </div>
-      <div class="previa-pdf__canvas-wrap" style="overflow:auto;border-radius:8px;border:1px solid var(--linha, #e2e5ea)">
-        <canvas class="previa-pdf__canvas" style="display:block;width:100%;height:auto"></canvas>
+      <div class="previa-pdf__canvas-wrap" style="overflow:auto;border-radius:8px;border:1px solid var(--linha, #e2e5ea);max-height:70vh;background:#525659">
+        <canvas class="previa-pdf__canvas" style="display:block"></canvas>
       </div>
+      <p class="field-hint" style="margin-top:var(--space-2)">Deslize (scroll/gesto) dentro da pré-visualização para percorrer a página ampliada.</p>
     `;
     const canvas = container.querySelector(".previa-pdf__canvas");
+    const wrap = container.querySelector(".previa-pdf__canvas-wrap");
     const rotulo = container.querySelector(".previa-pdf__pagina");
+    const rotuloZoom = container.querySelector(".previa-pdf__zoom");
 
+    // Renderiza a página inteira à resolução real do ecrã (devicePixelRatio)
+    // multiplicada pelo zoom pedido, para o texto ficar nítido mesmo
+    // ampliado — em vez de esticar por CSS um canvas de baixa resolução
+    // (o que dava o efeito "ilegível" reportado).
     async function desenharPagina(numero) {
       const page = await pdf.getPage(numero);
-      const viewport = page.getViewport({ scale: 1.4 });
+      const dpr = window.devicePixelRatio || 1;
+      // Largura base: a da coluna de pré-visualização, para que zoom=1
+      // corresponda a "ajustar à largura" do painel.
+      const larguraBase = wrap.clientWidth || 360;
+      const viewportBase = page.getViewport({ scale: 1 });
+      const escalaAjuste = larguraBase / viewportBase.width;
+      const escalaFinal = escalaAjuste * zoomAtual * dpr;
+      const viewport = page.getViewport({ scale: escalaFinal });
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+      canvas.style.width = `${viewport.width / dpr}px`;
+      canvas.style.height = `${viewport.height / dpr}px`;
       const ctx = canvas.getContext("2d");
       await page.render({ canvasContext: ctx, viewport }).promise;
       rotulo.textContent = `Página ${numero} / ${pdf.numPages}`;
+      rotuloZoom.textContent = `${Math.round(zoomAtual * 100)}%`;
     }
 
     container.querySelector('[data-action="pagina-anterior"]')?.addEventListener("click", () => {
@@ -165,6 +200,20 @@ async function montarPreviaPdf(container, ficheiro) {
     });
     container.querySelector('[data-action="pagina-seguinte"]')?.addEventListener("click", () => {
       if (paginaAtual < pdf.numPages) desenharPagina((paginaAtual += 1));
+    });
+    container.querySelector('[data-action="zoom-mais"]')?.addEventListener("click", () => {
+      const proximo = ZOOM_NIVEIS.find((z) => z > zoomAtual + 0.001);
+      if (proximo) {
+        zoomAtual = proximo;
+        desenharPagina(paginaAtual);
+      }
+    });
+    container.querySelector('[data-action="zoom-menos"]')?.addEventListener("click", () => {
+      const anteriores = ZOOM_NIVEIS.filter((z) => z < zoomAtual - 0.001);
+      if (anteriores.length) {
+        zoomAtual = anteriores[anteriores.length - 1];
+        desenharPagina(paginaAtual);
+      }
     });
 
     await desenharPagina(paginaAtual);
@@ -189,11 +238,11 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar
   const painel = document.createElement("div");
   painel.className = "card";
   painel.style.cssText =
-    "width:100%;max-width:980px;max-height:92vh;overflow:auto;border-radius:16px;padding:var(--space-5);display:flex;flex-wrap:wrap;gap:var(--space-5);";
+    "width:100%;max-width:min(1280px, 96vw);max-height:92vh;overflow:auto;border-radius:16px;padding:var(--space-5);display:flex;flex-wrap:wrap;gap:var(--space-5);";
 
   function render() {
     painel.innerHTML = `
-      <div style="flex:1 1 380px;min-width:280px">
+      <div style="flex:1 1 360px;min-width:280px">
         <h2>Confirme os valores extraídos</h2>
         ${ehTalao ? renderTalao(resultadoParsing, resumo, linhasDesconto) : renderListaRubricas(rubricas, tipo)}
         <div class="onboarding__nav">
@@ -201,7 +250,7 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar
           <button class="btn btn-primary" data-action="confirmar">Guardar</button>
         </div>
       </div>
-      <div class="previa-pdf" style="flex:1 1 320px;min-width:240px"></div>
+      <div class="previa-pdf" style="flex:2 1 480px;min-width:360px"></div>
     `;
     ligar();
     montarPreviaPdf(painel.querySelector(".previa-pdf"), ficheiro);
