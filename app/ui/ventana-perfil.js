@@ -3,6 +3,11 @@
 // (trocar de exercício, exportar backup, limpar dados) e regresso ao
 // ecrã de boas-vindas. Não fazia parte do desenho original (secção 8);
 // adicionada na auditoria autónoma de set/2026 a pedido do utilizador.
+//
+// Nota (02/09/2026): o cartão "Deduções e outros rendimentos" que vivia
+// aqui foi promovido a tab própria — ver ui/ventana-deducoes.js — por ser
+// um input fiscal que alimenta diretamente a Simulação, não uma
+// definição de conta como o resto desta ventana.
 
 import { pt } from "../data/i18n.js";
 import {
@@ -17,23 +22,7 @@ import {
   limparAnoFiscal,
   limparTudo,
   definirAnoFiscalAtivo,
-  getDeducoesColeta,
-  saveDeducoesColeta,
 } from "../storage/db.js";
-
-// Lista plana de todos os campos editáveis de deducoesColeta, agrupados só
-// para efeitos de apresentação (o motor em engine/calculo-irs.js lê tudo
-// do mesmo objeto plano, ver getDeducoesColeta em storage/db.js). Os
-// grupos (título, hint, label/hint por campo) vivem em data/i18n.js —
-// pt.perfil.deducoesGrupos — este array só define a ordem e que campos
-// pertencem a cada grupo.
-const GRUPOS_DEDUCOES = [
-  { chave: "saudeEducacao", campos: ["saude", "educacao", "ppr", "habitacao"] },
-  { chave: "familia", campos: ["despesasGerais"] },
-  { chave: "exigenciaFatura", campos: ["exigenciaFaturaRestauracao", "exigenciaFaturaReparacaoAutomovel", "exigenciaFaturaPassesMensais", "exigenciaFaturaOutras"] },
-  { chave: "capital", campos: ["maisValias"] },
-  { chave: "outras", campos: ["duplaTributacao"] },
-];
 
 // Mesma lógica de idadeDoDependenteNoAno em engine/calculo-irs.js — aqui só
 // para mostrar ao utilizador que escalão se aplica a cada dependente,
@@ -60,30 +49,6 @@ function formatarDataHora(iso) {
   }
 }
 
-function renderGrupoDeducao(grupo, valores) {
-  const defsGrupo = pt.perfil.deducoesGrupos[grupo.chave];
-  return `
-    <div style="margin-bottom:var(--space-3)">
-      <p style="font-weight:600;font-size:0.88rem;margin-bottom:var(--space-1)">${defsGrupo.titulo}</p>
-      ${defsGrupo.corpoHint ? `<p class="field-hint" style="margin-bottom:var(--space-2)">${defsGrupo.corpoHint}</p>` : ""}
-      <div class="stack" style="gap:var(--space-2)">
-        ${grupo.campos
-          .map((campo) => {
-            const def = defsGrupo[campo];
-            const valorAtual = valores?.[campo] ?? 0;
-            return `
-          <label style="display:block">
-            <span style="font-size:0.82rem">${def.label}</span>
-            <input type="number" min="0" step="0.01" inputmode="decimal" data-deducao-campo="${campo}"
-              value="${valorAtual || ""}" placeholder="0,00" style="margin-top:2px" />
-            <span class="field-hint" style="display:block;margin-top:2px">${def.hint}</span>
-          </label>`;
-          })
-          .join("")}
-      </div>
-    </div>`;
-}
-
 function descarregarJSON(objeto, nomeFicheiro) {
   const blob = new Blob([JSON.stringify(objeto, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -105,7 +70,6 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     const dependentes = (await getDependentes()).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     const anos = await getAnosFiscaisComDados();
     const anoAtivo = household?.anoFiscalAtivo ?? anoFiscal;
-    const deducoesColeta = await getDeducoesColeta(anoAtivo, "household");
 
     // Garante que o ano ativo aparece sempre na lista de anos disponíveis,
     // mesmo que ainda não tenha nenhum documento carregado.
@@ -163,13 +127,6 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
           </select>
           <button class="btn btn-secondary" data-action="novo-ano">${pt.perfil.novoAno}</button>
         </div>
-      </div>
-
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
-        <p class="section-title">${pt.perfil.deducoesTitulo}</p>
-        <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.deducoesCorpo}</p>
-        ${GRUPOS_DEDUCOES.map((grupo) => renderGrupoDeducao(grupo, deducoesColeta)).join("")}
-        <p class="muted" style="margin-top:var(--space-2);font-size:0.78rem">${pt.perfil.deducoesGuardar}</p>
       </div>
 
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
@@ -233,20 +190,6 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     container.querySelector('[data-action="adicionar-dependente"]')?.addEventListener("click", async () => {
       await saveDependente({ nome: "", dataNascimento: "", guarda: "exclusiva" });
       await montar();
-    });
-
-    // Campos de deduções: gravados no blur, sem forçar um re-render de
-    // todo o painel (evitaria perder o foco enquanto o utilizador navega
-    // entre campos com Tab) — cada campo já guarda o valor mais recente
-    // de deducoesColeta, lido de novo do storage a cada gravação para
-    // nunca sobrepor alterações concorrentes de outro campo.
-    container.querySelectorAll("[data-deducao-campo]").forEach((el) => {
-      el.addEventListener("blur", async () => {
-        const atual = await getDeducoesColeta(anoAtivo, "household");
-        const valor = el.value === "" ? 0 : Number(el.value);
-        atual[el.dataset.deducaoCampo] = Number.isFinite(valor) ? valor : 0;
-        await saveDeducoesColeta(anoAtivo, "household", atual);
-      });
     });
 
     container.querySelector("#perfil-ano-select")?.addEventListener("change", async (e) => {

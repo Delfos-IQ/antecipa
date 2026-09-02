@@ -1,12 +1,14 @@
 // ui/ventana-13.js
-// Ventana 13 — Acumulado do ano (secção 8.3), com dashboard mais rico:
-// repartição de descontos (IRS/SS/Sindicato/ADSE/Outros) com barras de
-// cor, e rendimento líquido mês a mês — pedido explícito do utilizador
-// na auditoria autónoma de set/2026 ("mais cores, sumatórios, análise
-// detalhada").
+// Ventana "Dashboard" (era "Acumulado", secção 8.3) — repartição de
+// descontos (IRS/SS/Sindicato/ADSE/Outros), rendimento líquido mês a mês,
+// IRS retido acumulado, e o uso dos tetos de dedução (saúde, educação,
+// exigência de fatura, despesas gerais) face aos valores já preenchidos
+// em Deduções — pedido explícito do utilizador na auditoria de 02/09/2026
+// ("transformar acumulado em dashboard... colocar gráficos de evolução").
 
 import { pt } from "../data/i18n.js";
-import { getTodasRubricas } from "../storage/db.js";
+import { getTodasRubricas, getDeducoesColeta, getHousehold } from "../storage/db.js";
+import { obterTabelaFiscal } from "../data/legislacao-2026.js";
 
 function formatarMoeda(v) {
   // ver nota em ui/ventana-14.js: substitui o nbsp antes do € por um
@@ -16,8 +18,79 @@ function formatarMoeda(v) {
     .replace(" €", '<span class="moeda">€</span>');
 }
 
+// Progresso de cada teto de dedução face ao que já foi preenchido em
+// Deduções (ver ui/ventana-deducoes.js). Duplica deliberadamente só a
+// aritmética de percentagem+teto de engine/calculo-irs.js
+// (calcularDeducoesAColeta) — não a lógica fiscal completa — porque essa
+// função não está exportada e o dashboard só precisa de "quanto já usei
+// do teto", não de recalcular a declaração inteira.
+function calcularPlafonds(deducoesColeta, tabela, regime) {
+  const limites = tabela.limitesDeducoes;
+  const clamp = (v, l) => Math.max(0, Math.min(v, l));
+
+  const saudeUsado = clamp((deducoesColeta.saude || 0) * limites.saude.percentagem, limites.saude.limite);
+  const educacaoUsado = clamp((deducoesColeta.educacao || 0) * limites.educacao.percentagem, limites.educacao.limite);
+
+  const baseExigencia15 =
+    (deducoesColeta.exigenciaFaturaRestauracao || 0) +
+    (deducoesColeta.exigenciaFaturaReparacaoAutomovel || 0) +
+    (deducoesColeta.exigenciaFaturaOutras || 0);
+  const baseTransportes = deducoesColeta.exigenciaFaturaPassesMensais || 0;
+  const exigenciaUsado = clamp(
+    baseExigencia15 * (limites.exigenciaFatura.percentagem ?? 0.15) +
+      baseTransportes * (limites.exigenciaFatura.percentagemTransportesPublicos ?? 1) +
+      (deducoesColeta.exigenciaFatura || 0),
+    limites.exigenciaFatura.limite
+  );
+
+  const limiteDespesasGerais =
+    regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro;
+  const despesasGeraisUsado = clamp(
+    (deducoesColeta.despesasGerais || 0) * limites.despesasGeraisFamiliares.percentagem,
+    limiteDespesasGerais
+  );
+
+  return [
+    { label: pt.ventana13.plafondSaude, usado: saudeUsado, teto: limites.saude.limite },
+    { label: pt.ventana13.plafondEducacao, usado: educacaoUsado, teto: limites.educacao.limite },
+    { label: pt.ventana13.plafondExigenciaFatura, usado: exigenciaUsado, teto: limites.exigenciaFatura.limite },
+    { label: pt.ventana13.plafondDespesasGerais, usado: despesasGeraisUsado, teto: limiteDespesasGerais },
+  ];
+}
+
+function renderPlafonds(plafonds, temAlgumaDeducao) {
+  return `
+    <p class="section-title" style="margin-top:var(--space-6)">${pt.ventana13.plafondsTitulo}</p>
+    <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.ventana13.plafondsCorpo}</p>
+    ${
+      temAlgumaDeducao
+        ? `<div class="stack" style="gap:var(--space-3)">
+      ${plafonds
+        .map((p) => {
+          const percent = p.teto > 0 ? Math.min(100, Math.round((p.usado / p.teto) * 100)) : 0;
+          return `
+        <div>
+          <div class="row-between" style="font-size:0.85rem;margin-bottom:4px">
+            <span>${p.label}</span>
+            <span class="num muted">${formatarMoeda(p.usado)} / ${formatarMoeda(p.teto)}</span>
+          </div>
+          <div class="plafond-track"><div class="plafond-fill" data-cheio="${percent >= 100}" style="width:${percent}%"></div></div>
+        </div>`;
+        })
+        .join("")}
+    </div>`
+        : `<p class="empty-state">${pt.ventana13.plafondsVazio}</p>`
+    }
+  `;
+}
+
 export async function renderVentana13({ container, anoFiscal }) {
   const { documentos, rubricas } = await getTodasRubricas(anoFiscal);
+  const household = await getHousehold();
+  const deducoesColeta = await getDeducoesColeta(anoFiscal, "household");
+  const tabela = obterTabelaFiscal(anoFiscal);
+  const plafonds = calcularPlafonds(deducoesColeta, tabela, household?.regimeTributacao);
+  const temAlgumaDeducao = plafonds.some((p) => p.usado > 0);
 
   let irsRetido = 0;
   let segurancaSocial = 0;
@@ -48,6 +121,7 @@ export async function renderVentana13({ container, anoFiscal }) {
     container.innerHTML = `
       <h2>${pt.ventana13.titulo}</h2>
       <p class="empty-state">${pt.ventana13.semDados}</p>
+      ${renderPlafonds(plafonds, temAlgumaDeducao)}
     `;
     return;
   }
@@ -55,13 +129,24 @@ export async function renderVentana13({ container, anoFiscal }) {
   // Rendimento líquido por mês, para o mini-gráfico de barras — soma todos
   // os documentos (todas as pessoas) desse mês.
   const liquidoPorMes = Array.from({ length: 12 }, () => 0);
+  const irsRetidoPorMes = Array.from({ length: 12 }, () => 0);
   for (const d of documentos) {
     const docRubricas = rubricas.filter((r) => r.documentoId === d.id);
     const abonos = docRubricas.filter((r) => r.tipo === "abono").reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
     const descontos = docRubricas.filter((r) => r.tipo === "desconto").reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
     liquidoPorMes[d.mes - 1] += abonos - descontos;
+    irsRetidoPorMes[d.mes - 1] += docRubricas
+      .filter((r) => r.tipo === "desconto" && r.categoriaIRS)
+      .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
   }
   const maxMensal = Math.max(1, ...liquidoPorMes);
+
+  // IRS retido ACUMULADO mês a mês (soma corrida) — a curva de evolução
+  // pedida pelo utilizador, distinta do gráfico de rendimento líquido por
+  // mês (que é um valor pontual por mês, não uma soma corrida).
+  let corrida = 0;
+  const irsAcumuladoPorMes = irsRetidoPorMes.map((v) => (corrida += v));
+  const maxIrsAcumulado = Math.max(1, ...irsAcumuladoPorMes);
 
   const repartição = [
     { label: pt.ventana13.irsRetido, valor: irsRetido, cor: "var(--pagar)" },
@@ -152,5 +237,22 @@ export async function renderVentana13({ container, anoFiscal }) {
         .map((nome, i) => `<i data-real="${mesesComDados.has(i + 1)}" title="${nome}">${nome.slice(0, 3)}</i>`)
         .join("")}
     </div>
+
+    <p class="section-title" style="margin-top:var(--space-6)">${pt.ventana13.evolucaoIrsTitulo}</p>
+    <div class="mes-barras">
+      ${pt.meses
+        .map((nome, i) => {
+          const v = irsAcumuladoPorMes[i];
+          const alturaPercent = v > 0 ? Math.max(6, Math.round((v / maxIrsAcumulado) * 100)) : 0;
+          return `
+          <div class="mes-barras__col" title="${nome}: ${v.toFixed(2)}€ acumulado">
+            <div class="mes-barras__track"><div class="mes-barras__fill" data-cor="pagar" data-real="${mesesComDados.has(i + 1)}" style="height:${alturaPercent}%"></div></div>
+            <span class="mes-barras__label">${nome.slice(0, 3)}</span>
+          </div>`;
+        })
+        .join("")}
+    </div>
+
+    ${renderPlafonds(plafonds, temAlgumaDeducao)}
   `;
 }

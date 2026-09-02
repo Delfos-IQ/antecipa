@@ -104,13 +104,13 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   margin: 0 auto;
 }
 .brand-mark {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   flex: none;
 }
 .brand-wordmark {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   font-weight: 500;
   color: #fff;
   letter-spacing: -0.01em;
@@ -226,10 +226,26 @@ input:focus, select:focus { border-color: var(--brass); }
   text-align: center;
   padding: var(--space-7) 0;
 }
-.onboarding__welcome .brand-mark { width: 88px; height: 88px; margin: 0 auto var(--space-5); }
+.onboarding__welcome img { margin: 0 auto var(--space-5); display: block; }
 .onboarding__welcome h1 { font-size: 2rem; color: var(--navy-deep); }
-.onboarding__welcome .tagline { font-family: var(--font-display); font-style: italic; font-size: 1.15rem; color: var(--brass); margin-bottom: var(--space-6); }
+.onboarding__welcome .tagline { font-family: var(--font-display); font-style: italic; font-size: 1.15rem; color: var(--brass); margin-bottom: var(--space-4); }
+.onboarding__promessa {
+  max-width: 34ch;
+  margin: 0 auto var(--space-6);
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
 .onboarding__nav { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-6); }
+.onboarding__aviso-legal {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
 
 @keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -419,7 +435,18 @@ input:focus, select:focus { border-color: var(--brass); }
 }
 .mes-barras__fill { width: 100%; background: var(--hairline); }
 .mes-barras__fill[data-real="true"] { background: var(--brass); }
+.mes-barras__fill[data-cor="pagar"][data-real="true"] { background: var(--pagar); }
 .mes-barras__label { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
+
+/* ---------- Dashboard — uso dos tetos de dedução ---------- */
+.plafond-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--paper);
+  overflow: hidden;
+}
+.plafond-fill { height: 100%; background: var(--brass); border-radius: 4px; transition: width 0.2s ease; }
+.plafond-fill[data-cheio="true"] { background: var(--pagar); }
 
 /* ---------- Ventana 14 — simulação ---------- */
 .resultado-selo {

@@ -81,8 +81,9 @@ a { color: inherit; text-decoration: none; }
   justify-content: space-between;
   padding: var(--space-4) 0;
 }
-.lockup { display: inline-flex; align-items: center; gap: 10px; }
-.lockup__word { font-family: var(--font-display); font-size: 1.35rem; color: var(--navy-deep); }
+.lockup { display: inline-flex; align-items: center; gap: 12px; }
+.lockup img { width: 40px; height: auto; }
+.lockup__word { font-family: var(--font-display); font-size: 1.5rem; color: var(--navy-deep); }
 .lockup__word::after { content: "."; color: var(--brass); }
 
 .btn {
@@ -131,8 +132,18 @@ a { color: inherit; text-decoration: none; }
   color: var(--navy-deep);
   margin-bottom: var(--space-5);
 }
-.hero__corpo { font-size: 1.08rem; color: var(--text); margin-bottom: var(--space-6); max-width: 46ch; }
+.hero__corpo { font-size: 1.08rem; color: var(--text); margin-bottom: var(--space-5); max-width: 46ch; }
+.hero__missao {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.05rem;
+  color: var(--brass);
+  max-width: 40ch;
+  margin-bottom: var(--space-5);
+}
 .hero__ctas { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.hero__nota { margin-top: var(--space-4); font-size: 0.82rem; color: var(--muted); }
 
 /* Mock do selo de resultado real da app — a peça central da hero */
 .hero__mock {
@@ -245,6 +256,14 @@ a { color: inherit; text-decoration: none; }
 .privacidade p { color: var(--text); max-width: 56ch; }
 
 /* ---------- Voz da marca ---------- */
+.secao-visao {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1.35;
+  color: var(--navy-deep);
+  max-width: 42ch;
+  margin-bottom: var(--space-6);
+}
 .voz-grid {
   display: grid;
   gap: var(--space-4);

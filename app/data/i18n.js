@@ -10,6 +10,14 @@ export const pt = {
     boasVindas: {
       titulo: "Antecipa",
       tagline: "O seu IRS, um ano antes da hora.",
+      // Missão, visão e valores tecidos numa única frase — nunca uma
+      // secção "Missão/Visão/Valores" à parte (ver BRAND.md §5, voz da
+      // marca: direta, específica, sem eufemismo). Missão: ninguém
+      // descobrir o que deve só em abril. Valor: a fórmula oficial linha
+      // a linha, não uma média redonda. Valor: os dados nunca saem do
+      // dispositivo.
+      promessa:
+        "Achamos que ninguém devia descobrir o que deve ao Estado só em abril. Por isso replicamos a fórmula oficial do IRS, linha a linha — nunca uma média — e os seus dados nunca saem deste dispositivo.",
       cta: "Começar",
     },
     privacidade: {
@@ -75,7 +83,7 @@ export const pt = {
   },
 
   ventana13: {
-    titulo: "Acumulado do ano",
+    titulo: "Dashboard",
     irsRetido: "IRS retido acumulado",
     segurancaSocial: "Segurança Social",
     taxaEfetiva: "Taxa de desconto efetiva",
@@ -85,10 +93,18 @@ export const pt = {
     liquidoAcumulado: "Líquido acumulado",
     descontosTitulo: "Como se reparte o que foi descontado",
     porMesTitulo: "Rendimento líquido por mês",
+    evolucaoIrsTitulo: "IRS retido acumulado, mês a mês",
     semDados: "Ainda sem dados este ano. Carregue documentos nos Meses para ver o acumulado.",
     mesesComDados: "meses com dados reais",
     coberturaLabel: "Cobertura do ano",
     de12: "de 12",
+    plafondsTitulo: "Uso dos tetos de dedução",
+    plafondsCorpo: "Com base no que já preencheu em Deduções. Ajuste lá os valores para ver isto mudar.",
+    plafondsVazio: "Ainda sem valores em Deduções — os tetos aparecem aqui assim que preencher algo lá.",
+    plafondSaude: "Saúde",
+    plafondEducacao: "Educação",
+    plafondExigenciaFatura: "Exigência de fatura",
+    plafondDespesasGerais: "Despesas gerais familiares",
   },
 
   ventana14: {
@@ -111,7 +127,7 @@ export const pt = {
     exportarContabilista: "Versão para contabilista",
   },
 
-  nav: { mensal: "Meses", acumulado: "Acumulado", simulacao: "Simulação", perfil: "Perfil", definicoes: "Definições" },
+  nav: { mensal: "Meses", acumulado: "Dashboard", deducoes: "Deduções", simulacao: "Simulação", perfil: "Perfil", definicoes: "Definições" },
 
   bannerLegal: {
     texto:

@@ -5,6 +5,7 @@ import { criarOnboarding, precisaOnboarding } from "./ui/onboarding.js";
 import { renderVentanasMensais } from "./ui/ventanas-mensais.js";
 import { renderVentana13 } from "./ui/ventana-13.js";
 import { renderVentana14 } from "./ui/ventana-14.js";
+import { renderVentanaDeducoes } from "./ui/ventana-deducoes.js";
 import { renderVentanaPerfil } from "./ui/ventana-perfil.js";
 import { getHousehold } from "./storage/db.js";
 import { pt } from "./data/i18n.js";
@@ -44,6 +45,8 @@ async function navegar(rota, opcoes = {}) {
     await renderVentanasMensais({ container: main, anoFiscal, mesParaAbrir: opcoes.abrirUpload ? new Date().getMonth() + 1 : null });
   } else if (rota === "acumulado") {
     await renderVentana13({ container: main, anoFiscal });
+  } else if (rota === "deducoes") {
+    await renderVentanaDeducoes({ container: main, anoFiscal });
   } else if (rota === "simulacao") {
     await renderVentana14({ container: main, anoFiscal });
   } else if (rota === "perfil") {

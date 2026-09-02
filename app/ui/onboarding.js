@@ -46,11 +46,14 @@ export function criarOnboarding({ container, onConcluido }) {
   function renderPasso() {
     switch (estado.passo) {
       case 0:
+        // Marca maior que em qualquer outro ecrã (150px) — este é o único
+        // sítio onde ela é mesmo protagonista, a pedido do Dani.
         return `
           <div class="onboarding__welcome">
-            ${simboloSVG({ size: 88 })}
+            ${simboloSVG({ size: 150 })}
             <h1>${pt.onboarding.boasVindas.titulo}</h1>
             <p class="tagline">${pt.onboarding.boasVindas.tagline}</p>
+            <p class="onboarding__promessa">${pt.onboarding.boasVindas.promessa}</p>
             <button class="btn btn-primary" data-action="seguinte">${pt.onboarding.boasVindas.cta}</button>
           </div>`;
 
@@ -61,6 +64,7 @@ export function criarOnboarding({ container, onConcluido }) {
             ${iconeCadeado()}
             <p>${pt.onboarding.privacidade.corpo}</p>
           </div>
+          <p class="onboarding__aviso-legal">${pt.bannerLegal.texto}</p>
           ${navegacao(true, pt.onboarding.privacidade.cta)}`;
 
       case 2:
@@ -187,6 +191,15 @@ export function criarOnboarding({ container, onConcluido }) {
         estado.situacao = e.target.value;
         if (estado.situacao === "casal" && estado.pessoas.length === 1) {
           estado.pessoas.push({ id: "B", nome: "", nif: "" });
+        } else if (estado.situacao !== "casal" && estado.pessoas.length > 1) {
+          // Só "casal/união de facto" tem dois sujeitos passivos — ao voltar
+          // para uma situação de um só sujeito passivo, a 2ª pessoa
+          // (adicionada automaticamente acima ou manualmente, ver
+          // data-action="adicionar-pessoa") tem de ser descartada. Sem
+          // isto, escolher "casal" e depois voltar a "sozinho(a)" deixava
+          // sempre 2 pessoas por preencher, sem nenhuma forma de remover a
+          // segunda.
+          estado.pessoas = [estado.pessoas[0]];
         }
         render();
       })
