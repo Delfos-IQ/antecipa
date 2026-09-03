@@ -16,6 +16,9 @@ export function criarOnboarding({ container, onConcluido }) {
     numDependentesEstimado: 0,
     pessoas: [{ id: "A", nome: "", nif: "" }],
     fontes: new Set(),
+    // Confirmação obrigatória do aviso legal (passo 1) — só avança depois
+    // de marcada. Ver comentário em data/i18n.js, onboarding.privacidade.
+    confirmouAviso: false,
   };
 
   function render() {
@@ -74,7 +77,11 @@ export function criarOnboarding({ container, onConcluido }) {
             ${iconeCadeado()}
             <p>${pt.onboarding.privacidade.corpo}</p>
           </div>
-          ${navegacao(true, pt.onboarding.privacidade.cta)}`;
+          <label class="choice-card choice-card--confirmacao" data-selected="${estado.confirmouAviso}">
+            <input type="checkbox" id="confirmar-aviso" ${estado.confirmouAviso ? "checked" : ""} />
+            <span class="choice-card__title">${pt.onboarding.privacidade.confirmacao}</span>
+          </label>
+          ${navegacao(estado.confirmouAviso, pt.onboarding.privacidade.cta)}`;
 
       case 2:
         return `
@@ -202,6 +209,11 @@ export function criarOnboarding({ container, onConcluido }) {
   function ligarEventos(wrap) {
     wrap.querySelectorAll('[data-action="seguinte"]').forEach((el) => el.addEventListener("click", avancar));
     wrap.querySelectorAll('[data-action="voltar"]').forEach((el) => el.addEventListener("click", recuar));
+    const chkAviso = wrap.querySelector("#confirmar-aviso");
+    if (chkAviso) chkAviso.addEventListener("change", (e) => {
+      estado.confirmouAviso = e.target.checked;
+      render();
+    });
     wrap.querySelectorAll('input[name="situacao"]').forEach((el) =>
       el.addEventListener("change", (e) => {
         estado.situacao = e.target.value;

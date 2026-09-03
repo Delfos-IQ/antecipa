@@ -218,6 +218,10 @@ input:focus, select:focus { border-color: var(--brass); }
 .choice-card input { margin-top: 3px; accent-color: var(--brass); }
 .choice-card__title { font-weight: 600; }
 .choice-card__desc { color: var(--muted); font-size: 0.88rem; margin-top: 2px; }
+/* Checkbox de confirmação do aviso legal (onboarding, passo 1) — fora do
+   .choice-group porque é uma única caixa, não um grupo de opções. */
+.choice-card--confirmacao { margin-top: var(--space-4); }
+.choice-card--confirmacao .choice-card__title { font-weight: 500; font-size: 0.9rem; }
 
 /* ---------- Onboarding ---------- */
 .onboarding {

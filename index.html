@@ -28,6 +28,22 @@
     </div>
   </header>
 
+  <!-- Aviso legal fixo, logo abaixo do header, sempre visível sem precisar
+       de scroll — pedido de revisão de 03/09/2026 ("disclaimers bem claros
+       e que não se possam obviar"). Antes disto o único aviso da landing
+       estava no rodapé (rodape__disclaimer), onde a maioria de quem chega
+       de uma partilha (ex.: LinkedIn) e clica logo em "Abrir o Antecipa"
+       nunca chegava a ver. Mesmo texto do banner âmbar sempre visível
+       dentro da app (app/data/i18n.js, pt.bannerLegal.texto) — mantido
+       igual de propósito, para a mensagem ser consistente entre a landing
+       e a app. -->
+  <div class="legal-banner" role="note">
+    <div class="wrap legal-banner__row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+      <span>O Antecipa é uma ferramenta de simulação e apoio à decisão. Não é aconselhamento fiscal certificado e não substitui a declaração oficial de IRS entregue no Portal das Finanças.</span>
+    </div>
+  </div>
+
   <main>
     <section class="hero">
       <div class="wrap hero__grid">

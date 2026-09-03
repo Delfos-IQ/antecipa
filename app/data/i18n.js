@@ -24,6 +24,13 @@ export const pt = {
       titulo: "Os seus dados ficam aqui",
       corpo:
         "Tudo o que carregar — talões, recibos verdes, valores — fica guardado apenas neste dispositivo. Nada é enviado para servidores externos, exceto se decidir exportar um PDF e partilhá-lo você mesmo.",
+      // Checkbox de confirmação obrigatória — pedido de revisão de
+      // 03/09/2026 (Dani: "os disclaimers bem claros e que não se possam
+      // obviar"). Antes disto o botão "Entendido" já vinha sempre ativo;
+      // agora só avança depois de marcar esta caixa, para garantir que o
+      // aviso legal (não substitui a declaração oficial nem aconselhamento
+      // certificado) é mesmo confirmado, não só mostrado.
+      confirmacao: "Li e compreendi este aviso — o Antecipa é uma simulação e não substitui a declaração oficial de IRS nem aconselhamento fiscal certificado.",
       cta: "Entendido",
     },
     agregado: {
