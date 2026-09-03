@@ -133,6 +133,11 @@ export const pt = {
       "Com os seus números atuais, entregar",
     oportunidadePprLigacao: "este ano pouparia até",
     oportunidadePprIrParaPerfil: "Registar entrega de PPR",
+    oportunidadeMaisValiasTitulo: "As suas mais-valias podiam sair mais baratas",
+    oportunidadeMaisValiasCorpo:
+      "Está a pagar 28% de taxa autónoma sobre",
+    oportunidadeMaisValiasLigacao: "de mais-valias/rendimentos de capitais. Optando pelo englobamento (juntar ao rendimento normal), com os seus números atuais pouparia até",
+    oportunidadeMaisValiasAviso: "Esta comparação é simplificada — não considera englobamento obrigatório nem exclusões parciais que possam aplicar-se ao seu caso. Vale a pena confirmar com um contabilista antes de optar.",
   },
 
   nav: { mensal: "Meses", acumulado: "Dashboard", deducoes: "Deduções", simulacao: "Simulação", perfil: "Perfil", definicoes: "Definições" },
@@ -215,6 +220,7 @@ export const pt = {
       },
       outras: {
         titulo: "Outras deduções",
+        donativos: { label: "Donativos (mecenato)", hint: "Total anual doado a IPSS, associações ou instituições particulares de solidariedade social. Dedução de 25%, até 15% da coleta." },
         duplaTributacao: { label: "Crédito por dupla tributação internacional", hint: "Imposto pago no estrangeiro sobre rendimento também tributado em Portugal, dedutível nos termos de acordo ou convenção." },
       },
     },

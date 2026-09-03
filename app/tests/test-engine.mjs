@@ -4,7 +4,12 @@
 // real (secção 12) exige testar contra uma Demonstração de Liquidação
 // verdadeira, o que só o utilizador pode fornecer.
 
-import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR } from "../engine/calculo-irs.js";
+import {
+  calcularDeclaracao,
+  compararRegimes,
+  detectarOportunidadePPR,
+  detectarOportunidadeMaisValias,
+} from "../engine/calculo-irs.js";
 
 function assertIgual(valor, esperado, mensagem) {
   if (Math.abs(valor - esperado) > 0.005) {
@@ -131,6 +136,105 @@ if (oportunidadeNoTeto) {
   process.exitCode = 1;
 } else {
   console.log("OK: sem sugestão de PPR para quem já está no teto");
+}
+
+console.log("\n--- Fase 2: donativos (dedução) e mais-valias (englobamento vs. taxa autónoma) ---");
+
+// Donativos (art.º 63º EBF): 25% do valor doado, até 15% da coleta total
+// (linha 7). Usa-se um rendimento alto o suficiente para a coleta não ser
+// o fator limitante, para isolar e confirmar só a percentagem de 25%.
+const comDonativos = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { donativos: 400 }, // 400 × 25% = 100€, bem abaixo de 15% da coleta
+});
+assertIgual(comDonativos.linhas[8].donativos, 100, "dedução de donativos = 25% de 400€ = 100€ (dentro do teto de 15% da coleta)");
+
+// Teto de 15% da coleta: um donativo desproporcionadamente alto tem de
+// ficar limitado pela coleta, não pela percentagem de 25%.
+const semDonativos = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: {},
+});
+const tetoEsperado = Math.round(semDonativos.linhas[7].total * 0.15 * 100) / 100;
+const comDonativoAlto = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { donativos: 100000 }, // 25% disto (25.000€) excede de longe a coleta
+});
+assertIgual(comDonativoAlto.linhas[8].donativos, tetoEsperado, "donativo desproporcionado fica limitado a 15% da coleta total, não aos 25%");
+
+// Mais-valias: cenário de rendimento médio em que o englobamento (taxa
+// progressiva) sai mais barato do que a taxa autónoma fixa de 28% —
+// confirmado manualmente (ver histórico desta sessão) que a escolha do
+// motor bate certo com o resultado real de o comparar as duas hipóteses.
+const rubricasMedio = [
+  { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 1400 * 14 },
+  { categoria: "A", tipo: "desconto", categoriaIRS: true, descricao: "Retenção IRS", valorComRedu: 1400 * 0.12 * 12 },
+  { categoria: "A", tipo: "desconto", categoriaSS: true, descricao: "Segurança Social", valorComRedu: 1400 * 0.11 * 14 },
+];
+const inputMaisValias = {
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasMedio],
+  dependentes: [],
+  deducoesColeta: { maisValias: 5000 },
+};
+const declaracaoAutonoma = calcularDeclaracao(inputMaisValias);
+const oportunidadeMaisValias = detectarOportunidadeMaisValias(inputMaisValias, declaracaoAutonoma);
+if (!oportunidadeMaisValias) {
+  console.error("FALHOU: devia detetar que o englobamento sai mais barato neste cenário de rendimento médio");
+  process.exitCode = 1;
+} else {
+  console.log(`OK: oportunidade de englobamento de mais-valias detetada — poupança estimada ${oportunidadeMaisValias.poupancaEstimada}€`);
+  const declaracaoEnglobadaManual = calcularDeclaracao({
+    ...inputMaisValias,
+    rubricasPorPessoa: [[...rubricasMedio, { categoria: "G", tipo: "abono", descricao: "MV englobadas", valorComRedu: 5000 }]],
+    deducoesColeta: { maisValias: 0 },
+  });
+  const sinal = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);
+  assertIgual(
+    sinal(declaracaoEnglobadaManual.resultado) - sinal(declaracaoAutonoma.resultado),
+    oportunidadeMaisValias.poupancaEstimada,
+    "poupança estimada do englobamento bate certo com a diferença real do motor"
+  );
+}
+
+// Sem mais-valias registadas, não há nada a sugerir.
+const semMaisValias = detectarOportunidadeMaisValias({ ...inputMaisValias, deducoesColeta: {} });
+if (semMaisValias) {
+  console.error("FALHOU: não devia sugerir englobamento quando não há mais-valias registadas");
+  process.exitCode = 1;
+} else {
+  console.log("OK: sem sugestão de englobamento quando não há mais-valias registadas");
+}
+
+// Rendimento alto o suficiente para o englobamento empurrar para um
+// escalão claramente pior do que 28% não deve sugerir a troca.
+const rubricasAlto = [
+  { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 5000 * 14 },
+  { categoria: "A", tipo: "desconto", categoriaIRS: true, descricao: "Retenção IRS", valorComRedu: 5000 * 0.35 * 12 },
+  { categoria: "A", tipo: "desconto", categoriaSS: true, descricao: "Segurança Social", valorComRedu: 5000 * 0.11 * 14 },
+];
+const oportunidadeRendimentoAlto = detectarOportunidadeMaisValias({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasAlto],
+  dependentes: [],
+  deducoesColeta: { maisValias: 5000 },
+});
+if (oportunidadeRendimentoAlto) {
+  console.error("FALHOU: não devia sugerir englobamento a quem já está num escalão bem acima de 28%");
+  process.exitCode = 1;
+} else {
+  console.log("OK: sem sugestão de englobamento para rendimento alto (escalão acima de 28%)");
 }
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

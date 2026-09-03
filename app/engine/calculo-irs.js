@@ -254,7 +254,7 @@ export function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limite
   return dependente?.guarda === "partilhada" ? round2(valor / 2) : valor;
 }
 
-function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, anoFiscal, escalaoAplicado }) {
+function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, anoFiscal, escalaoAplicado, coletaTotal }) {
   const limites = tabela.limitesDeducoes;
   const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
@@ -309,13 +309,22 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, 
 
   const duplaTributacao = round2(deducoesColeta.duplaTributacao || 0);
 
+  // Donativos (mecenato, art.º 63º EBF) — 25% do valor doado, até 15% da
+  // coleta total (linha 7, ANTES desta própria dedução — é essa a base
+  // legal do teto, não a coleta já líquida). Ver nota em
+  // data/legislacao-2026.js sobre os casos especiais não modelados.
+  const limiteDonativos = limites.donativos ? round2((coletaTotal || 0) * limites.donativos.limitePercentagemColeta) : 0;
+  const donativos = limites.donativos
+    ? clamp((deducoesColeta.donativos || 0) * limites.donativos.percentagem, limiteDonativos)
+    : 0;
+
   const total = round2(
-    saude + educacao + ppr + habitacao + exigenciaFatura + despesasGerais + porDependentes + duplaTributacao
+    saude + educacao + ppr + habitacao + exigenciaFatura + despesasGerais + porDependentes + duplaTributacao + donativos
   );
 
   return {
     linhaOficial: 8,
-    referenciaLegal: "art.º 78º-A a 78º-E CIRS",
+    referenciaLegal: "art.º 78º-A a 78º-E CIRS + art.º 63º EBF (donativos)",
     saude,
     educacao,
     ppr,
@@ -324,6 +333,7 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, 
     despesasGerais,
     porDependentes: round2(porDependentes),
     duplaTributacao,
+    donativos,
     total,
   };
 }
@@ -491,6 +501,7 @@ export function calcularDeclaracao(input) {
     regime,
     anoFiscal,
     escalaoAplicado: importanciaApurada.escalaoAplicado,
+    coletaTotal: coletaTotal.total,
   });
   const coletaLiquida = calcularColetaLiquida({
     coletaTotal,
@@ -621,4 +632,59 @@ export function detectarOportunidadePPR(input, resultadoAtual) {
   if (poupancaEstimada <= 0) return null; // sem coleta suficiente para beneficiar
 
   return { tipo: "ppr", entregaNecessaria, poupancaEstimada, tetoAnual: teto };
+}
+
+/**
+ * Oportunidades de poupança fiscal — fase 2: mais-valias/rendimentos de
+ * capitais (art.º 72º CIRS). Quem tem `deducoesColeta.maisValias` > 0 está
+ * a ser tributado à taxa autónoma fixa (28%). A lei permite, em alternativa,
+ * OPTAR pelo englobamento — somar esse valor ao rendimento global e ser
+ * tributado à taxa progressiva normal (com o benefício do quociente
+ * familiar). Para quem tem rendimento baixo/médio, isso pode sair mais
+ * barato do que os 28% fixos.
+ *
+ * Tal como o PPR, reutiliza-se o motor em vez de duplicar regras: simula-se
+ * o englobamento através do MESMO mecanismo que a Ventana Deduções já
+ * expõe para quem quiser fazer isto manualmente (uma rubrica sintética de
+ * Categoria G somada a rubricasPorPessoa, com `deducoesColeta.maisValias`
+ * a zero para não haver dupla tributação) e compara-se o resultado final.
+ *
+ * SIMPLIFICAÇÃO v1, documentada: não modela o englobamento OBRIGATÓRIO
+ * (que a lei impõe acima de certos limiares de rendimento, nem a exclusão
+ * parcial de 50% para mais-valias imobiliárias de habitação própria e
+ * permanente reinvestida) — compara só as duas hipóteses simples
+ * (tudo autónomo vs. tudo englobado) para o valor introduzido pelo
+ * utilizador. Isto é suficiente para dar uma direção (vale a pena
+ * perguntar ao contabilista?), não para preencher a declaração sem
+ * verificar o enquadramento exato do caso.
+ *
+ * @param {Object} input - o mesmo objeto passado a calcularDeclaracao.
+ * @param {Object} [resultadoAtual] - se já tiver sido calculado, evita
+ *   recalcular a declaração atual.
+ * @returns {null|{tipo:"maisValias", valorMaisValias:number, poupancaEstimada:number}}
+ */
+export function detectarOportunidadeMaisValias(input, resultadoAtual) {
+  const { deducoesColeta = {}, rubricasPorPessoa } = input;
+  const valorMaisValias = deducoesColeta.maisValias || 0;
+  if (valorMaisValias <= 0) return null;
+
+  const declaracaoAtual = resultadoAtual ?? calcularDeclaracao(input);
+
+  const rubricasEnglobadas = rubricasPorPessoa.map((rubricas) => [...rubricas]);
+  if (rubricasEnglobadas.length === 0) rubricasEnglobadas.push([]);
+  rubricasEnglobadas[0] = [
+    ...rubricasEnglobadas[0],
+    { categoria: "G", tipo: "abono", descricao: "Mais-valias (englobadas — simulação)", valorComRedu: valorMaisValias },
+  ];
+  const declaracaoEnglobada = calcularDeclaracao({
+    ...input,
+    rubricasPorPessoa: rubricasEnglobadas,
+    deducoesColeta: { ...deducoesColeta, maisValias: 0 },
+  });
+
+  const sinal = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);
+  const poupancaEstimada = round2(sinal(declaracaoEnglobada.resultado) - sinal(declaracaoAtual.resultado));
+  if (poupancaEstimada <= 0) return null; // taxa autónoma já é a melhor opção
+
+  return { tipo: "maisValias", valorMaisValias, poupancaEstimada };
 }

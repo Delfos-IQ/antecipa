@@ -194,6 +194,29 @@ export const legislacaoFiscal = [
         confirmado: true,
         fonte: "art.º 78º CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
       },
+      // Donativos (mecenato, art.º 63º EBF) — confirmado por 3 fontes
+      // independentes (pwc.pt/guia-fiscal/2026, cgd.pt/Saldo-Positivo,
+      // montepio.org): 25% do valor doado, com teto de 15% da coleta, para
+      // donativos à generalidade das entidades (IPSS, associações,
+      // instituições particulares de solidariedade social — o caso comum).
+      // NÃO modelado nesta versão (casos especiais, mais raros): donativos
+      // ao Estado/regiões autónomas/autarquias/certas fundações são "sem
+      // limite" em vez de 15% da coleta; donativos a instituições
+      // religiosas contam a 130% do valor doado; donativos acima de
+      // 50.000€ têm reporte a 3 anos do valor não aproveitado. Modela-se só
+      // o caso comum — o utilizador que se enquadre nos casos especiais
+      // fica com um valor conservador (mais baixo que o real), nunca mais
+      // alto.
+      donativos: {
+        percentagem: 0.25,
+        limitePercentagemColeta: 0.15,
+        confirmado: true,
+        fonte:
+          "art.º 63º EBF (mecenato) — confirmado por 3 fontes independentes: " +
+          "pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html, " +
+          "cgd.pt/Site/Saldo-Positivo/leis-e-impostos/Pages/deduzir-donativos-no-IRS.aspx, " +
+          "montepio.org/ei/pessoal/impostos/como-deduzir-donativos-no-irs/.",
+      },
     },
 
     // Mínimo de existência (art.º 70º CIRS) — rendimento líquido abaixo do

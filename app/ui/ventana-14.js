@@ -6,7 +6,7 @@
 import { pt } from "../data/i18n.js";
 import { getHousehold, getPessoas, getDependentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
-import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR } from "../engine/calculo-irs.js";
+import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias } from "../engine/calculo-irs.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
 
 function formatarMoeda(v) {
@@ -92,7 +92,7 @@ export async function renderVentana14({ container, anoFiscal }) {
 
   let resultadoUnico = null;
   let comparacao = null;
-  let oportunidadePPR = null;
+  let oportunidades = [];
 
   const regime = household?.regimeTributacao ?? "individual";
 
@@ -111,18 +111,21 @@ export async function renderVentana14({ container, anoFiscal }) {
       dependentes,
     };
     resultadoUnico = calcularDeclaracao(inputResultadoUnico);
-    // Oportunidades de poupança fiscal (v1: só PPR) — só para o modo
-    // "resultado único" por agora; em modo comparação (conjunta vs.
-    // separadas) fica para uma fase seguinte, pois o PPR pode ser
-    // entregue por qualquer um dos dois sujeitos passivos e a atribuição
-    // ainda não está modelada.
-    oportunidadePPR = detectarOportunidadePPR(inputResultadoUnico, resultadoUnico);
+    // Oportunidades de poupança fiscal — só para o modo "resultado único"
+    // por agora; em modo comparação (conjunta vs. separadas) fica por
+    // implementar, pois o PPR/mais-valias podem ser atribuídos a qualquer
+    // um dos dois sujeitos passivos e essa atribuição ainda não está
+    // modelada.
+    oportunidades = [
+      detectarOportunidadePPR(inputResultadoUnico, resultadoUnico),
+      detectarOportunidadeMaisValias(inputResultadoUnico, resultadoUnico),
+    ].filter(Boolean);
   }
 
-  render({ resultadoUnico, comparacao, oportunidadePPR, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes });
+  render({ resultadoUnico, comparacao, oportunidades, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes });
 
   function render(estado) {
-    const { resultadoUnico, comparacao, oportunidadePPR } = estado;
+    const { resultadoUnico, comparacao, oportunidades } = estado;
     const resultadoParaSelo = comparacao
       ? melhorResultado(comparacao)
       : resultadoUnico.resultado;
@@ -137,7 +140,7 @@ export async function renderVentana14({ container, anoFiscal }) {
 
       ${comparacao ? renderComparacao(comparacao) : ""}
 
-      ${oportunidadePPR ? renderOportunidades(oportunidadePPR) : ""}
+      ${oportunidades.length > 0 ? renderOportunidades(oportunidades) : ""}
 
       <div class="row-between" style="margin-top:var(--space-5)">
         <button class="btn btn-secondary" data-action="toggle-desglose">${pt.ventana14.verCalculoCompleto}</button>
@@ -221,24 +224,46 @@ function renderComparacao(comparacao) {
 
 // Painel "Oportunidades de poupança fiscal" — pedido do utilizador
 // (02/09/2026): mostrar, junto ao resultado da simulação, benefícios
-// fiscais que o sujeito passivo ainda não está a aproveitar. v1 cobre só
-// o PPR; a estrutura (um `card` por oportunidade) fica pronta para somar
-// mais-valias (englobamento vs. taxa autónoma) numa fase seguinte.
-function renderOportunidades(oportunidadePPR) {
+// fiscais que o sujeito passivo ainda não está a aproveitar. Recebe a
+// lista já filtrada (sem nulos) devolvida por cada detectarOportunidade*
+// do motor — um `.oportunidade-item` por entrada, na ordem em que vêm.
+function renderOportunidades(oportunidades) {
+  const RENDERERS = { ppr: renderOportunidadePPR, maisValias: renderOportunidadeMaisValias };
   return `
     <div class="oportunidades card" style="margin-top:var(--space-5)">
       <p class="section-title" style="margin-top:0">${pt.ventana14.oportunidadesTitulo}</p>
-      <div class="oportunidade-item">
-        <p class="oportunidade-item__titulo">${pt.ventana14.oportunidadePprTitulo}</p>
-        <p class="field-hint">
-          ${pt.ventana14.oportunidadePprCorpo}
-          <strong class="num">${formatarMoeda(oportunidadePPR.entregaNecessaria)}</strong>
-          ${pt.ventana14.oportunidadePprLigacao}
-          <strong class="num">${formatarMoeda(oportunidadePPR.poupancaEstimada)}</strong>.
-        </p>
-        <button class="btn btn-ghost" style="margin-top:var(--space-2)" data-action="ir-deducoes">${pt.ventana14.oportunidadePprIrParaPerfil}</button>
-      </div>
+      ${oportunidades.map((op) => RENDERERS[op.tipo]?.(op) ?? "").join("")}
       <p class="field-hint" style="margin-top:var(--space-3)">${pt.ventana14.oportunidadesAviso}</p>
+    </div>
+  `;
+}
+
+function renderOportunidadePPR(oportunidade) {
+  return `
+    <div class="oportunidade-item">
+      <p class="oportunidade-item__titulo">${pt.ventana14.oportunidadePprTitulo}</p>
+      <p class="field-hint">
+        ${pt.ventana14.oportunidadePprCorpo}
+        <strong class="num">${formatarMoeda(oportunidade.entregaNecessaria)}</strong>
+        ${pt.ventana14.oportunidadePprLigacao}
+        <strong class="num">${formatarMoeda(oportunidade.poupancaEstimada)}</strong>.
+      </p>
+      <button class="btn btn-ghost" style="margin-top:var(--space-2)" data-action="ir-deducoes">${pt.ventana14.oportunidadePprIrParaPerfil}</button>
+    </div>
+  `;
+}
+
+function renderOportunidadeMaisValias(oportunidade) {
+  return `
+    <div class="oportunidade-item">
+      <p class="oportunidade-item__titulo">${pt.ventana14.oportunidadeMaisValiasTitulo}</p>
+      <p class="field-hint">
+        ${pt.ventana14.oportunidadeMaisValiasCorpo}
+        <strong class="num">${formatarMoeda(oportunidade.valorMaisValias)}</strong>
+        ${pt.ventana14.oportunidadeMaisValiasLigacao}
+        <strong class="num">${formatarMoeda(oportunidade.poupancaEstimada)}</strong>.
+      </p>
+      <p class="field-hint" style="margin-top:var(--space-2)">${pt.ventana14.oportunidadeMaisValiasAviso}</p>
     </div>
   `;
 }
