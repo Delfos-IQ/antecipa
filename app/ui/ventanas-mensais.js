@@ -10,6 +10,8 @@ import {
   getRubricasDoDocumento,
   getModeloEntidade,
   guardarCorrecoesEntidade,
+  removeDocumento,
+  reatribuirDocumento,
 } from "../storage/db.js";
 import { extrairTextoPdf } from "../parsers/pdf-text.js";
 import { parsearTalao } from "../parsers/parser-talao.js";
@@ -147,6 +149,31 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
           },
         })
       );
+
+      // Corrigir/apagar um documento já gravado — pedido real (03/09/2026):
+      // um documento carregado com a pessoa errada não tinha nenhuma forma
+      // de correção, só era possível apagar TODOS os dados do ano.
+      painel.querySelectorAll('[data-action="remover-documento"]').forEach((el) =>
+        el.addEventListener("click", async () => {
+          const confirmar = window.confirm(pt.mensal.confirmarRemoverDocumento);
+          if (!confirmar) return;
+          const docId = Number(el.dataset.docId);
+          await removeDocumento(docId);
+          docsPorPessoa[p.id] = await getDocumentosDoMes(mes, anoFiscal, p.id);
+          render();
+        })
+      );
+      painel.querySelectorAll('[data-action="reatribuir-documento"]').forEach((el) =>
+        el.addEventListener("change", async () => {
+          const docId = Number(el.dataset.docId);
+          const novaPessoaId = el.value;
+          if (novaPessoaId === p.id) return;
+          await reatribuirDocumento(docId, novaPessoaId);
+          docsPorPessoa[p.id] = await getDocumentosDoMes(mes, anoFiscal, p.id);
+          docsPorPessoa[novaPessoaId] = await getDocumentosDoMes(mes, anoFiscal, novaPessoaId);
+          render();
+        })
+      );
     }
 
     if (!duasPessoas) {
@@ -200,6 +227,19 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
             )
             .join("")}
         </details>
+        <div class="row" style="gap:var(--space-2);align-items:center;margin-top:var(--space-2);flex-wrap:wrap">
+          ${
+            duasPessoas
+              ? `<label class="field-hint" style="display:flex;align-items:center;gap:4px">
+                  ${pt.mensal.reatribuirLabel}
+                  <select data-action="reatribuir-documento" data-doc-id="${doc.id}">
+                    ${pessoas.map((p) => `<option value="${p.id}" ${p.id === doc.pessoaId ? "selected" : ""}>${p.nome || p.id}</option>`).join("")}
+                  </select>
+                </label>`
+              : ""
+          }
+          <button class="btn btn-ghost" data-action="remover-documento" data-doc-id="${doc.id}" style="color:var(--pagar);margin-left:auto">${pt.mensal.removerDocumento}</button>
+        </div>
       </div>`;
   }
 

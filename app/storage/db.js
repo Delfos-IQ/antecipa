@@ -168,6 +168,26 @@ export async function saveRubricas(documentoId, rubricas) {
   return salvas;
 }
 
+// Apaga um documento carregado por engano (pessoa errada, mês errado,
+// duplicado) e as suas rubricas — pedido real (03/09/2026): não havia
+// nenhuma forma de corrigir ou remover um documento depois de gravado.
+export async function removeDocumento(id) {
+  const rubricas = await getRubricasDoDocumento(id);
+  for (const r of rubricas) await db.delete("rubricas", r.id);
+  return db.delete("documentos", id);
+}
+
+// Reatribui um documento a outro sujeito passivo, sem ter de o apagar e
+// carregar de novo — mesmo pedido acima, caso mais comum na prática
+// (documento certo, pessoa errada).
+export async function reatribuirDocumento(id, pessoaId) {
+  const documento = await db.get("documentos", id);
+  if (!documento) return null;
+  const atualizado = { ...documento, pessoaId };
+  await db.put("documentos", atualizado);
+  return atualizado;
+}
+
 export async function getTodasRubricas(anoFiscal) {
   const documentos = (await db.getAll("documentos")).filter((d) => d.anoFiscal === anoFiscal);
   const porDocumento = await Promise.all(documentos.map((d) => getRubricasDoDocumento(d.id)));

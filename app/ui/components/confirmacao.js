@@ -324,15 +324,33 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, pessoas, pe
       });
     }
     painel.querySelector('[data-action="cancelar"]').addEventListener("click", fechar);
-    painel.querySelector('[data-action="confirmar"]').addEventListener("click", () => {
-      if (ehTalao) {
-        const lembrar = painel.querySelector('[data-action="lembrar"]')?.checked ?? false;
-        const correcoes = lembrar ? detetarCorrecoes() : {};
-        onConfirmar(rubricasFinaisDoResumo(resumo), correcoes, pessoaIdSelecionada);
-      } else {
-        onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu), undefined, pessoaIdSelecionada);
+    painel.querySelector('[data-action="confirmar"]').addEventListener("click", async (e) => {
+      // onConfirmar grava no IndexedDB (async) — antes, isto não era
+      // esperado (nem tinha try/catch): se a gravação falhasse por
+      // qualquer motivo, o modal fechava na mesma (fechar() corria logo a
+      // seguir, sem esperar) e o erro ficava só na consola, invisível para
+      // quem está a usar a app. Bug reportado (03/09/2026): "a janela
+      // fecha-se mas não sobe" ao escolher o 2º titular — este padrão
+      // ("fecha sem gravar, sem aviso nenhum") é exatamente o sintoma de
+      // uma exceção não apanhada. Agora espera-se pelo resultado, o botão
+      // fica desativado durante a gravação, e qualquer erro é mostrado ao
+      // utilizador em vez de desaparecer em silêncio.
+      const botao = e.currentTarget;
+      botao.disabled = true;
+      try {
+        if (ehTalao) {
+          const lembrar = painel.querySelector('[data-action="lembrar"]')?.checked ?? false;
+          const correcoes = lembrar ? detetarCorrecoes() : {};
+          await onConfirmar(rubricasFinaisDoResumo(resumo), correcoes, pessoaIdSelecionada);
+        } else {
+          await onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu), undefined, pessoaIdSelecionada);
+        }
+        fechar();
+      } catch (err) {
+        console.error("[Antecipa] Erro ao gravar o documento:", err);
+        alert("Não foi possível gravar este documento. Tente novamente — se o problema continuar, tente carregar o ficheiro de novo.");
+        botao.disabled = false;
       }
-      fechar();
     });
   }
 
