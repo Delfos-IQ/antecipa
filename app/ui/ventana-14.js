@@ -247,7 +247,17 @@ function melhorResultado(comparacao) {
 }
 function melhorSeparado(separada) {
   const valor = Math.abs(separada.total);
-  return { tipo: separada.total <= 0 ? "a_devolver" : "a_pagar", valor };
+  // BUG corrigido (03/09/2026, relatado pelo Dani): esta condição estava
+  // invertida. `separada.total` segue a convenção "sinal" definida em
+  // engine/calculo-irs.js:compararRegimes — sinal(r) = +valor quando
+  // a_devolver, -valor quando a_pagar — logo total POSITIVO significa
+  // reembolso combinado (A+B), não pagamento. A versão anterior
+  // (`total <= 0 ? "a_devolver" : "a_pagar"`) fazia o oposto: um casal a
+  // quem ambos os titulares tinham reembolso (A e B a_devolver, logo total
+  // positivo) via a app dizer "a pagar" com o valor do reembolso — e a
+  // "diferença" mostrada por baixo (|totalConjunto - totalSeparado|) ficava
+  // sem sentido aparente porque um dos dois lados tinha o sinal trocado.
+  return { tipo: separada.total >= 0 ? "a_devolver" : "a_pagar", valor };
 }
 
 function renderComparacao(comparacao) {
@@ -267,7 +277,7 @@ function renderComparacao(comparacao) {
           Declarações separadas
           ${comparacao.maisVantajoso === "separada" ? `<span class="comparacao-card__badge">${pt.ventana14.maisVantajoso}</span>` : ""}
         </div>
-        <p class="num" style="font-size:1.4rem;margin-top:var(--space-2)">${formatarMoeda(Math.abs(comparacao.separada.total))} <span class="muted" style="font-size:.85rem">${comparacao.separada.total <= 0 ? "a devolver" : "a pagar"} (A+B)</span></p>
+        <p class="num" style="font-size:1.4rem;margin-top:var(--space-2)">${formatarMoeda(Math.abs(comparacao.separada.total))} <span class="muted" style="font-size:.85rem">${comparacao.separada.total >= 0 ? "a devolver" : "a pagar"} (A+B)</span></p>
         <p class="muted" style="font-size:.82rem">A: ${formatarMoeda(totalA.valor)} ${totalA.tipo === "a_devolver" ? "↩" : "↪"} · B: ${formatarMoeda(totalB.valor)} ${totalB.tipo === "a_devolver" ? "↩" : "↪"}</p>
       </div>
     </div>
