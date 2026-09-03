@@ -197,9 +197,9 @@ export function criarOnboarding({ container, onConcluido }) {
             <div class="field">
               <label>Data de nascimento</label>
               <div style="display:flex;gap:6px">
-                <input type="number" min="1" max="31" placeholder="Dia" data-dep-onb-campo="dia" data-dep-onb-i="${i}" value="${dia}" style="width:64px" />
-                <input type="number" min="1" max="12" placeholder="Mês" data-dep-onb-campo="mes" data-dep-onb-i="${i}" value="${mes}" style="width:64px" />
-                <input type="number" min="1900" max="2100" placeholder="Ano" data-dep-onb-campo="ano" data-dep-onb-i="${i}" value="${ano}" style="width:80px" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" data-dep-onb-campo="dia" data-dep-onb-i="${i}" value="${dia}" style="width:56px;text-align:center;flex:none" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" data-dep-onb-campo="mes" data-dep-onb-i="${i}" value="${mes}" style="width:56px;text-align:center;flex:none" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" data-dep-onb-campo="ano" data-dep-onb-i="${i}" value="${ano}" style="width:76px;text-align:center;flex:none" />
               </div>
             </div>
           </div>`;
@@ -293,6 +293,11 @@ export function criarOnboarding({ container, onConcluido }) {
       estado.dependentesInfo.length = estado.numDependentesEstimado;
       render();
     });
+    wrap.querySelectorAll('[data-dep-onb-campo="dia"], [data-dep-onb-campo="mes"], [data-dep-onb-campo="ano"]').forEach((el) =>
+      el.addEventListener("input", () => {
+        el.value = el.value.replace(/\D/g, "");
+      })
+    );
     wrap.querySelectorAll("[data-dep-onb-campo]").forEach((el) =>
       el.addEventListener("blur", (e) => {
         const i = Number(e.target.dataset.depOnbI);

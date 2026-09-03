@@ -157,22 +157,23 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                   const mesNasc = pendente.mes ?? mesSalvo;
                   const anoNasc = pendente.ano ?? anoSalvo;
                   return `
-              <div class="doc-card" style="margin-bottom:var(--space-2)">
+              <div class="doc-card" style="margin-bottom:var(--space-2)" data-dep-card="${d.id}">
+                <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-2)" />
+                <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2)">
+                  <span class="field-hint" style="white-space:nowrap">${pt.perfil.dataNascimentoLabel}</span>
+                  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" data-dep-data-campo="dia" data-dep-id="${d.id}" value="${diaNasc}" style="width:52px;text-align:center;flex:none" />
+                  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" data-dep-data-campo="mes" data-dep-id="${d.id}" value="${mesNasc}" style="width:52px;text-align:center;flex:none" />
+                  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" data-dep-data-campo="ano" data-dep-id="${d.id}" value="${anoNasc}" style="width:72px;text-align:center;flex:none" />
+                </div>
                 <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
-                  <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="flex:1 1 140px" />
-                  <div style="display:flex;gap:4px;align-items:center">
-                    <input type="number" min="1" max="31" placeholder="Dia" data-dep-data-campo="dia" data-dep-id="${d.id}" value="${diaNasc}" style="width:56px" />
-                    <input type="number" min="1" max="12" placeholder="Mês" data-dep-data-campo="mes" data-dep-id="${d.id}" value="${mesNasc}" style="width:56px" />
-                    <input type="number" min="1900" max="2100" placeholder="Ano" data-dep-data-campo="ano" data-dep-id="${d.id}" value="${anoNasc}" style="width:76px" />
-                  </div>
                   <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">
                     <input type="checkbox" data-dep-campo="guarda" data-dep-id="${d.id}" ${d.guarda === "partilhada" ? "checked" : ""} />
                     ${pt.perfil.guardaPartilhada}
                   </label>
                   <button class="btn btn-ghost" data-action="remover-dependente" data-dep-id="${d.id}" style="color:var(--pagar)">${pt.perfil.remover}</button>
                 </div>
-                ${d.guarda === "partilhada" ? `<p class="field-hint" style="margin-top:var(--space-2)">${pt.perfil.guardaPartilhadaAjuda}</p>` : ""}
-                <p class="muted" style="margin-top:var(--space-2);font-size:0.8rem">
+                <div data-dep-guarda-ajuda>${d.guarda === "partilhada" ? `<p class="field-hint" style="margin-top:var(--space-2)">${pt.perfil.guardaPartilhadaAjuda}</p>` : ""}</div>
+                <p class="muted" style="margin-top:var(--space-2);font-size:0.8rem" data-dep-resumo>
                   ${idade !== null ? `${pt.perfil.idadeEm} ${anoAtivo}: ${idade} ${pt.perfil.anos}` : pt.perfil.semDataNascimento}
                   · ${pt.perfil.deducaoDependenteLabel}: ${formatarMoeda(deducao)}${d.guarda === "partilhada" ? ` (${pt.perfil.guardaPartilhada.toLowerCase()})` : ""}
                 </p>
@@ -268,19 +269,53 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       for (const dependente of porId.values()) await saveDependente(dependente);
     }
 
+    // Grava e atualiza SÓ o resumo de cada dependente (idade/dedução + a
+    // frase de guarda partilhada), sem tocar nos <input> — nunca chama
+    // montar() (que reconstrói tudo via innerHTML). Isto porque montar()
+    // no blur destruía o próprio campo para onde o Tab estava a avançar
+    // (o browser já tinha decidido focar o campo seguinte, mas esse campo
+    // deixava de existir um instante depois, quando o DOM era todo
+    // reconstruído) — era essa a causa real do "o tabulador não funciona"
+    // reportado (03/09/2026), não o Tab em si. Atualizar só o texto do
+    // resumo evita o problema completamente, em vez de tentar adivinhar
+    // para onde devolver o foco depois.
+    async function gravarEAtualizarResumo() {
+      await gravarTodosOsCamposVisiveis();
+      const dependentesAtuais = (await getDependentes()).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+      dependentesAtuais.forEach((d, i) => {
+        const cartao = container.querySelector(`[data-dep-card="${d.id}"]`);
+        if (!cartao) return;
+        const idade = idadeNoAno(d.dataNascimento, anoAtivo);
+        const deducao = valorDeducaoPorDependente(d, i, anoAtivo, limitesDeducoes);
+        const resumo = cartao.querySelector("[data-dep-resumo]");
+        if (resumo) {
+          resumo.innerHTML = `
+            ${idade !== null ? `${pt.perfil.idadeEm} ${anoAtivo}: ${idade} ${pt.perfil.anos}` : pt.perfil.semDataNascimento}
+            · ${pt.perfil.deducaoDependenteLabel}: ${formatarMoeda(deducao)}${d.guarda === "partilhada" ? ` (${pt.perfil.guardaPartilhada.toLowerCase()})` : ""}
+          `;
+        }
+        const ajuda = cartao.querySelector("[data-dep-guarda-ajuda]");
+        if (ajuda) {
+          ajuda.innerHTML =
+            d.guarda === "partilhada" ? `<p class="field-hint" style="margin-top:var(--space-2)">${pt.perfil.guardaPartilhadaAjuda}</p>` : "";
+        }
+      });
+    }
+
     container.querySelectorAll("[data-dep-campo]").forEach((el) => {
       const evento = el.type === "checkbox" ? "change" : "blur";
-      el.addEventListener(evento, async () => {
-        await gravarTodosOsCamposVisiveis();
-        await montar();
-      });
+      el.addEventListener(evento, gravarEAtualizarResumo);
     });
 
     container.querySelectorAll("[data-dep-data-campo]").forEach((el) => {
-      el.addEventListener("blur", async () => {
-        await gravarTodosOsCamposVisiveis();
-        await montar();
+      // Campos de texto (não number) para não perder largura com as setas do
+      // spinner nativo (era essa a causa dos dígitos aparecerem cortados) —
+      // por isso filtra só dígitos manualmente em vez de depender de
+      // type="number".
+      el.addEventListener("input", () => {
+        el.value = el.value.replace(/\D/g, "");
       });
+      el.addEventListener("blur", gravarEAtualizarResumo);
     });
 
     container.querySelector("#agregado-situacao")?.addEventListener("change", async (e) => {

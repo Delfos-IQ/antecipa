@@ -180,6 +180,7 @@ export const pt = {
     dependentesCorpo:
       "Cada dependente dá direito a uma dedução à coleta (art.º 78º-A CIRS) — o valor exato depende da idade a 31 de dezembro e de ser o 1º dependente ou não. Não afeta o quociente familiar (esse acréscimo foi revogado em 2016).",
     dependenteNomePlaceholder: "Nome",
+    dataNascimentoLabel: "Data de nascimento:",
     guardaPartilhada: "Guarda partilhada",
     // Corrigido na auditoria de 03/09/2026: o quociente familiar NÃO muda
     // com a guarda partilhada (o acréscimo por dependente ao quociente foi
