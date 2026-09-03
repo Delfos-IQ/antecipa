@@ -55,7 +55,7 @@ console.log("Conjunta:", comp.conjunta.resultado);
 console.log("Separada A:", comp.separada.A.resultado, "| Separada B:", comp.separada.B.resultado, "| total:", comp.separada.total);
 console.log("Mais vantajoso:", comp.maisVantajoso, "| diferença:", comp.diferenca);
 
-console.log("\n--- Guarda partilhada: quociente e dedução divididos a meio ---");
+console.log("\n--- Guarda partilhada: dedução dividida a meio; quociente NUNCA muda com dependentes ---");
 // Pedido real de um validador ("Faltam os dependentes em guarda
 // partilhada Dani") — a lógica já existia no motor (calcularQuocienteFamiliar
 // e valorDeducaoPorDependente, ambas em engine/calculo-irs.js) mas nunca
@@ -63,6 +63,13 @@ console.log("\n--- Guarda partilhada: quociente e dedução divididos a meio ---
 // (sujeito passivo individual, 1 dependente adulto sem data de nascimento,
 // para não entrar nas majorações por idade) só variando guarda exclusiva
 // vs. partilhada.
+//
+// ATUALIZADO na auditoria fiscal de 03/09/2026: o quociente familiar
+// deixou de ganhar +0,5/+0,25 por dependente — esse acréscimo foi
+// revogado pela Lei n.º 7-A/2016 (confirmado por fonte primária, uma
+// Demonstração de Liquidação real que mostra quociente 2,00 para um
+// casal COM dependentes). Só a dedução fixa à coleta (linha 8) continua a
+// ser dividida a meio em guarda partilhada.
 const baseIndividual = {
   anoFiscal: 2026,
   regime: "individual",
@@ -70,24 +77,23 @@ const baseIndividual = {
   deducoesColeta: {},
 };
 
+const rSemDependentes = calcularDeclaracao({ ...baseIndividual, dependentes: [] });
 const rExclusiva = calcularDeclaracao({ ...baseIndividual, dependentes: [{ id: 1, nome: "Filho", guarda: "exclusiva" }] });
 const rPartilhada = calcularDeclaracao({ ...baseIndividual, dependentes: [{ id: 1, nome: "Filho", guarda: "partilhada" }] });
 
-// Quociente (linha 5): individual base 1,00 + 0,50 (exclusiva) ou + 0,25 (partilhada).
-assertIgual(rExclusiva.linhas[5].total, 1.5, "quociente familiar com 1 dependente em guarda exclusiva = 1,00 + 0,50");
-assertIgual(rPartilhada.linhas[5].total, 1.25, "quociente familiar com 1 dependente em guarda partilhada = 1,00 + 0,25");
+// Quociente (linha 5): SEMPRE 1,00 (individual), com ou sem dependentes —
+// proteção direta contra reintroduzir por engano a regra pré-2016.
+assertIgual(rSemDependentes.linhas[5].total, 1.0, "quociente familiar individual sem dependentes = 1,00");
+assertIgual(rExclusiva.linhas[5].total, 1.0, "quociente familiar individual com 1 dependente em guarda exclusiva continua = 1,00 (sem acréscimo)");
+assertIgual(rPartilhada.linhas[5].total, 1.0, "quociente familiar individual com 1 dependente em guarda partilhada continua = 1,00 (sem acréscimo)");
 
 // Dedução por dependente (linha 8, art.º 78º-A): 600€ base, metade (300€) se partilhada.
 assertIgual(rExclusiva.linhas[8].porDependentes, 600, "dedução por dependente em guarda exclusiva = 600€ (valor base)");
 assertIgual(rPartilhada.linhas[8].porDependentes, 300, "dedução por dependente em guarda partilhada = 300€ (metade do valor base)");
 
-// A guarda partilhada nunca deve resultar num quociente ou dedução MAIOR
-// do que a exclusiva — proteção contra uma futura regressão que inverta a
-// condição por engano.
-if (rPartilhada.linhas[5].total >= rExclusiva.linhas[5].total) {
-  console.error("FALHOU: guarda partilhada devia dar um quociente familiar menor do que guarda exclusiva");
-  process.exitCode = 1;
-}
+// A guarda partilhada nunca deve resultar numa dedução MAIOR do que a
+// exclusiva — proteção contra uma futura regressão que inverta a condição
+// por engano.
 if (rPartilhada.linhas[8].porDependentes >= rExclusiva.linhas[8].porDependentes) {
   console.error("FALHOU: guarda partilhada devia dar uma dedução por dependente menor do que guarda exclusiva");
   process.exitCode = 1;
@@ -276,5 +282,31 @@ const comBaseAcimaDoTeto = calcularDeclaracao({
   deducoesColeta: { despesasGerais: 1000, despesasGeraisDependentes: 1000 }, // 2000 × 35% = 700€, bem acima do teto
 });
 assertIgual(comBaseAcimaDoTeto.linhas[8].despesasGerais, 250, "base própria + dependentes continua limitada ao mesmo teto de 250€ (sem plafond extra por dependente)");
+
+console.log("\n--- Pagamentos por conta: campo novo da auditoria fiscal de 03/09/2026 ---");
+// Confirmado como linha própria (23) numa Demonstração de Liquidação real:
+// IMPOSTOS APURADOS = Coleta Líquida − (Pagamentos por Conta + Retenções
+// na Fonte). Até esta auditoria só as retenções eram subtraídas.
+const semPagamentosPorConta = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: {},
+});
+const comPagamentosPorConta = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: {},
+  pagamentosPorConta: 500,
+});
+const sinalResultado = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);
+assertIgual(
+  sinalResultado(comPagamentosPorConta.resultado) - sinalResultado(semPagamentosPorConta.resultado),
+  500,
+  "500€ de pagamentos por conta aumentam o valor a devolver (ou reduzem o a pagar) em exatamente 500€"
+);
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

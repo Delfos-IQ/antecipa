@@ -126,21 +126,36 @@ function calcularAjusteRendimentosAnosAnteriores(valor = 0) {
 
 /**
  * 5. Quociente Familiar
- * Individual/separada: 1,00 + 0,5 × dependentes (0,25 se guarda partilhada)
- * Conjunta: 2,00 + 0,5 × dependentes (0,25 se guarda partilhada)
+ * CORRIGIDO (auditoria fiscal de 03/09/2026): o acréscimo de 0,5 (ou 0,25
+ * em guarda partilhada) por dependente ao QUOCIENTE FAMILIAR foi revogado
+ * pela Lei n.º 7-A/2016, de 30 de março (revogou os n.os 2, 4 e 5 do
+ * art.º 69º CIRS). Desde então o quociente é SEMPRE 1,00 (sujeito passivo
+ * único) ou 2,00 (tributação conjunta), independentemente do número de
+ * dependentes — os dependentes só afetam o IRS através da dedução FIXA à
+ * coleta (linha 8, art.º 78º-A: 600/726/900€, dividida a meio em guarda
+ * partilhada — ver valorDeducaoPorDependente), nunca através do divisor
+ * usado para calcular a taxa marginal.
+ *
+ * Este código chegou a implementar (e a app chegou a mostrar na UI) a
+ * versão pré-2016 (quociente = base + 0,5×dependentes), o que inflacionava
+ * artificialmente o divisor e subestimava o IRS de qualquer família com
+ * dependentes. Confirmado por duas fontes independentes: (a) o texto
+ * vigente do art.º 69º CIRS no Portal das Finanças e a CGD (Saldo
+ * Positivo), que citam explicitamente a revogação de 2016; (b) uma
+ * Demonstração de Liquidação de IRS REAL (sujeito passivo com dependentes,
+ * dedução de dependentes de 1.800€ na linha 19 — ou seja, tem
+ * dependentes), que mostra "Quociente familiar 2,00" na linha 10, sem
+ * qualquer acréscimo — prova primária definitiva.
  */
 function calcularQuocienteFamiliar({ regime, dependentes, tabela }) {
   const base = regime === "conjunta" ? tabela.quociente.base.conjunta : tabela.quociente.base.individual;
-  const somaDependentes = sum(dependentes, (d) =>
-    d.guarda === "partilhada" ? tabela.quociente.porDependenteGuardaPartilhada : tabela.quociente.porDependente
-  );
   return {
     linhaOficial: 5,
-    referenciaLegal: "art.º 69º CIRS",
+    referenciaLegal: "art.º 69º CIRS (na redação vigente desde a Lei n.º 7-A/2016 — dependentes já não alteram o quociente)",
     base,
     dependentesConsiderados: dependentes.length,
-    somaDependentes: round2(somaDependentes),
-    total: round2(base + somaDependentes),
+    somaDependentes: 0,
+    total: round2(base),
   };
 }
 
@@ -421,12 +436,21 @@ function calcularRetencoesAcumuladas(rubricasPorPessoa) {
 
 /**
  * 11. Resultado final.
+ * IMPOSTOS APURADOS = Coleta Líquida − (Pagamentos por Conta + Retenções
+ * na Fonte) — fórmula confirmada linha a linha contra uma Demonstração de
+ * Liquidação real (linha 25: "22 - (23 + 24)"). `pagamentosPorConta`
+ * (linha 23) é um campo que faltava por completo até esta auditoria
+ * (03/09/2026) — relevante sobretudo para quem tem rendimentos de
+ * Categoria B (recibos verdes) e faz adiantamentos trimestrais de IRS ao
+ * longo do ano; até aqui só as retenções na fonte (linha 24, tipicamente
+ * Categoria A) eram subtraídas.
  */
-function calcularResultado({ coletaLiquida, retencoesAcumuladas }) {
-  const diferenca = round2(coletaLiquida.total - retencoesAcumuladas.total);
+function calcularResultado({ coletaLiquida, retencoesAcumuladas, pagamentosPorConta = 0 }) {
+  const diferenca = round2(coletaLiquida.total - pagamentosPorConta - retencoesAcumuladas.total);
   return {
     linhaOficial: 11,
-    referenciaLegal: "Demonstração de Liquidação de IRS, AT",
+    referenciaLegal: "Demonstração de Liquidação de IRS, AT (linha 25: 22 - (23 + 24))",
+    pagamentosPorConta: round2(pagamentosPorConta),
     tipo: diferenca <= 0 ? "a_devolver" : "a_pagar",
     valor: Math.abs(diferenca),
   };
@@ -460,6 +484,7 @@ export function calcularDeclaracao(input) {
     abatimentos = 0,
     ajusteRendimentosAnosAnteriores = 0,
     tributacoesAutonomas = 0,
+    pagamentosPorConta = 0,
     participacaoMunicipal = 0,
     percentagemMesesReais = 0,
     dataReferencia,
@@ -523,7 +548,7 @@ export function calcularDeclaracao(input) {
     rendimentoGlobal,
   });
   const retencoesAcumuladas = calcularRetencoesAcumuladas(rubricasPorPessoa);
-  const resultado = calcularResultado({ coletaLiquida, retencoesAcumuladas });
+  const resultado = calcularResultado({ coletaLiquida, retencoesAcumuladas, pagamentosPorConta });
 
   return {
     anoFiscal,

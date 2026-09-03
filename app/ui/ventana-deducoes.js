@@ -20,6 +20,7 @@ const GRUPOS_DEDUCOES = [
   { chave: "exigenciaFatura", campos: ["exigenciaFaturaRestauracao", "exigenciaFaturaReparacaoAutomovel", "exigenciaFaturaPassesMensais", "exigenciaFaturaOutras"] },
   { chave: "capital", campos: ["maisValias"] },
   { chave: "outras", campos: ["donativos", "duplaTributacao"] },
+  { chave: "pagamentos", campos: ["pagamentosPorConta"] },
 ];
 
 function renderGrupoDeducao(grupo, valores) {

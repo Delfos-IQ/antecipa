@@ -159,11 +159,19 @@ export const pt = {
     agregadoTitulo: "O seu agregado",
     situacaoLabel: "Situação",
     dependentesTitulo: "Dependentes",
+    // Corrigido na auditoria de 03/09/2026: dependentes já não afetam o
+    // quociente familiar (ver nota em guardaPartilhadaAjuda, abaixo) — só a
+    // dedução fixa à coleta.
     dependentesCorpo:
-      "Cada dependente conta para o quociente familiar e para a dedução à coleta (art.º 78º-A CIRS) — o valor exato depende da idade a 31 de dezembro e de ser o 1º dependente ou não.",
+      "Cada dependente dá direito a uma dedução à coleta (art.º 78º-A CIRS) — o valor exato depende da idade a 31 de dezembro e de ser o 1º dependente ou não. Não afeta o quociente familiar (esse acréscimo foi revogado em 2016).",
     dependenteNomePlaceholder: "Nome",
     guardaPartilhada: "Guarda partilhada",
-    guardaPartilhadaAjuda: "O quociente familiar e a dedução deste dependente ficam divididos a meio entre os dois sujeitos passivos (art.º 69º e 78º-A CIRS).",
+    // Corrigido na auditoria de 03/09/2026: o quociente familiar NÃO muda
+    // com a guarda partilhada (o acréscimo por dependente ao quociente foi
+    // revogado em 2016) — só a dedução fixa à coleta (art.º 78º-A) é
+    // dividida a meio. Ver comentário em engine/calculo-irs.js,
+    // calcularQuocienteFamiliar.
+    guardaPartilhadaAjuda: "A dedução deste dependente à coleta fica dividida a meio entre os dois sujeitos passivos (art.º 78º-A CIRS). O quociente familiar em si não muda com a guarda partilhada.",
     deducaoDependenteLabel: "Dedução deste dependente",
     remover: "Remover",
     idadeEm: "Idade em",
@@ -205,7 +213,7 @@ export const pt = {
         titulo: "Saúde, educação e PPR",
         saude: { label: "Despesas de saúde", hint: "Total anual em faturas de saúde (consultas, farmácia). Dedução de 15%, até 1.000€." },
         educacao: { label: "Despesas de educação", hint: "Propinas, livros, material escolar. Dedução de 30%, até 800€ (mais nas regiões do interior)." },
-        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 400-800€ conforme a idade." },
+        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 600-800€ conforme a idade (valor exato por confirmar — ver auditoria de 03/09/2026)." },
         habitacao: { label: "Renda ou juros de crédito habitação", hint: "Renda de casa própria e permanente, ou juros de crédito à habitação contraído até 2011. Dedução de 15%." },
       },
       familia: {
@@ -231,6 +239,17 @@ export const pt = {
         titulo: "Outras deduções",
         donativos: { label: "Donativos (mecenato)", hint: "Total anual doado a IPSS, associações ou instituições particulares de solidariedade social. Dedução de 25%, até 15% da coleta." },
         duplaTributacao: { label: "Crédito por dupla tributação internacional", hint: "Imposto pago no estrangeiro sobre rendimento também tributado em Portugal, dedutível nos termos de acordo ou convenção." },
+      },
+      // Não é uma dedução — é um adiantamento de imposto já pago, tal como
+      // a retenção na fonte, mas normalmente associado a Categoria B
+      // (recibos verdes). Campo novo, confirmado como linha própria (23)
+      // de uma Demonstração de Liquidação real (auditoria de 03/09/2026) —
+      // até aqui só as retenções na fonte eram subtraídas ao calcular o
+      // resultado final.
+      pagamentos: {
+        titulo: "Pagamentos por conta já efetuados",
+        corpoHint: "Adiantamentos de IRS pagos ao longo do ano (comuns em recibos verdes/Categoria B) — não é uma dedução, reduz diretamente o valor a pagar no final, tal como a retenção na fonte.",
+        pagamentosPorConta: { label: "Total de pagamentos por conta este ano", hint: "Soma de todos os adiantamentos de IRS já entregues à AT este ano (ex.: Categoria B, 3 prestações)." },
       },
     },
   },

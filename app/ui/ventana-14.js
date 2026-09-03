@@ -88,7 +88,17 @@ export async function renderVentana14({ container, anoFiscal }) {
   );
   const deducoesColetaComAdse = { ...deducoesColeta, saude: (deducoesColeta.saude ?? 0) + totalAdseAno };
 
-  const inputBase = { anoFiscal, deducoesColeta: deducoesColetaComAdse, percentagemMesesReais: percentagemMediaReal };
+  // pagamentosPorConta: adiantamentos de IRS já feitos durante o ano
+  // (comuns em Categoria B/recibos verdes) — campo em falta até à
+  // auditoria de 03/09/2026, confirmado como linha própria (23) numa
+  // Demonstração de Liquidação real, subtraído junto com as retenções na
+  // fonte (linha 24) para chegar ao resultado final (linha 25).
+  const inputBase = {
+    anoFiscal,
+    deducoesColeta: deducoesColetaComAdse,
+    pagamentosPorConta: deducoesColeta.pagamentosPorConta || 0,
+    percentagemMesesReais: percentagemMediaReal,
+  };
 
   let resultadoUnico = null;
   let comparacao = null;

@@ -20,24 +20,33 @@ export const legislacaoFiscal = [
     confirmado: false,
     fonte:
       "Lei do Orçamento do Estado 2026 (Lei 73-A/2025), art.º 68º CIRS. " +
-      "Compilado via comparafacil.pt/escaloes-irs-2026 e especialistadoirs.pt/blog/escaloes-irs-2026-tabela-atualizada " +
-      "(confirmar contra Diário da República antes de uso em produção). NOTA: um recálculo interno por continuidade " +
-      "matemática entre escalões sugere que parcelaAbater dos escalões 4-7 poderia ser ~2€ mais alto (ex.: escalão 4: " +
-      "1476.53 em vez de 1474.53); no entanto, dois cálculos independentes (calculapt.pt e especialistadoirs.pt) " +
-      "confirmam exatamente os valores já aqui codificados — mantidos como estão, discrepância documentada para futura revisão.",
+      "Compilado via comparafacil.pt/escaloes-irs-2026 e especialistadoirs.pt/blog/escaloes-irs-2026-tabela-atualizada. " +
+      "ATUALIZAÇÃO (auditoria de 03/09/2026): a parcela a abater dos escalões 4-7 estava ~2€ abaixo do valor correto " +
+      "(erro de transcrição propagado por vários blogs) — corrigida contra uma terceira fonte independente, PwC " +
+      "Portugal (pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html), que bate certo com um recálculo por " +
+      "continuidade matemática pura entre escalões. Ainda por confirmar contra o Diário da República antes de uso " +
+      "em produção — ver auditoria completa no doc do projeto para os restantes pontos revistos.",
 
     // Escalões de rendimento coletável (continente). Cada escalão define o
     // limite superior, a taxa marginal aplicável a esse escalão, e a
     // parcela a abater já pré-calculada pela fórmula oficial
     // (Coleta = Rendimento Coletável × Taxa − Parcela a Abater).
+    // CORRIGIDO na auditoria de 03/09/2026: a parcela a abater dos
+    // escalões 4-7 estava ~2€ abaixo do valor correto — erro de
+    // transcrição propagado por vários blogs (CRN-Contabilidade,
+    // ComparaFácil), que se copiam uns aos outros. Confirmado por uma
+    // terceira fonte independente (PwC Portugal, Guia Fiscal 2026) que
+    // bate certo com um recálculo por continuidade matemática pura a
+    // partir do escalão 1 (a coleta tem de ser contínua em cada fronteira
+    // de escalão). Escalões 1-3, 8 e 9 já estavam corretos.
     escaloes: [
       { limite: 8342, taxaMarginal: 0.125, parcelaAbater: 0 },
       { limite: 12587, taxaMarginal: 0.157, parcelaAbater: 266.94 },
       { limite: 17838, taxaMarginal: 0.212, parcelaAbater: 959.23 },
-      { limite: 23089, taxaMarginal: 0.241, parcelaAbater: 1474.53 },
-      { limite: 29397, taxaMarginal: 0.311, parcelaAbater: 3090.76 },
-      { limite: 43090, taxaMarginal: 0.349, parcelaAbater: 4207.85 },
-      { limite: 46566, taxaMarginal: 0.431, parcelaAbater: 7741.23 },
+      { limite: 23089, taxaMarginal: 0.241, parcelaAbater: 1476.53 },
+      { limite: 29397, taxaMarginal: 0.311, parcelaAbater: 3092.76 },
+      { limite: 43090, taxaMarginal: 0.349, parcelaAbater: 4209.89 },
+      { limite: 46566, taxaMarginal: 0.431, parcelaAbater: 7743.27 },
       { limite: 86634, taxaMarginal: 0.446, parcelaAbater: 8441.72 },
       { limite: Infinity, taxaMarginal: 0.48, parcelaAbater: 11387.28 },
     ],
@@ -95,11 +104,21 @@ export const legislacaoFiscal = [
       fonte: "art.º 31º CIRS — confirmar coeficiente aplicável por atividade (CAE) antes de produção",
     },
 
-    // Quociente familiar (art.º 69º CIRS).
+    // Quociente familiar (art.º 69º CIRS). CORRIGIDO na auditoria de
+    // 03/09/2026: só a base (1,00 individual / 2,00 conjunta) — o
+    // acréscimo por dependente foi revogado pela Lei n.º 7-A/2016 (revogou
+    // os n.os 2, 4 e 5 do art.º 69º). Confirmado por fonte primária (uma
+    // Demonstração de Liquidação real com dependentes mostra "Quociente
+    // familiar 2,00", sem acréscimo) — ver engine/calculo-irs.js,
+    // calcularQuocienteFamiliar, para o histórico completo do erro.
     quociente: {
       base: { individual: 1, conjunta: 2 },
-      porDependente: 0.5,
-      porDependenteGuardaPartilhada: 0.25,
+      confirmado: true,
+      fonte:
+        "art.º 69º CIRS, na redação vigente desde a Lei n.º 7-A/2016 (revogou o acréscimo por dependente) — " +
+        "info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs69.aspx, " +
+        "cgd.pt/Site/Saldo-Positivo/leis-e-impostos/Pages/quociente-familiar.aspx, e confirmado por fonte primária " +
+        "(Demonstração de Liquidação de IRS real com dependentes, linha 10: quociente 2,00 sem acréscimo).",
     },
 
     // Limites de deduções à coleta (art.º 78º-A a 78º-E CIRS).
@@ -145,25 +164,29 @@ export const legislacaoFiscal = [
       },
       // Rendas de habitação própria e permanente (art.º 78º-E CIRS).
       // Percentagem (15%) confirmada por 3 fontes (coverflex.com,
-      // santander.pt/salto, crncontabilidade.pt). O limite geral para
-      // 2026, porém, TEM FONTES A DIVERGIR: crncontabilidade.pt diz 750€
-      // (mantido — é o valor já codificado e o único a bater certo com
-      // uma segunda leitura), santander.pt/salto diz 700€, e
-      // executivedigest.sapo.pt diz 900€. O limite mais alto para o 1º
-      // escalão de rendimento (1.050€) está confirmado por 2 fontes
-      // independentes (santander.pt/salto e crncontabilidade.pt) e já é
-      // usado no motor. Juros de empréstimos à habitação contraídos até
-      // 2011 (mesma percentagem, 15%) não têm limite confirmado nesta
-      // sessão — `limite` abaixo cobre só rendas por agora.
+      // santander.pt/salto, crncontabilidade.pt). ATUALIZADO na auditoria
+      // de 03/09/2026: a divergência anterior (700€ a 900€) foi resolvida
+      // por uma fonte OFICIAL — comunicado do Conselho de Ministros de
+      // 27/03/2026 — que confirma a subida do limite geral para 900€ em
+      // 2026 (e 1.000€ a partir de 2027). O limite do 1º escalão de
+      // rendimento subiu em conjunto para 1.100€ segundo 3 fontes
+      // convergentes (DECO Proteste, Montepio, idealista.pt) — ainda sem
+      // confirmação oficial direta do valor exato, por isso mantido
+      // `confirmado: false` só para este sub-valor. Juros de empréstimos
+      // à habitação contraídos até 2011 (mesma percentagem, 15%) não têm
+      // limite confirmado nesta sessão — `limite` abaixo cobre só rendas
+      // por agora.
       encargosHabitacao: {
         percentagem: 0.15,
-        limite: 750,
-        limitePrimeiroEscalao: 1050,
+        limite: 900,
+        limitePrimeiroEscalao: 1100,
         confirmado: false,
         fonte:
-          "art.º 78º-E CIRS — percentagem (15%) confirmada; limite geral DIVERGENTE entre fontes (700€ a 900€, " +
-          "ver nota acima), mantido 750€ (crncontabilidade.pt/blog/deducao-de-rendas-no-irs-em-2026-valor-maximo-" +
-          "condicoes-e-como-declarar). limitePrimeiroEscalao (1.050€) confirmado por 2 fontes independentes.",
+          "art.º 78º-E CIRS — percentagem (15%) confirmada. Limite geral (900€) CONFIRMADO por fonte oficial: " +
+          "comunicado do Conselho de Ministros, portugal.gov.pt/pt/gc25/governo/comunicados-do-conselho-de-ministros/719 " +
+          "(\"aumento progressivo do limite de dedução dos encargos com rendas... para 900 euros em 2026 e 1.000 " +
+          "euros a partir de 2027\"). limitePrimeiroEscalao (1.100€) por 3 fontes convergentes mas não oficiais " +
+          "(deco.proteste.pt, montepio.org, idealista.pt) — confirmar contra o diploma antes de uso em produção.",
       },
       // Dedução por exigência de fatura (art.º 78º-F CIRS, "IVAucher"-like)
       // — 15% do IVA suportado em setores como restauração, reparação de
@@ -229,8 +252,20 @@ export const legislacaoFiscal = [
     },
 
     // Benefício municipal — participação variável de IRS que alguns
-    // municípios revertem ao contribuinte (0% a 0,30% da coleta).
-    beneficioMunicipalMaximo: 0.003,
+    // municípios revertem ao contribuinte. CORRIGIDO na auditoria de
+    // 03/09/2026: o intervalo legal real é 0% a 5% da coleta (não 0,30% —
+    // esse era o valor concreto que UM município específico aplicava num
+    // exemplo real, não o teto legal). Confirmado por 2 fontes
+    // independentes (CGD, Doutor Finanças): cada município define
+    // anualmente a percentagem que retém (0% a 5%); o desconto ao
+    // residente é 5% menos a percentagem retida. Este valor é só o TETO
+    // que limita o input do utilizador (`participacaoMunicipal`) — a
+    // percentagem real do seu município continua a ser inserida por ele.
+    beneficioMunicipalMaximo: 0.05,
+    beneficioMunicipalFonte:
+      "Lei das Finanças Locais, participação variável de IRS — cgd.pt/Site/Saldo-Positivo/leis-e-impostos/Pages/" +
+      "desconto-municipal-irs.aspx e doutorfinancas.pt/impostos/irs/desconto-municipal-no-irs-como-se-aplica/ " +
+      "(intervalo 0%-5%, ~207 municípios participantes, 44 a devolver os 5% completos).",
 
     // Tributação autónoma de mais-valias e rendimentos de capitais não
     // englobados (art.º 72º/1 CIRS) — taxa fixa de 28%, aplicada à parte
