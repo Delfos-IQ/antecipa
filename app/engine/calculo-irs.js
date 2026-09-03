@@ -243,7 +243,7 @@ function idadeDoDependenteNoAno(dependente, anoFiscal) {
 // for partilhada, o valor de cada dependente é dividido a meio (cada
 // sujeito passivo só pode deduzir metade) — mesmo critério já usado no
 // quociente familiar (calcularQuocienteFamiliar).
-function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limites) {
+export function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limites) {
   const idade = idadeDoDependenteNoAno(dependente, anoFiscal);
   let valor;
   if (posicao === 0) {

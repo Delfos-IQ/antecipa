@@ -143,6 +143,8 @@ export const pt = {
       "Cada dependente conta para o quociente familiar e para a dedução à coleta (art.º 78º-A CIRS) — o valor exato depende da idade a 31 de dezembro e de ser o 1º dependente ou não.",
     dependenteNomePlaceholder: "Nome",
     guardaPartilhada: "Guarda partilhada",
+    guardaPartilhadaAjuda: "O quociente familiar e a dedução deste dependente ficam divididos a meio entre os dois sujeitos passivos (art.º 69º e 78º-A CIRS).",
+    deducaoDependenteLabel: "Dedução deste dependente",
     remover: "Remover",
     idadeEm: "Idade em",
     anos: "anos",

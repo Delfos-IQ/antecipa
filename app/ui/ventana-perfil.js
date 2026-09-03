@@ -10,7 +10,8 @@
 // definição de conta como o resto desta ventana.
 
 import { pt } from "../data/i18n.js";
-import { revisaoFiscal } from "../data/legislacao-2026.js";
+import { revisaoFiscal, obterTabelaFiscal } from "../data/legislacao-2026.js";
+import { valorDeducaoPorDependente } from "../engine/calculo-irs.js";
 import {
   getHousehold,
   getPessoas,
@@ -50,6 +51,12 @@ function formatarDataHora(iso) {
   }
 }
 
+function formatarMoeda(valor) {
+  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" })
+    .format(valor ?? 0)
+    .replace(" €", '<span class="moeda">€</span>');
+}
+
 function descarregarJSON(objeto, nomeFicheiro) {
   const blob = new Blob([JSON.stringify(objeto, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -76,6 +83,11 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     // mesmo que ainda não tenha nenhum documento carregado.
     const anosDisponiveis = [...new Set([...anos, anoAtivo, new Date().getFullYear()])].sort((a, b) => a - b);
 
+    // Mesmos limites usados pelo motor (engine/calculo-irs.js) — reutiliza
+    // valorDeducaoPorDependente diretamente em vez de duplicar a fórmula
+    // aqui, para nunca divergir do valor que a Simulação acaba por mostrar.
+    const limitesDeducoes = obterTabelaFiscal(anoAtivo).limitesDeducoes;
+
     container.innerHTML = `
       <h2>${pt.perfil.titulo}</h2>
 
@@ -95,8 +107,9 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         ${
           dependentes.length
             ? dependentes
-                .map((d) => {
+                .map((d, i) => {
                   const idade = idadeNoAno(d.dataNascimento, anoAtivo);
+                  const deducao = valorDeducaoPorDependente(d, i, anoAtivo, limitesDeducoes);
                   return `
               <div class="doc-card" style="margin-bottom:var(--space-2)">
                 <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
@@ -108,8 +121,10 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                   </label>
                   <button class="btn btn-ghost" data-action="remover-dependente" data-dep-id="${d.id}" style="color:var(--pagar)">${pt.perfil.remover}</button>
                 </div>
+                ${d.guarda === "partilhada" ? `<p class="field-hint" style="margin-top:var(--space-2)">${pt.perfil.guardaPartilhadaAjuda}</p>` : ""}
                 <p class="muted" style="margin-top:var(--space-2);font-size:0.8rem">
                   ${idade !== null ? `${pt.perfil.idadeEm} ${anoAtivo}: ${idade} ${pt.perfil.anos}` : pt.perfil.semDataNascimento}
+                  · ${pt.perfil.deducaoDependenteLabel}: ${formatarMoeda(deducao)}${d.guarda === "partilhada" ? ` (${pt.perfil.guardaPartilhada.toLowerCase()})` : ""}
                 </p>
               </div>`;
                 })
