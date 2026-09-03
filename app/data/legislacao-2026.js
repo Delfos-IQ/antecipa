@@ -92,16 +92,41 @@ export const legislacaoFiscal = [
     },
 
     // Coeficientes do regime simplificado — Categoria B (art.º 31º CIRS).
+    // CORRIGIDO na auditoria de 03/09/2026 (2ª ronda): os coeficientes
+    // "geral" e "hotelaria" estavam trocados/errados. O texto do art.º 31º
+    // (info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/
+    // cirs_rep/Pages/irs31.aspx) mostra que:
+    //  - 0,15 aplica-se a vendas de mercadorias/produtos E a restauração,
+    //    bebidas e atividades hoteleiras/alojamento (não 0,35 como estava).
+    //  - 0,75 aplica-se SÓ às atividades profissionais especificamente
+    //    listadas no art.º 151º (a "tabela anexa" — médicos, advogados,
+    //    engenheiros, etc.).
+    //  - 0,35 é o coeficiente para as restantes prestações de serviços — a
+    //    maioria dos recibos verdes de quem presta serviços fora da lista
+    //    do art.º 151º — e é este o valor usado por omissão
+    //    (prestacaoServicosGeral), não 0,75. Este era o erro de maior
+    //    impacto desta ronda: estava a tributar como "profissão liberal
+    //    listada" (75% do rendimento é matéria coletável) qualquer
+    //    freelancer genérico, quando devia ser 35%.
     coeficientesSimplificadoB: {
       vendaMercadorias: 0.15,
-      hoteleiraELocalAlojamento: 0.35,
-      prestacaoServicosGeral: 0.75, // maioria dos recibos verdes "serviços"
-      prestacaoServicosTabelaAnexa: 0.75,
-      outrosRendimentosCapitaisEPrediais: 0.95,
+      hoteleiraELocalAlojamento: 0.15,
+      prestacaoServicosGeral: 0.35, // maioria dos recibos verdes "serviços" fora da lista do art.º 151º
+      prestacaoServicosTabelaAnexa: 0.75, // só atividades da lista do art.º 151º CIRS
+      outrosRendimentosCapitaisEPrediais: 0.95, // propriedade intelectual/industrial; mineração de criptoativos
       // Mínimo garantido: dedução mínima de 15% do rendimento bruto de
       // Categoria B mesmo com o coeficiente aplicado, se superior.
       minimoGarantidoPercentagem: 0.15,
-      fonte: "art.º 31º CIRS — confirmar coeficiente aplicável por atividade (CAE) antes de produção",
+      confirmado: true,
+      fonte:
+        "art.º 31º CIRS, n.º 1 (redação em vigor desde 1/07/2025, DL 49/2025) — " +
+        "info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs31.aspx, " +
+        "confirmado por OCC (occ.pt/pt-pt/noticias/regime-simplificado-1). Corrigido na auditoria de 03/09/2026 " +
+        "(2ª ronda): 'geral' 0,75→0,35 e 'hotelaria/alojamento' 0,35→0,15 (estavam trocados com a lista do art.º " +
+        "151º). Ainda não modelados nesta versão: coeficiente 0,30 (subsídios não destinados à exploração), 0,10 " +
+        "(subsídios à exploração e outros rendimentos B não especificados), 0,50 (alojamento local em zona de " +
+        "contenção) e 1,00 (transparência fiscal / participação qualificada na entidade pagadora) — casos menos " +
+        "comuns, o utilizador nesses casos fica com um valor aproximado.",
     },
 
     // Quociente familiar (art.º 69º CIRS). CORRIGIDO na auditoria de
@@ -154,13 +179,34 @@ export const legislacaoFiscal = [
         confirmado: true,
         fonte: "art.º 78º-D CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
       },
+      // CORRIGIDO na auditoria de 03/09/2026 (2ª ronda): os valores 800/700/600€
+      // estavam ERRADOS — o limite legal é POR SUJEITO PASSIVO (não por
+      // declaração). Confirmado por 3 fontes independentes e convergentes
+      // (duas páginas do Portal das Finanças + folheto oficial da AT, ver
+      // fonte): 400/350/300€ por titular de PPR, valores em vigor desde
+      // 2005 (Lei 60-A/2005), nunca atualizados. A evidência da
+      // Demonstração de Liquidação real usada nesta auditoria (610€
+      // deduzidos, sem clamping) já é consistente com isto: é uma
+      // declaração CONJUNTA (quociente 2,00), pelo que o teto do agregado é
+      // a SOMA dos tetos de cada titular — até 800€ se ambos tiverem menos
+      // de 35 anos, o que comporta os 610€ sem qualquer problema.
+      // limitesPorTitular = valor por sujeito passivo; a app aplica ×2 em
+      // regime conjunta (ver calcularDeducoesAColeta) — ainda simplificado
+      // por não distinguir a idade de cada titular individualmente (falta
+      // capturar data de nascimento do 2º sujeito passivo).
       ppr: {
         percentagem: 0.2,
-        limiteAte35Anos: 800,
-        limite35a50Anos: 700,
-        limiteMais50Anos: 600,
+        limiteAte35Anos: 400,
+        limite35a50Anos: 350,
+        limiteMais50Anos: 300,
         confirmado: true,
-        fonte: "art.º 78º CIRS / regime PPR — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html",
+        fonte:
+          "art.º 21º, n.º 2, do Estatuto dos Benefícios Fiscais (EBF) — NÃO é o art.º 78º CIRS como estava " +
+          "referenciado antes. info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/bf_rep/" +
+          "Pages/ebf-artigo-21-ordm-.aspx e folheto oficial da AT (IRS_deducoes_2025.pdf), confirmado também por " +
+          "doutorfinancas.pt. Valores 400/350/300€ por sujeito passivo, desde a Lei n.º 60-A/2005 (nunca " +
+          "atualizados). Corrige o valor anterior (800/700/600€), que tratava incorretamente o limite do agregado " +
+          "como se fosse por sujeito passivo.",
       },
       // Rendas de habitação própria e permanente (art.º 78º-E CIRS).
       // Percentagem (15%) confirmada por 3 fontes (coverflex.com,
@@ -240,15 +286,70 @@ export const legislacaoFiscal = [
           "cgd.pt/Site/Saldo-Positivo/leis-e-impostos/Pages/deduzir-donativos-no-IRS.aspx, " +
           "montepio.org/ei/pessoal/impostos/como-deduzir-donativos-no-irs/.",
       },
+      // Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8
+      // CIRS) — NOVO na auditoria de 03/09/2026 (2ª ronda), o gap de maior
+      // prioridade identificado na 1ª ronda. Mecanismo (confiança ALTA,
+      // texto do artigo lido diretamente em
+      // info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/
+      // cirs_rep/Pages/irs78.aspx): as deduções das alíneas c) a h), k) e
+      // m) do n.º 1 do art.º 78º (saúde, educação, habitação, PPR,
+      // despesas gerais e familiares, exigência de fatura, entre outras)
+      // ficam sujeitas a um limite GLOBAL por agregado que varia com o
+      // rendimento: sem limite até ao 1º escalão de IRS; entre 2.500€ (no
+      // limite do 1º escalão) e 1.000€ (no limite do último escalão
+      // finito), de forma decrescente; fixo em 1.000€ acima disso. Há
+      // ainda uma majoração de 5% por dependente para agregados com 3 ou
+      // mais dependentes (n.º 8). As alíneas a) e b) do n.º 1 — dedução
+      // por dependentes/ascendentes e quotização sindical — ficam SEMPRE
+      // de fora deste limite (já assim na app, que as trata em separado).
+      // `confirmado: false` porque os valores exatos em euros (2.500€ /
+      // 1.000€) e a lista completa e exata de alíneas abrangidas foram
+      // extrapolados a partir da descrição do artigo e de fontes
+      // secundárias convergentes, não confirmados letra-a-letra contra o
+      // Diário da República — é uma aproximação deliberadamente melhor
+      // que não ter limite nenhum (o estado anterior), não uma réplica
+      // certificada linha a linha.
+      limiteAgregado: {
+        semLimiteAteEscalao1: true,
+        minimo: 1000,
+        maximo: 2500,
+        majoracaoPorDependentePercentagem: 0.05,
+        numDependentesParaMajoracao: 3,
+        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura"],
+        confirmado: false,
+        fonte:
+          "art.º 78º, n.º 7 e n.º 8 CIRS (NÃO '78º-A' como referenciado antes noutros blocos — esse artigo não " +
+          "existe autonomamente) — info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/" +
+          "cirs_rep/Pages/irs78.aspx. Mecanismo (sem limite/2.500€→1.000€/1.000€ fixo, majoração 5% por " +
+          "dependente com 3+, exclusão das alíneas a) e b)) confiança ALTA; valores exatos em euros e lista " +
+          "exaustiva de alíneas abrangidas confiança MÉDIA — confirmar contra o Diário da República antes de " +
+          "produção. Gap de maior prioridade identificado na auditoria de 03/09/2026 (1ª ronda), agora " +
+          "implementado como aproximação em vez de ausente.",
+      },
     },
 
-    // Mínimo de existência (art.º 70º CIRS) — rendimento líquido abaixo do
-    // qual não há lugar a tributação (14 × retribuição mínima mensal
-    // garantida prevista para 2026, 920€/mês).
+    // Mínimo de existência (art.º 70º CIRS). CORRIGIDO na auditoria de
+    // 03/09/2026 (2ª ronda): o valor de referência da lei NÃO é "14 ×
+    // RMMG" — é o MAIOR entre 12.180€ (valor fixo) e 1,5×14×IAS. Para 2026
+    // (IAS = 537,13€): 1,5×14×537,13 = 11.279,73€, que é INFERIOR a
+    // 12.180€ — logo prevalece o valor fixo de 12.180€ (não 12.880€ como
+    // estava, que vinha de "14×920€", uma fórmula que não corresponde ao
+    // texto do artigo). O motor continua a aplicar uma APROXIMAÇÃO do
+    // mecanismo oficial (ver aplicarMinimoExistencia em calculo-irs.js) —
+    // a lei tem 3 patamares com multiplicadores 2,60× e 1,35× sobre o
+    // excesso de rendimento, não implementados por falta de confirmação
+    // exata dos limiares superiores; a app usa antes uma garantia simples
+    // de rendimento líquido mínimo, que replica o EFEITO mas não o
+    // cálculo linha a linha.
     minimoExistencia: {
-      valorAnual: 12880,
-      confirmado: true,
-      fonte: "art.º 70º CIRS — eco.sapo.pt/2025/10/09/quem-ganha-ate-920-euros-nao-vai-pagar-irs-em-2026 (14 × 920€)",
+      valorAnual: 12180,
+      confirmado: false,
+      fonte:
+        "art.º 70º CIRS (texto do artigo: info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/" +
+        "cirs_rep/ra/Pages/irs70ra_202512.aspx) — valor de referência = MAX(12.180€, 1,5×14×IAS). IAS 2026 = " +
+        "537,13€ (jornaldenegocios.pt, citando publicação em Diário da República) → 1,5×14×537,13 = 11.279,73€ < " +
+        "12.180€ → usa-se 12.180€. `confirmado: false` porque não foi possível ler o texto do DRE diretamente " +
+        "para confirmar que 12.180€ já é o valor 2026 (a fórmula em si tem confiança alta).",
     },
 
     // Benefício municipal — participação variável de IRS que alguns

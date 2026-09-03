@@ -114,7 +114,11 @@ if (!oportunidadeSemPpr) {
   process.exitCode = 1;
 } else {
   console.log(`OK: oportunidade PPR detetada — entrega sugerida ${oportunidadeSemPpr.entregaNecessaria}€, poupança estimada ${oportunidadeSemPpr.poupancaEstimada}€`);
-  assertIgual(oportunidadeSemPpr.tetoAnual, 800, "teto anual de dedução do PPR (simplificação v1, sem idade) = 800€");
+  // CORRIGIDO na auditoria de 03/09/2026 (2ª ronda): o teto é por sujeito
+  // passivo (art.º 21º EBF) = 400€ em regime individual, não 800€ (esse
+  // valor era o erro antigo, que já incluía indevidamente o ×2 do
+  // agregado mesmo para quem declara sozinho).
+  assertIgual(oportunidadeSemPpr.tetoAnual, 400, "teto anual de dedução do PPR em regime individual (simplificação v1, sem idade) = 400€");
   // A entrega sugerida, aplicada ao mesmo motor, tem de produzir exatamente
   // a poupança indicada (senão o número mostrado na UI estaria a mentir).
   const semPpr = calcularDeclaracao({ ...baseIndividual, dependentes: [] });
@@ -135,7 +139,7 @@ if (!oportunidadeSemPpr) {
 const oportunidadeNoTeto = detectarOportunidadePPR({
   ...baseIndividual,
   dependentes: [],
-  deducoesColeta: { ppr: 4000 }, // 4000 * 20% = 800€ = teto
+  deducoesColeta: { ppr: 2000 }, // 2000 * 20% = 400€ = teto individual
 });
 if (oportunidadeNoTeto) {
   console.error("FALHOU: não devia sugerir PPR a quem já está no teto de dedução");
@@ -308,5 +312,104 @@ assertIgual(
   500,
   "500€ de pagamentos por conta aumentam o valor a devolver (ou reduzem o a pagar) em exatamente 500€"
 );
+
+console.log("\n--- Categoria B: coeficientes do regime simplificado (auditoria 03/09/2026, 2ª ronda) ---");
+// Corrigido: "geral" (maioria dos recibos verdes fora da lista do art.º
+// 151º) usa 0,35, não 0,75. A dedução específica = rendimento × (1 −
+// coeficiente); com coeficiente 0,35, um rendimento de 10.000€ deduz 6.500€
+// (matéria coletável de 3.500€, 35%) — o oposto do que dava com o
+// coeficiente antigo errado (0,75 → matéria coletável de 7.500€, 75%).
+const rubricasCategoriaB = [
+  { categoria: "B", tipo: "abono", descricao: "Serviços de consultoria (recibo verde)", valorComRedu: 10000 },
+];
+const declaracaoCategoriaB = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasCategoriaB],
+  dependentes: [],
+  deducoesColeta: {},
+});
+assertIgual(
+  declaracaoCategoriaB.linhas[2].coeficienteBAplicado,
+  0.35,
+  "coeficiente por omissão da Categoria B (serviços gerais, fora da lista do art.º 151º) = 0,35"
+);
+assertIgual(
+  declaracaoCategoriaB.linhas[3].total,
+  3500,
+  "rendimento coletável de 10.000€ de Categoria B com coeficiente 0,35 = 3.500€ (matéria coletável)"
+);
+
+console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
+// Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
+// 800/700/600€ por declaração. Em regime individual o teto é 400€; em
+// regime conjunta, 800€ (soma dos dois titulares possíveis).
+const oportunidadePprConjunta = detectarOportunidadePPR({
+  anoFiscal: 2026,
+  regime: "conjunta",
+  rubricasPorPessoa: [rubricasA, rubricasB],
+  dependentes: [],
+  deducoesColeta: {},
+});
+if (!oportunidadePprConjunta) {
+  console.error("FALHOU: devia detetar oportunidade de PPR em regime conjunta");
+  process.exitCode = 1;
+} else {
+  assertIgual(oportunidadePprConjunta.tetoAnual, 800, "teto anual de dedução do PPR em regime conjunta (2 titulares) = 800€");
+}
+
+console.log("\n--- Limite agregado às deduções à coleta (art.º 78º, n.º 7/8 CIRS — novo, 03/09/2026 2ª ronda) ---");
+// Rendimento alto o suficiente para cair no último escalão finito (>86.634€
+// de rendimento coletável), onde o limite agregado é fixo em 1.000€.
+// Deduções somadas muito acima disso (saúde+educação+habitação+despesas
+// gerais) têm de ficar limitadas a 1.000€, não à soma dos tetos
+// individuais de cada categoria.
+const rubricasRendimentoAlto = [
+  { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 9000 * 14 },
+];
+// Valores de despesa (não de dedução) escolhidos para cada categoria
+// atingir exatamente o seu próprio teto individual: saude 7000×15%→1000
+// (teto), educacao 2700×30%→800 (teto), habitacao 6100×15%→900 (teto,
+// fora do 1º escalão), despesasGerais 800×35%→250 (teto solteiro). Soma
+// dos tetos individuais = 2.950€, bem acima do limite agregado de 1.000€.
+const semLimiteAgregado = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasRendimentoAlto],
+  dependentes: [],
+  deducoesColeta: { saude: 7000, educacao: 2700, habitacao: 6100, despesasGerais: 800 },
+});
+assertIgual(
+  semLimiteAgregado.linhas[8].limiteAgregado,
+  1000,
+  "limite agregado aplicado a rendimento no último escalão finito = 1.000€ (mínimo legal)"
+);
+assertIgual(
+  semLimiteAgregado.linhas[8].saude + semLimiteAgregado.linhas[8].educacao + semLimiteAgregado.linhas[8].habitacao + semLimiteAgregado.linhas[8].despesasGerais,
+  2950,
+  "os valores individuais de cada categoria continuam a mostrar-se sem corte (só o total é limitado)"
+);
+if (semLimiteAgregado.linhas[8].limiteAgregadoAplicado !== true) {
+  console.error("FALHOU: limiteAgregadoAplicado devia ser true quando a soma das deduções excede o limite");
+  process.exitCode = 1;
+} else {
+  console.log("OK: limiteAgregadoAplicado = true quando a soma das deduções excede o limite");
+}
+
+// Rendimento dentro do 1º escalão: sem limite nenhum (mesmo com deduções
+// altas), o total tem de ser a soma cheia.
+const dentroPrimeiroEscalao = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasB],
+  dependentes: [],
+  deducoesColeta: { saude: 1000, educacao: 800 },
+});
+if (dentroPrimeiroEscalao.linhas[8].limiteAgregadoAplicado !== false) {
+  console.error("FALHOU: dentro do 1º escalão de IRS não devia haver limite agregado");
+  process.exitCode = 1;
+} else {
+  console.log("OK: sem limite agregado dentro do 1º escalão de IRS");
+}
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

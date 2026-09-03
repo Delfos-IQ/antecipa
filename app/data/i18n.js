@@ -213,7 +213,7 @@ export const pt = {
         titulo: "Saúde, educação e PPR",
         saude: { label: "Despesas de saúde", hint: "Total anual em faturas de saúde (consultas, farmácia). Dedução de 15%, até 1.000€." },
         educacao: { label: "Despesas de educação", hint: "Propinas, livros, material escolar. Dedução de 30%, até 800€ (mais nas regiões do interior)." },
-        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 600-800€ conforme a idade (valor exato por confirmar — ver auditoria de 03/09/2026)." },
+        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 300-400€ por titular conforme a idade (em declaração conjunta, o limite do agregado soma o de cada titular)." },
         habitacao: { label: "Renda ou juros de crédito habitação", hint: "Renda de casa própria e permanente, ou juros de crédito à habitação contraído até 2011. Dedução de 15%." },
       },
       familia: {

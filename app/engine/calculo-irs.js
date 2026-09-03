@@ -269,17 +269,63 @@ export function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limite
   return dependente?.guarda === "partilhada" ? round2(valor / 2) : valor;
 }
 
-function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, anoFiscal, escalaoAplicado, coletaTotal }) {
+// Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8 CIRS) —
+// NOVO nesta auditoria (03/09/2026, 2ª ronda). Ver legislacao-2026.js,
+// limitesDeducoes.limiteAgregado, para a fonte e o nível de confiança.
+// Sem limite até ao 1º escalão de IRS; entre o 1º escalão e o último
+// escalão finito, decresce linearmente de 2.500€ para 1.000€; fixo em
+// 1.000€ acima disso. Majoração de 5% por dependente para agregados com 3+
+// dependentes.
+function calcularLimiteAgregadoDeducoes({ rendimentoPorQuociente, numDependentes, tabela }) {
+  const config = tabela.limitesDeducoes?.limiteAgregado;
+  if (!config) return Infinity;
+
+  const escaloes = tabela.escaloes;
+  const primeiroLimite = escaloes[0].limite;
+  const ultimoFinito = escaloes[escaloes.length - 2].limite; // penúltimo, já que o último é Infinity
+
+  let limite;
+  if (rendimentoPorQuociente <= primeiroLimite) {
+    limite = Infinity;
+  } else if (rendimentoPorQuociente >= ultimoFinito) {
+    limite = config.minimo;
+  } else {
+    const fracao = (ultimoFinito - rendimentoPorQuociente) / (ultimoFinito - primeiroLimite);
+    limite = config.minimo + (config.maximo - config.minimo) * fracao;
+  }
+
+  if (limite !== Infinity && numDependentes >= config.numDependentesParaMajoracao) {
+    limite = limite * (1 + config.majoracaoPorDependentePercentagem * numDependentes);
+  }
+
+  return limite === Infinity ? Infinity : round2(limite);
+}
+
+function calcularDeducoesAColeta({
+  deducoesColeta,
+  dependentes,
+  tabela,
+  regime,
+  anoFiscal,
+  escalaoAplicado,
+  rendimentoPorQuociente,
+  coletaTotal,
+}) {
   const limites = tabela.limitesDeducoes;
   const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
   const saude = clamp((deducoesColeta.saude || 0) * limites.saude.percentagem, limites.saude.limite);
   const educacao = clamp((deducoesColeta.educacao || 0) * limites.educacao.percentagem, limites.educacao.limite);
 
-  const ppr = clamp(
-    (deducoesColeta.ppr || 0) * limites.ppr.percentagem,
-    limites.ppr.limiteAte35Anos // simplificação v1: usar o teto mais alto; refinar por idade em v1.1
-  );
+  // PPR: o limite legal é POR SUJEITO PASSIVO (art.º 21º EBF — ver
+  // legislacao-2026.js para o histórico do erro 800/700/600€ vs.
+  // 400/350/300€). Em regime conjunta há dois titulares possíveis, por
+  // isso o teto do agregado é ×2. Ainda simplificado: usa-se sempre o
+  // teto mais alto (menor idade) por não termos a data de nascimento de
+  // cada titular disponível neste ponto — refinar em v1.1.
+  const pprTetoPorTitular = limites.ppr.limiteAte35Anos;
+  const pprTeto = regime === "conjunta" ? round2(pprTetoPorTitular * 2) : pprTetoPorTitular;
+  const ppr = clamp((deducoesColeta.ppr || 0) * limites.ppr.percentagem, pprTeto);
 
   // Limite de rendas de habitação: mais alto (limitePrimeiroEscalao) para
   // quem tem rendimento (por quociente) dentro do 1º escalão de IRS — o
@@ -345,13 +391,27 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, 
     ? clamp((deducoesColeta.donativos || 0) * limites.donativos.percentagem, limiteDonativos)
     : 0;
 
-  const total = round2(
-    saude + educacao + ppr + habitacao + exigenciaFatura + despesasGerais + porDependentes + duplaTributacao + donativos
-  );
+  // Limite agregado (art.º 78º, n.º 7/8 CIRS): aplica-se só à soma das
+  // deduções "gerais" do art.º 78º — saúde, educação, habitação, PPR,
+  // despesas gerais e familiares e exigência de fatura. Fica DE FORA:
+  // dependentes (alínea a) do n.º 1, expressamente excluída), dupla
+  // tributação internacional (regida por tratado, fora do art.º 78º) e
+  // donativos (regime próprio do art.º 63º EBF, já com o seu teto de 15%
+  // da coleta aplicado acima).
+  const subtotalSujeitoALimite = round2(saude + educacao + habitacao + ppr + despesasGerais + exigenciaFatura);
+  const limiteAgregado = calcularLimiteAgregadoDeducoes({
+    rendimentoPorQuociente: rendimentoPorQuociente ?? 0,
+    numDependentes: dependentes.length,
+    tabela,
+  });
+  const limiteAgregadoAplicado = limiteAgregado !== Infinity && subtotalSujeitoALimite > limiteAgregado;
+  const subtotalAposLimite = limiteAgregadoAplicado ? limiteAgregado : subtotalSujeitoALimite;
+
+  const total = round2(subtotalAposLimite + porDependentes + duplaTributacao + donativos);
 
   return {
     linhaOficial: 8,
-    referenciaLegal: "art.º 78º-A a 78º-E CIRS + art.º 63º EBF (donativos)",
+    referenciaLegal: "art.º 78º (n.º 1 a n.º 8) CIRS + art.º 63º EBF (donativos)",
     saude,
     educacao,
     ppr,
@@ -361,6 +421,8 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, 
     porDependentes: round2(porDependentes),
     duplaTributacao,
     donativos,
+    limiteAgregado: limiteAgregado === Infinity ? null : limiteAgregado,
+    limiteAgregadoAplicado,
     total,
   };
 }
@@ -538,6 +600,7 @@ export function calcularDeclaracao(input) {
     regime,
     anoFiscal,
     escalaoAplicado: importanciaApurada.escalaoAplicado,
+    rendimentoPorQuociente: importanciaApurada.rendimentoPorQuociente,
     coletaTotal: coletaTotal.total,
   });
   const coletaLiquida = calcularColetaLiquida({
@@ -643,7 +706,7 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes) {
  * @returns {null|{tipo:"ppr", entregaNecessaria:number, poupancaEstimada:number, tetoAnual:number}}
  */
 export function detectarOportunidadePPR(input, resultadoAtual) {
-  const { anoFiscal, deducoesColeta = {}, dataReferencia } = input;
+  const { anoFiscal, regime, deducoesColeta = {}, dataReferencia } = input;
   const tabela = obterTabelaFiscal(anoFiscal, dataReferencia);
   const limitesPpr = tabela.limitesDeducoes.ppr;
   if (!limitesPpr) return null;
@@ -651,8 +714,11 @@ export function detectarOportunidadePPR(input, resultadoAtual) {
   const pprAtual = deducoesColeta.ppr || 0;
   // Mesma simplificação v1 já usada em calcularDeducoesAColeta: usa-se o
   // teto mais alto (menor idade) por não termos ainda a data de nascimento
-  // do sujeito passivo principal disponível neste ponto. Ver nota lá.
-  const teto = limitesPpr.limiteAte35Anos;
+  // do(s) sujeito(s) passivo(s) disponível neste ponto. O limite é por
+  // titular (art.º 21º EBF) — em regime conjunta há dois titulares
+  // possíveis, por isso ×2. Ver nota em calcularDeducoesAColeta.
+  const tetoPorTitular = limitesPpr.limiteAte35Anos;
+  const teto = regime === "conjunta" ? round2(tetoPorTitular * 2) : tetoPorTitular;
   const deducaoAtual = Math.min(pprAtual * limitesPpr.percentagem, teto);
   if (deducaoAtual >= teto) return null; // já no limite — nada a sugerir
 
