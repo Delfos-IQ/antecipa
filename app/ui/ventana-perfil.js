@@ -11,6 +11,7 @@
 
 import { pt } from "../data/i18n.js";
 import { revisaoFiscal, obterTabelaFiscal } from "../data/legislacao-2026.js";
+import { VERSAO_ATUAL, HISTORICO_VERSOES } from "../data/versao.js";
 import { valorDeducaoPorDependente } from "../engine/calculo-irs.js";
 import {
   getHousehold,
@@ -229,6 +230,13 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
       <p class="copyright-line">© ${new Date().getFullYear()} ${pt.perfil.copyrightTexto}</p>
+      <p class="copyright-line" style="margin-top:var(--space-1)">
+        ${pt.perfil.versaoAtualPrefixo} ${VERSAO_ATUAL} ·
+        <button data-action="toggle-historico-versoes" style="font:inherit;color:inherit;text-decoration:underline;background:none;border:none;padding:0;cursor:pointer">${pt.perfil.historicoVersoesMostrar}</button>
+      </p>
+      <ul data-historico-versoes hidden style="list-style:none;padding:0;margin:var(--space-1) 0 0;font-size:.8rem;color:var(--muted)">
+        ${HISTORICO_VERSOES.map((v) => `<li style="padding:2px 0">${v.versao} — ${v.resumo}</li>`).join("")}
+      </ul>
     `;
 
     // Guarda todos os campos de todas as linhas de dependente antes de
@@ -430,6 +438,13 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       if (!confirmar) return;
       await limparTudo();
       window.location.reload();
+    });
+
+    container.querySelector('[data-action="toggle-historico-versoes"]')?.addEventListener("click", (e) => {
+      const lista = container.querySelector("[data-historico-versoes]");
+      const aberto = lista.hidden;
+      lista.hidden = !aberto;
+      e.currentTarget.textContent = aberto ? pt.perfil.historicoVersoesEsconder : pt.perfil.historicoVersoesMostrar;
     });
   }
 }

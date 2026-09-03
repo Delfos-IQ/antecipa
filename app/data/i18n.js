@@ -239,6 +239,11 @@ export const pt = {
     revisaoFiscalPrefixo: "Dados fiscais revistos em",
     revisaoFiscalProxima: "próxima revisão prevista",
     copyrightTexto: "Daniel Lanzas — Antecipa, simulador de IRS — todos os direitos reservados.",
+    // Histórico de versões (03/09/2026) — pedido simples do utilizador
+    // para saber se está na versão mais recente, sem detalhes técnicos.
+    versaoAtualPrefixo: "Versão",
+    historicoVersoesMostrar: "Ver histórico de versões",
+    historicoVersoesEsconder: "Esconder histórico de versões",
     exportarTudo: "Exportar todos os dados (JSON)",
     limparAno: "Limpar dados do ano ",
     limparTudo: "Limpar tudo e recomeçar do zero",
