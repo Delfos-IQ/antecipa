@@ -84,6 +84,7 @@ export const pt = {
     adicionarDocumento: "Carregar talão ou recibo verde",
     tipoTalao: "Talão",
     tipoReciboVerde: "Recibo verde",
+    editarDocumento: "Editar",
     reatribuirLabel: "É de:",
     removerDocumento: "Remover",
     confirmarRemoverDocumento: "Tem a certeza que quer remover este documento? Esta ação não pode ser desfeita.",

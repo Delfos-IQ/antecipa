@@ -152,7 +152,16 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
 
       // Corrigir/apagar um documento já gravado — pedido real (03/09/2026):
       // um documento carregado com a pessoa errada não tinha nenhuma forma
-      // de correção, só era possível apagar TODOS os dados do ano.
+      // de correção, só era possível apagar TODOS os dados do ano. O painel
+      // fica escondido por omissão (só um botão "Editar" discreto) — outro
+      // pedido do utilizador, achou o seletor "É de:" sempre visível
+      // confuso/desnecessário na maioria dos cartões.
+      painel.querySelectorAll('[data-action="editar-documento"]').forEach((el) =>
+        el.addEventListener("click", () => {
+          const painelEdicao = painel.querySelector(`[data-doc-editar="${el.dataset.docId}"]`);
+          if (painelEdicao) painelEdicao.hidden = !painelEdicao.hidden;
+        })
+      );
       painel.querySelectorAll('[data-action="remover-documento"]').forEach((el) =>
         el.addEventListener("click", async () => {
           const confirmar = window.confirm(pt.mensal.confirmarRemoverDocumento);
@@ -227,10 +236,13 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
             )
             .join("")}
         </details>
-        <div class="row" style="gap:var(--space-2);align-items:center;margin-top:var(--space-2);flex-wrap:wrap">
+        <div class="row" style="gap:var(--space-2);align-items:center;margin-top:var(--space-2)">
+          <button class="btn btn-ghost" data-action="editar-documento" data-doc-id="${doc.id}" style="padding:2px 8px;font-size:0.82rem">${pt.mensal.editarDocumento}</button>
+        </div>
+        <div data-doc-editar="${doc.id}" hidden style="margin-top:var(--space-2);padding-top:var(--space-2);border-top:1px solid var(--hairline)">
           ${
             duasPessoas
-              ? `<label class="field-hint" style="display:flex;align-items:center;gap:4px">
+              ? `<label class="field-hint" style="display:flex;align-items:center;gap:4px;margin-bottom:var(--space-2)">
                   ${pt.mensal.reatribuirLabel}
                   <select data-action="reatribuir-documento" data-doc-id="${doc.id}">
                     ${pessoas.map((p) => `<option value="${p.id}" ${p.id === doc.pessoaId ? "selected" : ""}>${p.nome || p.id}</option>`).join("")}
@@ -238,7 +250,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
                 </label>`
               : ""
           }
-          <button class="btn btn-ghost" data-action="remover-documento" data-doc-id="${doc.id}" style="color:var(--pagar);margin-left:auto">${pt.mensal.removerDocumento}</button>
+          <button class="btn btn-ghost" data-action="remover-documento" data-doc-id="${doc.id}" style="color:var(--pagar)">${pt.mensal.removerDocumento}</button>
         </div>
       </div>`;
   }
