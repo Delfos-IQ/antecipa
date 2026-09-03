@@ -125,6 +125,14 @@ export const pt = {
     exportarPdf: "Exportar PDF",
     exportarPessoal: "Versão pessoal",
     exportarContabilista: "Versão para contabilista",
+    oportunidadesTitulo: "Oportunidades de poupança",
+    oportunidadesAviso: "Isto é uma simulação com os seus próprios dados, não é aconselhamento financeiro.",
+    oportunidadePprTitulo: "Ainda não tem PPR registado",
+    oportunidadePprCorpo:
+      "Um Plano Poupança-Reforma dá direito a deduzir 20% do valor entregue, até um teto anual (art.º 78º CIRS). " +
+      "Com os seus números atuais, entregar",
+    oportunidadePprLigacao: "este ano pouparia até",
+    oportunidadePprIrParaPerfil: "Registar entrega de PPR",
   },
 
   nav: { mensal: "Meses", acumulado: "Dashboard", deducoes: "Deduções", simulacao: "Simulação", perfil: "Perfil", definicoes: "Definições" },

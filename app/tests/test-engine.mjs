@@ -4,7 +4,7 @@
 // real (secção 12) exige testar contra uma Demonstração de Liquidação
 // verdadeira, o que só o utilizador pode fornecer.
 
-import { calcularDeclaracao, compararRegimes } from "../engine/calculo-irs.js";
+import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR } from "../engine/calculo-irs.js";
 
 function assertIgual(valor, esperado, mensagem) {
   if (Math.abs(valor - esperado) > 0.005) {
@@ -86,6 +86,51 @@ if (rPartilhada.linhas[5].total >= rExclusiva.linhas[5].total) {
 if (rPartilhada.linhas[8].porDependentes >= rExclusiva.linhas[8].porDependentes) {
   console.error("FALHOU: guarda partilhada devia dar uma dedução por dependente menor do que guarda exclusiva");
   process.exitCode = 1;
+}
+
+console.log("\n--- Oportunidade PPR: deteção e cálculo da poupança ---");
+// Pedido do utilizador (02/09/2026): "para alguém que não tenha PPR, a app
+// pode informar que pouparia". Usa-se o mesmo rendimento de rExclusiva
+// acima (sem PPR registado) para confirmar que a oportunidade aparece, com
+// a poupança estimada a bater certo com a diferença real de correr o
+// motor com/sem o PPR sugerido.
+const oportunidadeSemPpr = detectarOportunidadePPR(
+  { ...baseIndividual, dependentes: [] },
+  calcularDeclaracao({ ...baseIndividual, dependentes: [] })
+);
+if (!oportunidadeSemPpr) {
+  console.error("FALHOU: devia detetar oportunidade de PPR quando não há PPR registado e há coleta suficiente");
+  process.exitCode = 1;
+} else {
+  console.log(`OK: oportunidade PPR detetada — entrega sugerida ${oportunidadeSemPpr.entregaNecessaria}€, poupança estimada ${oportunidadeSemPpr.poupancaEstimada}€`);
+  assertIgual(oportunidadeSemPpr.tetoAnual, 800, "teto anual de dedução do PPR (simplificação v1, sem idade) = 800€");
+  // A entrega sugerida, aplicada ao mesmo motor, tem de produzir exatamente
+  // a poupança indicada (senão o número mostrado na UI estaria a mentir).
+  const semPpr = calcularDeclaracao({ ...baseIndividual, dependentes: [] });
+  const comPprSugerido = calcularDeclaracao({
+    ...baseIndividual,
+    dependentes: [],
+    deducoesColeta: { ppr: oportunidadeSemPpr.entregaNecessaria },
+  });
+  const sinal = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);
+  assertIgual(
+    sinal(comPprSugerido.resultado) - sinal(semPpr.resultado),
+    oportunidadeSemPpr.poupancaEstimada,
+    "poupança estimada do PPR bate certo com a diferença real do motor"
+  );
+}
+
+// Quem já está no teto do PPR não deve receber a sugestão outra vez.
+const oportunidadeNoTeto = detectarOportunidadePPR({
+  ...baseIndividual,
+  dependentes: [],
+  deducoesColeta: { ppr: 4000 }, // 4000 * 20% = 800€ = teto
+});
+if (oportunidadeNoTeto) {
+  console.error("FALHOU: não devia sugerir PPR a quem já está no teto de dedução");
+  process.exitCode = 1;
+} else {
+  console.log("OK: sem sugestão de PPR para quem já está no teto");
 }
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

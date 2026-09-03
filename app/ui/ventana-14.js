@@ -6,7 +6,7 @@
 import { pt } from "../data/i18n.js";
 import { getHousehold, getPessoas, getDependentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
-import { calcularDeclaracao, compararRegimes } from "../engine/calculo-irs.js";
+import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR } from "../engine/calculo-irs.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
 
 function formatarMoeda(v) {
@@ -92,6 +92,7 @@ export async function renderVentana14({ container, anoFiscal }) {
 
   let resultadoUnico = null;
   let comparacao = null;
+  let oportunidadePPR = null;
 
   const regime = household?.regimeTributacao ?? "individual";
 
@@ -103,18 +104,25 @@ export async function renderVentana14({ container, anoFiscal }) {
       dependentes
     );
   } else {
-    resultadoUnico = calcularDeclaracao({
+    const inputResultadoUnico = {
       ...inputBase,
       regime: regime === "conjunta" ? "conjunta" : "individual",
       rubricasPorPessoa: rubricasPorPessoa.map((p) => p.rubricas),
       dependentes,
-    });
+    };
+    resultadoUnico = calcularDeclaracao(inputResultadoUnico);
+    // Oportunidades de poupança fiscal (v1: só PPR) — só para o modo
+    // "resultado único" por agora; em modo comparação (conjunta vs.
+    // separadas) fica para uma fase seguinte, pois o PPR pode ser
+    // entregue por qualquer um dos dois sujeitos passivos e a atribuição
+    // ainda não está modelada.
+    oportunidadePPR = detectarOportunidadePPR(inputResultadoUnico, resultadoUnico);
   }
 
-  render({ resultadoUnico, comparacao, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes });
+  render({ resultadoUnico, comparacao, oportunidadePPR, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes });
 
   function render(estado) {
-    const { resultadoUnico, comparacao } = estado;
+    const { resultadoUnico, comparacao, oportunidadePPR } = estado;
     const resultadoParaSelo = comparacao
       ? melhorResultado(comparacao)
       : resultadoUnico.resultado;
@@ -128,6 +136,8 @@ export async function renderVentana14({ container, anoFiscal }) {
       </div>
 
       ${comparacao ? renderComparacao(comparacao) : ""}
+
+      ${oportunidadePPR ? renderOportunidades(oportunidadePPR) : ""}
 
       <div class="row-between" style="margin-top:var(--space-5)">
         <button class="btn btn-secondary" data-action="toggle-desglose">${pt.ventana14.verCalculoCompleto}</button>
@@ -165,6 +175,10 @@ export async function renderVentana14({ container, anoFiscal }) {
         pessoas: estado.pessoas,
       })
     );
+
+    container.querySelector('[data-action="ir-deducoes"]')?.addEventListener("click", () => {
+      document.querySelector('[data-rota="deducoes"]')?.click();
+    });
   }
 }
 
@@ -202,6 +216,30 @@ function renderComparacao(comparacao) {
       </div>
     </div>
     <p class="muted" style="margin-top:var(--space-3)">${pt.ventana14.diferenca}: <strong class="num">${formatarMoeda(comparacao.diferenca)}</strong></p>
+  `;
+}
+
+// Painel "Oportunidades de poupança fiscal" — pedido do utilizador
+// (02/09/2026): mostrar, junto ao resultado da simulação, benefícios
+// fiscais que o sujeito passivo ainda não está a aproveitar. v1 cobre só
+// o PPR; a estrutura (um `card` por oportunidade) fica pronta para somar
+// mais-valias (englobamento vs. taxa autónoma) numa fase seguinte.
+function renderOportunidades(oportunidadePPR) {
+  return `
+    <div class="oportunidades card" style="margin-top:var(--space-5)">
+      <p class="section-title" style="margin-top:0">${pt.ventana14.oportunidadesTitulo}</p>
+      <div class="oportunidade-item">
+        <p class="oportunidade-item__titulo">${pt.ventana14.oportunidadePprTitulo}</p>
+        <p class="field-hint">
+          ${pt.ventana14.oportunidadePprCorpo}
+          <strong class="num">${formatarMoeda(oportunidadePPR.entregaNecessaria)}</strong>
+          ${pt.ventana14.oportunidadePprLigacao}
+          <strong class="num">${formatarMoeda(oportunidadePPR.poupancaEstimada)}</strong>.
+        </p>
+        <button class="btn btn-ghost" style="margin-top:var(--space-2)" data-action="ir-deducoes">${pt.ventana14.oportunidadePprIrParaPerfil}</button>
+      </div>
+      <p class="field-hint" style="margin-top:var(--space-3)">${pt.ventana14.oportunidadesAviso}</p>
+    </div>
   `;
 }
 

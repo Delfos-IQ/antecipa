@@ -571,3 +571,54 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes) {
     diferenca,
   };
 }
+
+/**
+ * Oportunidades de poupança fiscal — v1: só PPR (Plano Poupança-Reforma,
+ * art.º 78º CIRS). Pedido do utilizador (02/09/2026): detetar quando um
+ * sujeito passivo ainda não esgotou um benefício fiscal disponível e
+ * mostrar quanto poderia poupar.
+ *
+ * Em vez de duplicar as regras de dedução/mínimo de existência/teto de
+ * coleta aqui, reutiliza-se o próprio motor: corre-se `calcularDeclaracao`
+ * outra vez com o mesmo input, só trocando `deducoesColeta.ppr` pelo valor
+ * que atinge o teto legal, e compara-se a linha 11 (Resultado) das duas
+ * simulações. Isto garante que a poupança estimada respeita tudo o que já
+ * está implementado (mínimo de existência, teto de coleta líquida a 0,
+ * etc.) sem risco de o número mostrado aqui divergir do motor real.
+ *
+ * NÃO é aconselhamento financeiro — é uma simulação "e se" com os mesmos
+ * dados já introduzidos pelo utilizador, para que ele decida por si.
+ *
+ * @param {Object} input - o mesmo objeto passado a calcularDeclaracao.
+ * @param {Object} [resultadoAtual] - se já tiver sido calculado, evita
+ *   recalcular a declaração atual (poupa 1 das 2 chamadas ao motor).
+ * @returns {null|{tipo:"ppr", entregaNecessaria:number, poupancaEstimada:number, tetoAnual:number}}
+ */
+export function detectarOportunidadePPR(input, resultadoAtual) {
+  const { anoFiscal, deducoesColeta = {}, dataReferencia } = input;
+  const tabela = obterTabelaFiscal(anoFiscal, dataReferencia);
+  const limitesPpr = tabela.limitesDeducoes.ppr;
+  if (!limitesPpr) return null;
+
+  const pprAtual = deducoesColeta.ppr || 0;
+  // Mesma simplificação v1 já usada em calcularDeducoesAColeta: usa-se o
+  // teto mais alto (menor idade) por não termos ainda a data de nascimento
+  // do sujeito passivo principal disponível neste ponto. Ver nota lá.
+  const teto = limitesPpr.limiteAte35Anos;
+  const deducaoAtual = Math.min(pprAtual * limitesPpr.percentagem, teto);
+  if (deducaoAtual >= teto) return null; // já no limite — nada a sugerir
+
+  const entregaNecessaria = round2(teto / limitesPpr.percentagem - pprAtual);
+
+  const declaracaoAtual = resultadoAtual ?? calcularDeclaracao(input);
+  const declaracaoComPPR = calcularDeclaracao({
+    ...input,
+    deducoesColeta: { ...deducoesColeta, ppr: pprAtual + entregaNecessaria },
+  });
+
+  const sinal = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);
+  const poupancaEstimada = round2(sinal(declaracaoComPPR.resultado) - sinal(declaracaoAtual.resultado));
+  if (poupancaEstimada <= 0) return null; // sem coleta suficiente para beneficiar
+
+  return { tipo: "ppr", entregaNecessaria, poupancaEstimada, tetoAnual: teto };
+}

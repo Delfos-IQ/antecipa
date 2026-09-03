@@ -281,6 +281,18 @@ input:focus, select:focus { border-color: var(--brass); }
   box-shadow: var(--shadow-card);
 }
 
+/* ---------- Oportunidades de poupança fiscal (Ventana 14) ---------- */
+.oportunidades {
+  padding: var(--space-4);
+  border-left: 3px solid var(--brass-light);
+}
+.oportunidade-item + .oportunidade-item {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--hairline);
+}
+.oportunidade-item__titulo { font-weight: 600; color: var(--navy-deep); }
+
 .mes-accordion { display: grid; gap: var(--space-3); }
 .mes-item {
   background: var(--card);
