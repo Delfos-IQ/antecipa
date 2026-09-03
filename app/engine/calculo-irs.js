@@ -314,8 +314,17 @@ function calcularDeducoesAColeta({
   const limites = tabela.limitesDeducoes;
   const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
-  const saude = clamp((deducoesColeta.saude || 0) * limites.saude.percentagem, limites.saude.limite);
-  const educacao = clamp((deducoesColeta.educacao || 0) * limites.educacao.percentagem, limites.educacao.limite);
+  // Faturas emitidas com o NIF de um dependente também contam para saúde e
+  // educação (art.º 78º-C/D CIRS — "despesas de qualquer membro do agregado
+  // familiar"), mesmo padrão já usado acima para despesasGerais/exigência
+  // de fatura: soma-se à MESMA base antes da percentagem e do teto, não é
+  // um plafond à parte. Pedido real (03/09/2026): despesas dos filhos
+  // (dentista, consultas, vacinas, comedor escolar) pedidas com o NIF deles
+  // não apareciam em lado nenhum da simulação.
+  const baseSaude = (deducoesColeta.saude || 0) + (deducoesColeta.saudeDependentes || 0);
+  const saude = clamp(baseSaude * limites.saude.percentagem, limites.saude.limite);
+  const baseEducacao = (deducoesColeta.educacao || 0) + (deducoesColeta.educacaoDependentes || 0);
+  const educacao = clamp(baseEducacao * limites.educacao.percentagem, limites.educacao.limite);
 
   // PPR: o limite legal é POR SUJEITO PASSIVO (art.º 21º EBF — ver
   // legislacao-2026.js para o histórico do erro 800/700/600€ vs.
@@ -734,7 +743,7 @@ export function detectarOportunidadePPR(input, resultadoAtual) {
   const poupancaEstimada = round2(sinal(declaracaoComPPR.resultado) - sinal(declaracaoAtual.resultado));
   if (poupancaEstimada <= 0) return null; // sem coleta suficiente para beneficiar
 
-  return { tipo: "ppr", entregaNecessaria, poupancaEstimada, tetoAnual: teto };
+  return { tipo: "ppr", entregaNecessaria, poupancaEstimada, tetoAnual: teto, pprAtual };
 }
 
 /**

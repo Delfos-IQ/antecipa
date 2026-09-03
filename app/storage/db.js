@@ -124,6 +124,14 @@ export async function savePessoa(pessoa) {
   return pessoa;
 }
 
+// Remover o cônjuge/2º sujeito passivo (Perfil → editar agregado). Nunca
+// remove documentos/rubricas já associados a esse pessoaId — ficam órfãos
+// mas visíveis nos ecrãs mensais tal como já acontecia para dependentes
+// removidos; o utilizador pode sempre reatribuí-los a outro documento.
+export async function removePessoa(id) {
+  return db.delete("pessoas", id);
+}
+
 export async function getDependentes() {
   return db.getAll("dependentes");
 }
@@ -185,7 +193,9 @@ export async function getDeducoesColeta(anoFiscal, pessoaId = "household") {
     anoFiscal,
     pessoaId,
     saude: 0,
+    saudeDependentes: 0,
     educacao: 0,
+    educacaoDependentes: 0,
     ppr: 0,
     habitacao: 0,
     // Exigência de fatura (IVAucher) desdobrada por categoria do e-Fatura,

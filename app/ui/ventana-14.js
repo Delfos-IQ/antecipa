@@ -249,11 +249,16 @@ function renderOportunidades(oportunidades) {
 }
 
 function renderOportunidadePPR(oportunidade) {
+  // Já tem PPR registado (>0) → título/corpo dizem "tem margem", não "ainda
+  // não tem" — ver comentário em data/i18n.js sobre este bug (03/09/2026).
+  const temPprRegistado = (oportunidade.pprAtual || 0) > 0;
+  const titulo = temPprRegistado ? pt.ventana14.oportunidadePprTituloComPpr : pt.ventana14.oportunidadePprTitulo;
+  const corpo = temPprRegistado ? pt.ventana14.oportunidadePprCorpoComPpr : pt.ventana14.oportunidadePprCorpo;
   return `
     <div class="oportunidade-item">
-      <p class="oportunidade-item__titulo">${pt.ventana14.oportunidadePprTitulo}</p>
+      <p class="oportunidade-item__titulo">${titulo}</p>
       <p class="field-hint">
-        ${pt.ventana14.oportunidadePprCorpo}
+        ${temPprRegistado ? `Já entregou ${formatarMoeda(oportunidade.pprAtual)}. ` : ""}${corpo}
         <strong class="num">${formatarMoeda(oportunidade.entregaNecessaria)}</strong>
         ${pt.ventana14.oportunidadePprLigacao}
         <strong class="num">${formatarMoeda(oportunidade.poupancaEstimada)}</strong>.

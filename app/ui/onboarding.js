@@ -3,7 +3,7 @@
 
 import { pt } from "../data/i18n.js";
 import { simboloSVG } from "./components/symbol.js";
-import { saveHousehold, savePessoa, getHousehold } from "../storage/db.js";
+import { saveHousehold, savePessoa, saveDependente, getHousehold } from "../storage/db.js";
 import { quocienteEstimado } from "../engine/quociente.js";
 
 const TOTAL_PASSOS = 5; // 1..5, passo 0 é boas-vindas sem barra
@@ -14,6 +14,13 @@ export function criarOnboarding({ container, onConcluido }) {
     situacao: null,
     regimeTributacao: "comparar_ambos",
     numDependentesEstimado: 0,
+    // Um item por dependente estimado — preenchidos aqui mesmo no
+    // onboarding (bug reportado: escolher "tenho filhos" não pedia para os
+    // definir, obrigando a ir ao Perfil depois). dia/mes/ano em vez de
+    // <input type="date"> pelo mesmo motivo do Perfil (ver ventana-perfil.js):
+    // o date picker nativo não deixa escrever o ano pelo teclado em vários
+    // browsers/telemóveis.
+    dependentesInfo: [],
     pessoas: [{ id: "A", nome: "", nif: "" }],
     fontes: new Set(),
     // Confirmação obrigatória do aviso legal (passo 1) — só avança depois
@@ -169,6 +176,35 @@ export function criarOnboarding({ container, onConcluido }) {
         <label for="num-dependentes">Número de dependentes (estimativa)</label>
         <input type="number" id="num-dependentes" min="0" max="10" value="${estado.numDependentesEstimado}" />
         <p class="field-hint">${pt.onboarding.agregado.quocienteLabel}: <strong class="num">${q.toFixed(2)}</strong></p>
+      </div>
+      ${estado.numDependentesEstimado > 0 ? renderDependentesInfo() : ""}`;
+  }
+
+  function renderDependentesInfo() {
+    return `
+      <div class="stack" style="margin-top:var(--space-3)">
+        <p class="section-title">Quem são os dependentes</p>
+        <p class="field-hint">Pode deixar por preencher e completar mais tarde em Perfil.</p>
+        ${estado.dependentesInfo
+          .map((d, i) => {
+            const [ano = "", mes = "", dia = ""] = (d.dataNascimento || "").split("-");
+            return `
+          <div class="card" style="padding:var(--space-3)">
+            <div class="field">
+              <label for="dep-nome-${i}">Nome</label>
+              <input type="text" id="dep-nome-${i}" data-dep-onb-campo="nome" data-dep-onb-i="${i}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" />
+            </div>
+            <div class="field">
+              <label>Data de nascimento</label>
+              <div style="display:flex;gap:6px">
+                <input type="number" min="1" max="31" placeholder="Dia" data-dep-onb-campo="dia" data-dep-onb-i="${i}" value="${dia}" style="width:64px" />
+                <input type="number" min="1" max="12" placeholder="Mês" data-dep-onb-campo="mes" data-dep-onb-i="${i}" value="${mes}" style="width:64px" />
+                <input type="number" min="1900" max="2100" placeholder="Ano" data-dep-onb-campo="ano" data-dep-onb-i="${i}" value="${ano}" style="width:80px" />
+              </div>
+            </div>
+          </div>`;
+          })
+          .join("")}
       </div>`;
   }
 
@@ -248,8 +284,38 @@ export function criarOnboarding({ container, onConcluido }) {
     const numDep = wrap.querySelector("#num-dependentes");
     if (numDep) numDep.addEventListener("input", (e) => {
       estado.numDependentesEstimado = Number(e.target.value) || 0;
+      // Mantém dependentesInfo com o mesmo tamanho da estimativa — cresce
+      // com entradas em branco, encolhe a partir do fim (nunca perde os
+      // primeiros já preenchidos ao reduzir o número por engano).
+      while (estado.dependentesInfo.length < estado.numDependentesEstimado) {
+        estado.dependentesInfo.push({ nome: "", dataNascimento: "" });
+      }
+      estado.dependentesInfo.length = estado.numDependentesEstimado;
       render();
     });
+    wrap.querySelectorAll("[data-dep-onb-campo]").forEach((el) =>
+      el.addEventListener("blur", (e) => {
+        const i = Number(e.target.dataset.depOnbI);
+        const campo = e.target.dataset.depOnbCampo;
+        const dep = estado.dependentesInfo[i];
+        if (!dep) return;
+        if (campo === "nome") {
+          dep.nome = e.target.value;
+          return;
+        }
+        // Guarda dia/mês/ano em campos próprios (_dia/_mes/_ano) em vez de
+        // os derivar sempre de dataNascimento — essa string só existe
+        // quando os três já estão completos, por isso reconstruir a partir
+        // dela perdia o dia/mês assim que se editava o campo seguinte
+        // (bug apanhado no teste automático: preencher dia→mês→ano
+        // gravava só o ano). Os campos _dia/_mes/_ano nunca são gravados
+        // na BD — só dataNascimento, já composta, entra em saveDependente.
+        if (campo === "dia") dep._dia = e.target.value.padStart(2, "0");
+        if (campo === "mes") dep._mes = e.target.value.padStart(2, "0");
+        if (campo === "ano") dep._ano = e.target.value;
+        dep.dataNascimento = dep._ano && dep._mes && dep._dia ? `${dep._ano}-${dep._mes}-${dep._dia}` : "";
+      })
+    );
     wrap.querySelectorAll("[data-campo]").forEach((el) =>
       el.addEventListener("input", (e) => {
         const pessoa = estado.pessoas.find((p) => p.id === e.target.dataset.id);
@@ -290,6 +356,12 @@ export function criarOnboarding({ container, onConcluido }) {
     });
     for (const p of estado.pessoas) {
       if (p.nome) await savePessoa(p);
+    }
+    for (const d of estado.dependentesInfo) {
+      // Grava mesmo em branco (nome vazio) para o número de dependentes
+      // ficar já correto em Perfil — o utilizador só precisa de completar
+      // nome/data em falta, nunca de voltar a criar as linhas do zero.
+      await saveDependente({ nome: d.nome ?? "", dataNascimento: d.dataNascimento ?? "", guarda: "exclusiva" });
     }
     onConcluido({ abrirUpload });
   }

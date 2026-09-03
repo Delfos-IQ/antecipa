@@ -222,7 +222,23 @@ async function montarPreviaPdf(container, ficheiro) {
   }
 }
 
-export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar, onCancelar }) {
+// Seletor de titular — obrigatório sempre que o agregado tem mais do que
+// uma pessoa (03/09/2026: um recibo de Vera ficou associado a Daniel
+// porque a tab ativa no momento do upload não era necessariamente a da
+// pessoa certa). Pré-selecionado com quem estava ativo, mas sempre visível
+// e editável, para nunca depender só de "qual tab estava aberta".
+function renderSeletorPessoa(pessoas, pessoaIdSelecionada) {
+  if (!pessoas || pessoas.length < 2) return "";
+  return `
+    <div class="field" style="margin-bottom:var(--space-3)">
+      <label for="confirmacao-pessoa">De quem é este documento?</label>
+      <select id="confirmacao-pessoa" data-action="mudar-pessoa">
+        ${pessoas.map((p) => `<option value="${p.id}" ${p.id === pessoaIdSelecionada ? "selected" : ""}>${p.nome || p.id}</option>`).join("")}
+      </select>
+    </div>`;
+}
+
+export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, pessoas, pessoaIdInicial, onConfirmar, onCancelar }) {
   const overlay = document.createElement("div");
   overlay.setAttribute("role", "dialog");
   overlay.setAttribute("aria-modal", "true");
@@ -234,6 +250,7 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar
   const resumo = ehTalao ? { ...(resultadoParsing.resumo ?? {}) } : null;
   const linhasDesconto = ehTalao ? (resultadoParsing.linhasDesconto ?? []).map((l) => ({ ...l })) : null;
   const rubricas = !ehTalao ? (resultadoParsing.rubricas ?? []).map((r) => ({ ...r })) : null;
+  let pessoaIdSelecionada = pessoaIdInicial ?? pessoas?.[0]?.id ?? null;
 
   const painel = document.createElement("div");
   painel.className = "card";
@@ -244,6 +261,7 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar
     painel.innerHTML = `
       <div style="flex:1 1 360px;min-width:280px">
         <h2>Confirme os valores extraídos</h2>
+        ${renderSeletorPessoa(pessoas, pessoaIdSelecionada)}
         ${ehTalao ? renderTalao(resultadoParsing, resumo, linhasDesconto) : renderListaRubricas(rubricas, tipo)}
         <div class="onboarding__nav">
           <button class="btn btn-ghost" data-action="cancelar">Cancelar</button>
@@ -269,6 +287,9 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar
   }
 
   function ligar() {
+    painel.querySelector("#confirmacao-pessoa")?.addEventListener("change", (e) => {
+      pessoaIdSelecionada = e.target.value;
+    });
     if (ehTalao) {
       painel.querySelectorAll("[data-campo-resumo]").forEach((el) =>
         el.addEventListener("input", (e) => {
@@ -307,9 +328,9 @@ export function abrirConfirmacao({ resultadoParsing, tipo, ficheiro, onConfirmar
       if (ehTalao) {
         const lembrar = painel.querySelector('[data-action="lembrar"]')?.checked ?? false;
         const correcoes = lembrar ? detetarCorrecoes() : {};
-        onConfirmar(rubricasFinaisDoResumo(resumo), correcoes);
+        onConfirmar(rubricasFinaisDoResumo(resumo), correcoes, pessoaIdSelecionada);
       } else {
-        onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu));
+        onConfirmar(rubricas.filter((r) => r.descricao && r.valorComRedu), undefined, pessoaIdSelecionada);
       }
       fechar();
     });

@@ -287,6 +287,53 @@ const comBaseAcimaDoTeto = calcularDeclaracao({
 });
 assertIgual(comBaseAcimaDoTeto.linhas[8].despesasGerais, 250, "base própria + dependentes continua limitada ao mesmo teto de 250€ (sem plafond extra por dependente)");
 
+console.log("\n--- Saúde e educação dos dependentes somam à mesma base (bug real reportado 03/09/2026) ---");
+// Mesmo padrão de despesasGerais/despesasGeraisDependentes, agora para
+// saúde e educação: faturas de dentista/consultas/vacinas/comedor escolar
+// emitidas com o NIF de um dependente têm de aparecer na simulação.
+const semDespesasSaudeDependentes = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { saude: 1000 }, // 1000 × 15% = 150€
+});
+assertIgual(semDespesasSaudeDependentes.linhas[8].saude, 150, "saúde só com valor próprio (1.000€) = 15% = 150€");
+
+const comDespesasSaudeDependentes = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { saude: 1000, saudeDependentes: 1000 }, // 2000 × 15% = 300€
+});
+assertIgual(comDespesasSaudeDependentes.linhas[8].saude, 300, "saúde própria + dependentes (1.000€+1.000€) = 15% de 2.000€ = 300€");
+
+const comDespesasEducacaoDependentes = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { educacao: 500, educacaoDependentes: 500 }, // 1000 × 30% = 300€
+});
+assertIgual(comDespesasEducacaoDependentes.linhas[8].educacao, 300, "educação própria + dependentes (500€+500€) = 30% de 1.000€ = 300€");
+
+console.log("\n--- Oportunidade PPR: pprAtual devolvido para a copy distinguir 'sem PPR' de 'já tem PPR, ainda há margem' ---");
+// Bug real reportado (03/09/2026): o título da oportunidade era sempre
+// "Ainda não tem PPR registado", mesmo para quem já tinha entregue PPR e só
+// tinha margem até ao teto — ver ui/ventana-14.js, renderOportunidadePPR.
+const oportunidadeComPprJaEntregue = detectarOportunidadePPR(
+  {
+    anoFiscal: 2026,
+    regime: "individual",
+    deducoesColeta: { ppr: 1000 },
+    rubricasPorPessoa: [rubricasA],
+    dependentes: [],
+  },
+  null
+);
+assertIgual(oportunidadeComPprJaEntregue?.pprAtual, 1000, "detectarOportunidadePPR devolve pprAtual para a UI distinguir os dois casos");
+
 console.log("\n--- Pagamentos por conta: campo novo da auditoria fiscal de 03/09/2026 ---");
 // Confirmado como linha própria (23) numa Demonstração de Liquidação real:
 // IMPOSTOS APURADOS = Coleta Líquida − (Pagamentos por Conta + Retenções

@@ -15,7 +15,7 @@ import { getHousehold } from "../storage/db.js";
 // pt.perfil.deducoesGrupos — este array só define a ordem e que campos
 // pertencem a cada grupo.
 const GRUPOS_DEDUCOES = [
-  { chave: "saudeEducacao", campos: ["saude", "educacao", "ppr", "habitacao"] },
+  { chave: "saudeEducacao", campos: ["saude", "saudeDependentes", "educacao", "educacaoDependentes", "ppr", "habitacao"] },
   { chave: "familia", campos: ["despesasGerais", "despesasGeraisDependentes"] },
   { chave: "exigenciaFatura", campos: ["exigenciaFaturaRestauracao", "exigenciaFaturaReparacaoAutomovel", "exigenciaFaturaPassesMensais", "exigenciaFaturaOutras"] },
   { chave: "capital", campos: ["maisValias"] },

@@ -129,10 +129,23 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
       );
       painel.innerHTML = renderPainelPessoa(lista);
       painel.querySelector('[data-action="adicionar-doc"]')?.addEventListener("click", () =>
-        abrirSeletorFicheiro({ mes, anoFiscal, pessoaId: p.id, onGravado: async () => {
-          docsPorPessoa[p.id] = await getDocumentosDoMes(mes, anoFiscal, p.id);
-          render();
-        } })
+        // pessoas + pessoaId: pessoaId é só o pré-selecionado (a tab onde o
+        // botão foi clicado) — quando há 2 pessoas, abrirConfirmacao pede
+        // confirmação explícita de quem é o documento antes de gravar, por
+        // reporte real de um recibo ter ficado associado à pessoa errada
+        // (03/09/2026). onGravado recebe o pessoaId FINAL confirmado, que
+        // pode ser diferente do pré-selecionado.
+        abrirSeletorFicheiro({
+          mes,
+          anoFiscal,
+          pessoaId: p.id,
+          pessoas,
+          onGravado: async (pessoaIdFinal) => {
+            docsPorPessoa[pessoaIdFinal] = await getDocumentosDoMes(mes, anoFiscal, pessoaIdFinal);
+            if (pessoaIdFinal !== p.id) docsPorPessoa[p.id] = await getDocumentosDoMes(mes, anoFiscal, p.id);
+            render();
+          },
+        })
       );
     }
 
@@ -193,7 +206,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
   await render();
 }
 
-function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
+function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, pessoas, onGravado }) {
   const input = document.createElement("input");
   input.type = "file";
   input.accept = "application/pdf";
@@ -229,9 +242,11 @@ function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
         resultadoParsing: resultado,
         tipo: tipoEscolhido,
         ficheiro: file,
-        onConfirmar: async (rubricasConfirmadas, correcoesAprendidas) => {
+        pessoas,
+        pessoaIdInicial: pessoaId,
+        onConfirmar: async (rubricasConfirmadas, correcoesAprendidas, pessoaIdConfirmado) => {
           const documento = await saveDocumento({
-            pessoaId,
+            pessoaId: pessoaIdConfirmado ?? pessoaId,
             mes,
             anoFiscal,
             tipo: tipoEscolhido,
@@ -243,7 +258,7 @@ function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
           if (nifEmpregador && correcoesAprendidas && Object.keys(correcoesAprendidas).length) {
             await guardarCorrecoesEntidade(nifEmpregador, correcoesAprendidas);
           }
-          onGravado();
+          onGravado(pessoaIdConfirmado ?? pessoaId);
         },
       });
     } catch (err) {
@@ -255,9 +270,11 @@ function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
         resultadoParsing: { rubricas: [], confianca: "baixa" },
         tipo: tipoEscolhido,
         ficheiro: file,
-        onConfirmar: async (rubricasConfirmadas) => {
+        pessoas,
+        pessoaIdInicial: pessoaId,
+        onConfirmar: async (rubricasConfirmadas, _correcoes, pessoaIdConfirmado) => {
           const documento = await saveDocumento({
-            pessoaId,
+            pessoaId: pessoaIdConfirmado ?? pessoaId,
             mes,
             anoFiscal,
             tipo: tipoEscolhido,
@@ -266,7 +283,7 @@ function abrirSeletorFicheiro({ mes, anoFiscal, pessoaId, onGravado }) {
             nomeFicheiroOriginal: file.name,
           });
           await saveRubricas(documento.id, rubricasConfirmadas);
-          onGravado();
+          onGravado(pessoaIdConfirmado ?? pessoaId);
         },
       });
     }

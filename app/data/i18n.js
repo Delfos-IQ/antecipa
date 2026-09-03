@@ -134,10 +134,20 @@ export const pt = {
     exportarContabilista: "Versão para contabilista",
     oportunidadesTitulo: "Oportunidades de poupança",
     oportunidadesAviso: "Isto é uma simulação com os seus próprios dados, não é aconselhamento financeiro.",
+    // Dois títulos diferentes consoante já haja ou não um valor de PPR
+    // registado (ver ui/ventana-14.js, renderOportunidadePPR) — corrigido
+    // 03/09/2026: o título antigo ("Ainda não tem PPR registado") aparecia
+    // sempre, mesmo para quem já tinha entregue PPR e só tinha mais alguma
+    // margem até ao teto, dando a entender (incorretamente) que a app não
+    // via o valor já registado.
     oportunidadePprTitulo: "Ainda não tem PPR registado",
+    oportunidadePprTituloComPpr: "Ainda tem margem no seu PPR",
     oportunidadePprCorpo:
       "Um Plano Poupança-Reforma dá direito a deduzir 20% do valor entregue, até um teto anual (art.º 78º CIRS). " +
       "Com os seus números atuais, entregar",
+    oportunidadePprCorpoComPpr:
+      "Já tem um Plano Poupança-Reforma registado, mas ainda não chegou ao teto anual de dedução (art.º 78º CIRS). " +
+      "Com os seus números atuais, entregar mais",
     oportunidadePprLigacao: "este ano pouparia até",
     oportunidadePprIrParaPerfil: "Registar entrega de PPR",
     oportunidadeMaisValiasTitulo: "As suas mais-valias podiam sair mais baratas",
@@ -158,6 +168,11 @@ export const pt = {
     titulo: "Perfil",
     agregadoTitulo: "O seu agregado",
     situacaoLabel: "Situação",
+    agregadoNomePlaceholder: "Nome",
+    agregadoNifPlaceholder: "NIF",
+    adicionarConjuge: "+ Adicionar cônjuge / 2º titular",
+    removerPessoa: "Remover",
+    confirmarRemoverPessoa: "Tem a certeza que quer remover esta pessoa do agregado? Os documentos já carregados em nome dela mantêm-se, mas deixam de ter um titular associado.",
     dependentesTitulo: "Dependentes",
     // Corrigido na auditoria de 03/09/2026: dependentes já não afetam o
     // quociente familiar (ver nota em guardaPartilhadaAjuda, abaixo) — só a
@@ -212,7 +227,9 @@ export const pt = {
       saudeEducacao: {
         titulo: "Saúde, educação e PPR",
         saude: { label: "Despesas de saúde", hint: "Total anual em faturas de saúde (consultas, farmácia). Dedução de 15%, até 1.000€." },
+        saudeDependentes: { label: "Despesas de saúde dos dependentes", hint: "Consultas, dentista, vacinas, farmácia — faturas emitidas com o NIF de um dependente também contam. Soma-se à mesma base e ao mesmo teto acima, não é um plafond à parte." },
         educacao: { label: "Despesas de educação", hint: "Propinas, livros, material escolar. Dedução de 30%, até 800€ (mais nas regiões do interior)." },
+        educacaoDependentes: { label: "Despesas de educação dos dependentes", hint: "Propinas, material escolar, comparticipação de comedor escolar — faturas emitidas com o NIF de um dependente também contam. Soma-se à mesma base e ao mesmo teto acima, não é um plafond à parte." },
         ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 300-400€ por titular conforme a idade (em declaração conjunta, o limite do agregado soma o de cada titular)." },
         habitacao: { label: "Renda ou juros de crédito habitação", hint: "Renda de casa própria e permanente, ou juros de crédito à habitação contraído até 2011. Dedução de 15%." },
       },
