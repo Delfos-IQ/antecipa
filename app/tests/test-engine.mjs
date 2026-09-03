@@ -237,4 +237,44 @@ if (oportunidadeRendimentoAlto) {
   console.log("OK: sem sugestão de englobamento para rendimento alto (escalão acima de 28%)");
 }
 
+console.log("\n--- Despesas gerais familiares: faturas dos dependentes somam à mesma base ---");
+// Pedido de uma validadora real (03/09/2026): faturas com o NIF de um
+// dependente também contam para a dedução de despesas gerais familiares
+// (art.º 78º-B CIRS não distingue o NIF de quem paga), e em guarda
+// partilhada cada progenitor só reclama a sua parte. Confirma que o novo
+// campo `despesasGeraisDependentes` soma à MESMA base (mesmo limite de
+// 250€ por sujeito passivo — não é um plafond adicional).
+const semDespesasDependentes = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { despesasGerais: 250 }, // 250 × 35% = 87,50€, bem abaixo do teto de 250€
+});
+assertIgual(semDespesasDependentes.linhas[8].despesasGerais, 87.5, "despesas gerais só com o valor próprio (250€) = 35% = 87,50€");
+
+const comDespesasDependentes = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  // 250€ próprias + 125€ do dependente (metade de 250€, guarda
+  // partilhada) = 375€ de base × 35% = 131,25€ — ainda dentro do teto de
+  // 250€, por isso o valor exato da percentagem deve aparecer, não o teto.
+  deducoesColeta: { despesasGerais: 250, despesasGeraisDependentes: 125 },
+});
+assertIgual(comDespesasDependentes.linhas[8].despesasGerais, 131.25, "despesas gerais + parte do dependente (250€+125€) = 35% de 375€ = 131,25€");
+
+// O teto continua a ser o MESMO (250€ solteiro) — uma base grande o
+// suficiente (própria + dependentes) tem de ficar limitada por ele, não
+// ganhar um plafond extra por ter um dependente.
+const comBaseAcimaDoTeto = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasA],
+  dependentes: [],
+  deducoesColeta: { despesasGerais: 1000, despesasGeraisDependentes: 1000 }, // 2000 × 35% = 700€, bem acima do teto
+});
+assertIgual(comBaseAcimaDoTeto.linhas[8].despesasGerais, 250, "base própria + dependentes continua limitada ao mesmo teto de 250€ (sem plafond extra por dependente)");
+
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

@@ -300,8 +300,20 @@ function calcularDeducoesAColeta({ deducoesColeta, dependentes, tabela, regime, 
     limites.exigenciaFatura.limite
   );
 
+  // Faturas emitidas com o NIF de um dependente também contam para esta
+  // dedução (art.º 78º-B CIRS não distingue o NIF de quem paga, só que a
+  // despesa seja de "qualquer membro do agregado familiar") — pedido de
+  // uma validadora real (03/09/2026): em guarda partilhada, cada
+  // progenitor só reclama a sua parte (normalmente 50%) das faturas do
+  // dependente, campo próprio para não obrigar a somar isso à mão dentro
+  // do campo "despesasGerais". Soma-se à MESMA base antes da percentagem
+  // e do teto — não é um plafond adicional, é só mais base de cálculo
+  // para o mesmo limite de 250€/500€ por sujeito passivo (confirmado via
+  // Portal das Finanças: o limite é "por sujeito passivo", não por membro
+  // do agregado).
+  const baseDespesasGerais = (deducoesColeta.despesasGerais || 0) + (deducoesColeta.despesasGeraisDependentes || 0);
   const despesasGerais = clamp(
-    (deducoesColeta.despesasGerais || 0) * limites.despesasGeraisFamiliares.percentagem,
+    baseDespesasGerais * limites.despesasGeraisFamiliares.percentagem,
     regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro
   );
 

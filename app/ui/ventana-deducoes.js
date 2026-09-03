@@ -16,7 +16,7 @@ import { getHousehold } from "../storage/db.js";
 // pertencem a cada grupo.
 const GRUPOS_DEDUCOES = [
   { chave: "saudeEducacao", campos: ["saude", "educacao", "ppr", "habitacao"] },
-  { chave: "familia", campos: ["despesasGerais"] },
+  { chave: "familia", campos: ["despesasGerais", "despesasGeraisDependentes"] },
   { chave: "exigenciaFatura", campos: ["exigenciaFaturaRestauracao", "exigenciaFaturaReparacaoAutomovel", "exigenciaFaturaPassesMensais", "exigenciaFaturaOutras"] },
   { chave: "capital", campos: ["maisValias"] },
   { chave: "outras", campos: ["donativos", "duplaTributacao"] },

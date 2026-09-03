@@ -203,7 +203,9 @@ export const pt = {
       },
       familia: {
         titulo: "Despesas gerais familiares",
-        despesasGerais: { label: "Despesas gerais familiares", hint: "Base de incidência (35%) das despesas gerais do agregado (roupa, combustível, etc.) — o valor que consta do Portal das Finanças, não já a dedução calculada. Até 250€ (500€ em casal)." },
+        corpoHint: "Inclui as suas próprias faturas e as dos dependentes a seu cargo — o limite é por sujeito passivo, não por pessoa do agregado.",
+        despesasGerais: { label: "As suas despesas", hint: "Base de incidência (35%) das suas próprias despesas gerais (roupa, combustível, etc.) — o valor que consta do Portal das Finanças, não já a dedução calculada. Até 250€ (500€ em casal)." },
+        despesasGeraisDependentes: { label: "Despesas dos dependentes", hint: "Faturas emitidas com o NIF de um dependente também contam. Em guarda partilhada, indique só a sua parte (normalmente 50% — a percentagem acordada entre os dois progenitores). Soma-se ao mesmo limite acima, não é um plafond à parte." },
       },
       exigenciaFatura: {
         titulo: "Exigência de fatura (categorias do e-Fatura)",
