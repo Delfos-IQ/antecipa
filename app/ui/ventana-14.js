@@ -176,18 +176,47 @@ export async function renderVentana14({ container, anoFiscal }) {
         : pt.ventana14.verCalculoCompleto;
     });
 
-    container.querySelector('[data-action="pdf-pessoal"]').addEventListener("click", () =>
-      exportarPdfPessoal({ resultado: resultadoParaSelo, percentagemMediaReal, household: estado.household, pessoas: estado.pessoas })
-    );
-    container.querySelector('[data-action="pdf-contabilista"]').addEventListener("click", () =>
-      exportarPdfContabilista({
-        declaracao: resultadoUnico ?? comparacao.conjunta,
-        documentos: [], // ver export/pdf-export.js — versão contabilista lê diretamente da BD
-        anoFiscal,
-        household: estado.household,
-        pessoas: estado.pessoas,
-      })
-    );
+    // Exportação em PDF é async (o cabeçalho carrega o badge da marca) —
+    // envolvida em try/catch com alerta ao utilizador em caso de falha,
+    // para não repetir o padrão de "falha assíncrona silenciosa" já
+    // corrigido noutro sítio da app (confirmacao.js, 03/09/2026).
+    container.querySelector('[data-action="pdf-pessoal"]').addEventListener("click", async (e) => {
+      const botao = e.currentTarget;
+      botao.disabled = true;
+      try {
+        await exportarPdfPessoal({
+          resultado: resultadoParaSelo,
+          percentagemMediaReal,
+          household: estado.household,
+          pessoas: estado.pessoas,
+          declaracao: resultadoUnico ?? comparacao?.conjunta,
+          anoFiscal,
+        });
+      } catch (err) {
+        console.error("Falha ao exportar PDF pessoal:", err);
+        alert("Não foi possível gerar o PDF. Tente novamente.");
+      } finally {
+        botao.disabled = false;
+      }
+    });
+    container.querySelector('[data-action="pdf-contabilista"]').addEventListener("click", async (e) => {
+      const botao = e.currentTarget;
+      botao.disabled = true;
+      try {
+        await exportarPdfContabilista({
+          declaracao: resultadoUnico ?? comparacao.conjunta,
+          documentos: [], // ver export/pdf-export.js — versão contabilista lê diretamente da BD
+          anoFiscal,
+          household: estado.household,
+          pessoas: estado.pessoas,
+        });
+      } catch (err) {
+        console.error("Falha ao exportar PDF contabilista:", err);
+        alert("Não foi possível gerar o PDF. Tente novamente.");
+      } finally {
+        botao.disabled = false;
+      }
+    });
 
     container.querySelector('[data-action="ir-deducoes"]')?.addEventListener("click", () => {
       document.querySelector('[data-rota="deducoes"]')?.click();
