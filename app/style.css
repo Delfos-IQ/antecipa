@@ -344,9 +344,24 @@ input:focus, select:focus { border-color: var(--brass); }
 .pessoa-tab[aria-selected="true"] { color: var(--navy-deep); border-color: var(--brass); }
 
 .pessoa-split { display: grid; gap: var(--space-4); }
+/* Em ecrãs estreitos (telemóvel) só um painel fica visível de cada vez,
+   trocado pelas .pessoa-tab acima — o outro fica escondido via esta
+   classe. Bug real corrigido (03/09/2026): isto era feito com um
+   style="display:none" inline no próprio JS, que ganhava sempre à regra
+   do media query abaixo (que tenta mostrar os dois lado a lado em ecrã
+   largo) — em qualquer browser com largura ≥1024px (a maioria dos
+   desktops), o painel do 2º titular ficava permanentemente escondido E
+   sem tabs para o alcançar (as tabs também se escondem nesse breakpoint,
+   por já não serem precisas com os dois painéis lado a lado) — ou seja,
+   em ecrã largo era literalmente impossível chegar ao painel/upload da
+   2ª pessoa. Ao mover a regra para aqui (uma classe CSS, não inline),
+   o media query consegue reverter a class="pessoa-painel--inativo" mais
+   abaixo, tal como sempre foi a intenção. */
+.pessoa-painel--inativo { display: none; }
 @media (min-width: 1024px) {
   .pessoa-split[data-duas="true"] { grid-template-columns: 1fr 1fr; }
   .pessoa-tabs { display: none; }
+  .pessoa-painel--inativo { display: block; }
 }
 
 .doc-card {

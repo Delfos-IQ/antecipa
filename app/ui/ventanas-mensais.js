@@ -118,7 +118,13 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
           : ""
       }
       <div class="pessoa-split" data-duas="${duasPessoas}">
-        ${duasPessoas ? pessoas.map((p) => `<div data-painel="${p.id}" ${p.id === pessoaAtiva ? "" : 'style="display:none"'}></div>`).join("") : `<div data-painel="${pessoaAtiva}"></div>`}
+        ${
+          duasPessoas
+            ? pessoas
+                .map((p) => `<div data-painel="${p.id}" class="${p.id === pessoaAtiva ? "" : "pessoa-painel--inativo"}"></div>`)
+                .join("")
+            : `<div data-painel="${pessoaAtiva}"></div>`
+        }
       </div>
     `;
 
