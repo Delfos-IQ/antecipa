@@ -800,3 +800,56 @@ export function detectarOportunidadeMaisValias(input, resultadoAtual) {
 
   return { tipo: "maisValias", valorMaisValias, poupancaEstimada };
 }
+
+/**
+ * Sugestões para reduzir o valor a pagar — pedido do utilizador
+ * (03/09/2026): "en el simulador, podriamos colocar estrategias para
+ * quien le toca pagar [...] me gustaria tener alguna sugerencia de lo que
+ * podria hacer para pagar menos". Ativa-se só quando o resultado final é
+ * "a pagar" — não faz sentido mostrar isto quando já há reembolso.
+ *
+ * V1 deliberadamente simples: ao contrário de detectarOportunidadePPR e
+ * detectarOportunidadeMaisValias, a maioria destas sugestões NÃO recalcula
+ * o motor — são pistas gerais (algumas condicionadas ao que já se sabe do
+ * agregado) em vez de simulações "e se" com um valor de poupança exato,
+ * porque nem todas têm uma alavanca modelável dentro da app (ex: pedir
+ * mais retenção ao empregador não é algo que a app calcule, é um pedido
+ * fora da app). A exceção seria uma futura v2 com poupança estimada por
+ * sugestão, à semelhança do PPR — fica por fazer aqui de propósito, para
+ * não prometer precisão que a sugestão não tem.
+ *
+ * NÃO é aconselhamento fiscal certificado — ver disclaimer geral da app;
+ * cada sugestão devolvida deve ser sempre confirmada com um contabilista.
+ *
+ * @param {Object} declaracao - resultado de calcularDeclaracao (só precisa
+ *   de .resultado.tipo).
+ * @param {Object} contexto - { household, deducoesColeta }
+ * @returns {Array<{tipo:string}>} lista ordenada por impacto/facilidade de
+ *   ação — retenção e comparação de regimes primeiro (o utilizador pode
+ *   agir já), explicações estruturais por último.
+ */
+export function detectarSugestoesPagamento(declaracao, { household, deducoesColeta = {} } = {}) {
+  if (!declaracao || declaracao.resultado?.tipo !== "a_pagar") return [];
+
+  const temTrabalhoDependente = (household?.fontesRendimento || []).includes("trabalhoDependente");
+  const eCasal = household?.situacao === "casal";
+  const sugestoes = [];
+
+  if (temTrabalhoDependente) {
+    sugestoes.push({ tipo: "retencaoSuperior" });
+  }
+  if (eCasal && household?.regimeTributacao !== "comparar_ambos") {
+    sugestoes.push({ tipo: "compararRegimes" });
+  }
+  if (!(deducoesColeta.donativos > 0)) {
+    sugestoes.push({ tipo: "donativos" });
+  }
+  if (eCasal && temTrabalhoDependente) {
+    sugestoes.push({ tipo: "duplaRenda" });
+  }
+  if (temTrabalhoDependente) {
+    sugestoes.push({ tipo: "horasExtra" });
+  }
+
+  return sugestoes;
+}

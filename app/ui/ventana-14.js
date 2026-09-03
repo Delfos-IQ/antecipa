@@ -6,7 +6,7 @@
 import { pt } from "../data/i18n.js";
 import { getHousehold, getPessoas, getDependentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
-import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias } from "../engine/calculo-irs.js";
+import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias, detectarSugestoesPagamento } from "../engine/calculo-irs.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
 
 function formatarMoeda(v) {
@@ -140,6 +140,12 @@ export async function renderVentana14({ container, anoFiscal }) {
       ? melhorResultado(comparacao)
       : resultadoUnico.resultado;
 
+    // Painel "Sugestões para pagar menos" (03/09/2026) — independente do
+    // modo resultadoUnico/comparação, ao contrário de "oportunidades"
+    // acima: só precisa do tipo do resultado final, do household e das
+    // deduções já registadas, todos já disponíveis aqui.
+    const sugestoesPagamento = detectarSugestoesPagamento({ resultado: resultadoParaSelo }, { household: estado.household, deducoesColeta: estado.deducoesColeta });
+
     container.innerHTML = `
       <h2>${pt.ventana14.titulo}</h2>
       <div class="resultado-selo" data-tipo="${resultadoParaSelo.tipo}">
@@ -149,6 +155,8 @@ export async function renderVentana14({ container, anoFiscal }) {
       </div>
 
       ${comparacao ? renderComparacao(comparacao) : ""}
+
+      ${sugestoesPagamento.length > 0 ? renderSugestoesPagamento(sugestoesPagamento) : ""}
 
       ${oportunidades.length > 0 ? renderOportunidades(oportunidades) : ""}
 
@@ -218,8 +226,14 @@ export async function renderVentana14({ container, anoFiscal }) {
       }
     });
 
-    container.querySelector('[data-action="ir-deducoes"]')?.addEventListener("click", () => {
-      document.querySelector('[data-rota="deducoes"]')?.click();
+    // querySelectorAll porque "ir-deducoes" pode aparecer em mais do que
+    // um sítio (oportunidade de PPR + sugestão de donativos, por exemplo)
+    // — querySelector só ligaria o primeiro, deixando os restantes mudos.
+    container.querySelectorAll('[data-action="ir-deducoes"]').forEach((botao) => {
+      botao.addEventListener("click", () => document.querySelector('[data-rota="deducoes"]')?.click());
+    });
+    container.querySelectorAll('[data-action="ir-perfil"]').forEach((botao) => {
+      botao.addEventListener("click", () => document.querySelector('[data-rota="perfil"]')?.click());
     });
   }
 }
@@ -258,6 +272,47 @@ function renderComparacao(comparacao) {
       </div>
     </div>
     <p class="muted" style="margin-top:var(--space-3)">${pt.ventana14.diferenca}: <strong class="num">${formatarMoeda(comparacao.diferenca)}</strong></p>
+  `;
+}
+
+// Painel "Sugestões para pagar menos" — pedido do utilizador (03/09/2026),
+// só aparece quando o resultado final é "a pagar". Reaproveita o mesmo
+// esqueleto visual do painel "Oportunidades" logo abaixo (.oportunidade-item),
+// mas com o seu próprio aviso — a maioria destas sugestões não tem um
+// valor de poupança calculado (ver comentário em
+// engine/calculo-irs.js:detectarSugestoesPagamento sobre porquê).
+function renderSugestoesPagamento(sugestoes) {
+  const RENDERERS = {
+    retencaoSuperior: () => renderSugestaoSimples("sugestaoRetencaoSuperiorTitulo", "sugestaoRetencaoSuperiorCorpo"),
+    compararRegimes: () =>
+      renderSugestaoSimples("sugestaoCompararRegimesTitulo", "sugestaoCompararRegimesCorpo", {
+        action: "ir-perfil",
+        label: pt.ventana14.sugestaoCompararRegimesIrParaPerfil,
+      }),
+    donativos: () =>
+      renderSugestaoSimples("sugestaoDonativosTitulo", "sugestaoDonativosCorpo", {
+        action: "ir-deducoes",
+        label: pt.ventana14.sugestaoDonativosIrParaDeducoes,
+      }),
+    duplaRenda: () => renderSugestaoSimples("sugestaoDuplaRendaTitulo", "sugestaoDuplaRendaCorpo"),
+    horasExtra: () => renderSugestaoSimples("sugestaoHorasExtraTitulo", "sugestaoHorasExtraCorpo"),
+  };
+  return `
+    <div class="oportunidades card" style="margin-top:var(--space-5)" data-tipo="sugestoes-pagamento">
+      <p class="section-title" style="margin-top:0">${pt.ventana14.sugestoesPagamentoTitulo}</p>
+      ${sugestoes.map((s) => RENDERERS[s.tipo]?.() ?? "").join("")}
+      <p class="field-hint" style="margin-top:var(--space-3)">${pt.ventana14.sugestoesPagamentoAviso}</p>
+    </div>
+  `;
+}
+
+function renderSugestaoSimples(chaveTitulo, chaveCorpo, botao) {
+  return `
+    <div class="oportunidade-item">
+      <p class="oportunidade-item__titulo">${pt.ventana14[chaveTitulo]}</p>
+      <p class="field-hint">${pt.ventana14[chaveCorpo]}</p>
+      ${botao ? `<button class="btn btn-ghost" style="margin-top:var(--space-2)" data-action="${botao.action}">${botao.label}</button>` : ""}
+    </div>
   `;
 }
 

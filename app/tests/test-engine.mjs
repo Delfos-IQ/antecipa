@@ -9,6 +9,7 @@ import {
   compararRegimes,
   detectarOportunidadePPR,
   detectarOportunidadeMaisValias,
+  detectarSugestoesPagamento,
 } from "../engine/calculo-irs.js";
 
 function assertIgual(valor, esperado, mensagem) {
@@ -457,6 +458,60 @@ if (dentroPrimeiroEscalao.linhas[8].limiteAgregadoAplicado !== false) {
   process.exitCode = 1;
 } else {
   console.log("OK: sem limite agregado dentro do 1º escalão de IRS");
+}
+
+// detectarSugestoesPagamento (03/09/2026) — não aparece nada quando o
+// resultado é "a devolver", mesmo com household preenchido.
+const semSugestoesQuandoDevolve = detectarSugestoesPagamento(
+  { resultado: { tipo: "a_devolver", valor: 100 } },
+  { household: { situacao: "casal", fontesRendimento: ["trabalhoDependente"], regimeTributacao: "individual" }, deducoesColeta: {} }
+);
+if (semSugestoesQuandoDevolve.length !== 0) {
+  console.error("FALHOU: não deviam aparecer sugestões de pagamento quando o resultado é a_devolver");
+  process.exitCode = 1;
+} else {
+  console.log("OK: sem sugestões de pagamento quando o resultado é a_devolver");
+}
+
+// Casal com trabalho dependente, sem comparar regimes, sem donativos —
+// deve sugerir as 5 categorias (retenção, comparar regimes, donativos,
+// dupla renda, horas extra), nesta ordem.
+const sugestoesCompletas = detectarSugestoesPagamento(
+  { resultado: { tipo: "a_pagar", valor: 800 } },
+  { household: { situacao: "casal", fontesRendimento: ["trabalhoDependente"], regimeTributacao: "individual" }, deducoesColeta: {} }
+);
+const tiposEsperados = ["retencaoSuperior", "compararRegimes", "donativos", "duplaRenda", "horasExtra"];
+if (JSON.stringify(sugestoesCompletas.map((s) => s.tipo)) !== JSON.stringify(tiposEsperados)) {
+  console.error(`FALHOU: sugestões esperadas ${JSON.stringify(tiposEsperados)}, obtidas ${JSON.stringify(sugestoesCompletas.map((s) => s.tipo))}`);
+  process.exitCode = 1;
+} else {
+  console.log("OK: casal com trabalho dependente, sem comparar regimes nem donativos, sugere as 5 categorias na ordem certa");
+}
+
+// Já a comparar regimes e já com donativos registados — essas duas
+// sugestões desaparecem, mas as informativas continuam.
+const sugestoesParciais = detectarSugestoesPagamento(
+  { resultado: { tipo: "a_pagar", valor: 800 } },
+  { household: { situacao: "casal", fontesRendimento: ["trabalhoDependente"], regimeTributacao: "comparar_ambos" }, deducoesColeta: { donativos: 50 } }
+);
+if (JSON.stringify(sugestoesParciais.map((s) => s.tipo)) !== JSON.stringify(["retencaoSuperior", "duplaRenda", "horasExtra"])) {
+  console.error(`FALHOU: sugestões esperadas depois de já comparar regimes e ter donativos, obtidas ${JSON.stringify(sugestoesParciais.map((s) => s.tipo))}`);
+  process.exitCode = 1;
+} else {
+  console.log("OK: já a comparar regimes e já com donativos — essas duas sugestões desaparecem");
+}
+
+// Só recibos verdes (sem trabalho dependente): nem retenção, nem dupla
+// renda, nem horas extra fazem sentido — só donativos (sempre) sobra.
+const sugestoesReciboVerde = detectarSugestoesPagamento(
+  { resultado: { tipo: "a_pagar", valor: 300 } },
+  { household: { situacao: "individual", fontesRendimento: ["recibosVerdes"] }, deducoesColeta: {} }
+);
+if (JSON.stringify(sugestoesReciboVerde.map((s) => s.tipo)) !== JSON.stringify(["donativos"])) {
+  console.error(`FALHOU: sujeito só com recibos verdes devia só ter a sugestão de donativos, obtido ${JSON.stringify(sugestoesReciboVerde.map((s) => s.tipo))}`);
+  process.exitCode = 1;
+} else {
+  console.log("OK: sujeito só com recibos verdes (sem trabalho dependente) só recebe a sugestão de donativos");
 }
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

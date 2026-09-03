@@ -159,6 +159,31 @@ export const pt = {
       "Está a pagar 28% de taxa autónoma sobre",
     oportunidadeMaisValiasLigacao: "de mais-valias/rendimentos de capitais. Optando pelo englobamento (juntar ao rendimento normal), com os seus números atuais pouparia até",
     oportunidadeMaisValiasAviso: "Esta comparação é simplificada — não considera englobamento obrigatório nem exclusões parciais que possam aplicar-se ao seu caso. Vale a pena confirmar com um contabilista antes de optar.",
+
+    // Painel "Sugestões para pagar menos" — pedido do utilizador
+    // (03/09/2026), só aparece quando o resultado é "a pagar". Ao
+    // contrário das Oportunidades acima, a maioria destas sugestões são
+    // pistas gerais (não têm um valor de poupança calculado) — ver
+    // detectarSugestoesPagamento em engine/calculo-irs.js.
+    sugestoesPagamentoTitulo: "Sugestões para pagar menos",
+    sugestoesPagamentoAviso: "Estas são pistas gerais, não aconselhamento fiscal certificado — confirme sempre com um contabilista antes de decidir.",
+    sugestaoRetencaoSuperiorTitulo: "Peça uma retenção na fonte mais alta",
+    sugestaoRetencaoSuperiorCorpo:
+      "A lei (art.º 99º-F do CIRS) permite pedir à entidade empregadora para reter mais IRS por mês do que a tabela padrão indica — formaliza-se com uma declaração ao departamento de RH. Descontar um pouco mais todos os meses evita o valor elevado a pagar de uma vez na declaração.",
+    sugestaoCompararRegimesTitulo: "Compare declaração conjunta vs. separada",
+    sugestaoCompararRegimesCorpo:
+      "O seu agregado ainda não está a comparar os dois regimes tributários. Em Perfil, mude o regime de tributação para \"comparar ambos\" e veja qual sai mais vantajoso.",
+    sugestaoCompararRegimesIrParaPerfil: "Ir a Perfil",
+    sugestaoDonativosTitulo: "Donativos com recibo",
+    sugestaoDonativosCorpo:
+      "Donativos a instituições certificadas são dedutíveis à coleta, normalmente 25% do valor entregue, com teto (art.º 63º EBF). Ainda não tem nenhum valor registado em Deduções — se fez algum donativo este ano, vale a pena adicionar.",
+    sugestaoDonativosIrParaDeducoes: "Ir a Deduções",
+    sugestaoDuplaRendaTitulo: "Porque é que um casal com dois ordenados paga tanto",
+    sugestaoDuplaRendaCorpo:
+      "As tabelas de retenção na fonte são calculadas por titular, sem saber que o outro também trabalha — por isso, um casal com dois ordenados semelhantes é sistematicamente sub-retido durante o ano face ao escalão de IRS que atinge em conjunto. É uma característica conhecida do sistema, não um erro seu — mas explica boa parte de um valor elevado a pagar.",
+    sugestaoHorasExtraTitulo: "Horas extraordinárias: menos retenção agora, mais imposto depois",
+    sugestaoHorasExtraCorpo:
+      "Desde 2025, a retenção na fonte sobre horas extraordinárias tem uma redução de 50% logo desde a primeira hora — mas o valor total continua a contar por inteiro para o seu escalão de IRS na declaração final. Ou seja: mais dinheiro líquido todos os meses, mas uma conta final maior. Vale a pena ter isto em conta se fizer muitas horas extra.",
   },
 
   nav: { mensal: "Meses", acumulado: "Dashboard", deducoes: "Deduções", simulacao: "Simulação", perfil: "Perfil", definicoes: "Definições" },
