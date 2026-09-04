@@ -389,6 +389,100 @@ assertIgual(
   "rendimento coletável de 10.000€ de Categoria B com coeficiente 0,35 = 3.500€ (matéria coletável)"
 );
 
+console.log("\n--- Categoria B: coeficiente por atividade escolhida em Perfil (04/09/2026, a pedido do Dani, enfermeiro) ---");
+// Antes desta alteração, o coeficiente era sempre 0,35 (prestação de
+// serviços geral), mesmo para quem exerce uma atividade da tabela do
+// art.º 151º (ex.: enfermagem) — para quem devia ser 0,75. Agora lê-se de
+// `pessoas[i].atividadeCategoriaB`, alinhado por índice com rubricasPorPessoa.
+const declaracaoEnfermeiro = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasCategoriaB],
+  dependentes: [],
+  pessoas: [{ id: "A", atividadeCategoriaB: "tabelaAnexa151" }],
+  deducoesColeta: {},
+});
+assertIgual(
+  declaracaoEnfermeiro.linhas[2].coeficienteBAplicado,
+  0.75,
+  "atividade 'tabelaAnexa151' (ex.: enfermagem) aplica o coeficiente 0,75, não o 0,35 por omissão"
+);
+assertIgual(
+  declaracaoEnfermeiro.linhas[3].total,
+  7500,
+  "rendimento coletável de 10.000€ com coeficiente 0,75 = 7.500€ (matéria coletável de 75%, não 35%)"
+);
+// Override explícito `coeficienteB` continua a ganhar a qualquer atividade
+// escolhida em Perfil (retrocompatibilidade com chamadores/testes antigos).
+const declaracaoComOverride = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasCategoriaB],
+  dependentes: [],
+  pessoas: [{ id: "A", atividadeCategoriaB: "tabelaAnexa151" }],
+  coeficienteB: 0.15,
+  deducoesColeta: {},
+});
+assertIgual(declaracaoComOverride.linhas[2].coeficienteBAplicado, 0.15, "override explícito `coeficienteB` continua a ganhar à atividade escolhida em Perfil");
+
+console.log("\n--- Retenção na fonte projetada para Categoria B (art.º 101º/101º-B CIRS, 04/09/2026) ---");
+{
+  const { projetarAno } = await import("../engine/projecao.js");
+  const tabela2026 = obterTabelaFiscal(2026);
+
+  // Um mês real com 2.000€ de Categoria B (sem retenção associada, como um
+  // recibo verde de um profissional isento) — os restantes 11 meses ficam
+  // projetados com a mesma média. Estimativa anual: 2.000×12=24.000€,
+  // acima do limite de isenção de 15.000€ → deve projetar retenção.
+  const docReal = [{ mes: 1, rubricas: [{ categoria: "B", tipo: "abono", descricao: "Recibo verde", valorComRedu: 2000 }] }];
+
+  const semAtividade = projetarAno({
+    documentosReais: docReal,
+    ajustesManuais: [],
+    anoFiscal: 2026,
+    taxasRetencaoCategoriaB: tabela2026.taxasRetencaoCategoriaB,
+    // atividadeCategoriaB omitido → cai para "servicosGeral" (11,5%)
+  });
+  const mesProjetadoSemAtividade = semAtividade.mesAMes.find((m) => m.mes === 2);
+  const retencaoSemAtividade = mesProjetadoSemAtividade.rubricas.find((r) => r.tipo === "desconto" && r.categoria === "B");
+  assertIgual(retencaoSemAtividade?.valorComRedu ?? 0, 230, "sem atividade escolhida (omissa) projeta retenção a 11,5% (2.000€ × 0,115 = 230€)");
+
+  const comTabela151 = projetarAno({
+    documentosReais: docReal,
+    ajustesManuais: [],
+    anoFiscal: 2026,
+    atividadeCategoriaB: "tabelaAnexa151",
+    taxasRetencaoCategoriaB: tabela2026.taxasRetencaoCategoriaB,
+  });
+  const mesProjetadoTabela151 = comTabela151.mesAMes.find((m) => m.mes === 2);
+  const retencaoTabela151 = mesProjetadoTabela151.rubricas.find((r) => r.tipo === "desconto" && r.categoria === "B");
+  assertIgual(retencaoTabela151?.valorComRedu ?? 0, 460, "atividade 'tabelaAnexa151' projeta retenção a 23% (2.000€ × 0,23 = 460€)");
+
+  // Documento REAL nunca é alterado pela projeção — a retenção projetada só
+  // se aplica aos meses SEM documento.
+  const mesReal = comTabela151.mesAMes.find((m) => m.mes === 1);
+  assertIgual(mesReal.rubricas.length, 1, "mês com documento real fica inalterado (sem retenção projetada acrescentada)");
+
+  // Abaixo do limite de isenção anual (15.000€) — não deve projetar retenção.
+  const docRealBaixo = [{ mes: 1, rubricas: [{ categoria: "B", tipo: "abono", descricao: "Recibo verde", valorComRedu: 500 }] }];
+  const isento = projetarAno({
+    documentosReais: docRealBaixo,
+    ajustesManuais: [],
+    anoFiscal: 2026,
+    atividadeCategoriaB: "tabelaAnexa151",
+    taxasRetencaoCategoriaB: tabela2026.taxasRetencaoCategoriaB,
+  });
+  const mesProjetadoIsento = isento.mesAMes.find((m) => m.mes === 2);
+  const retencaoIsento = mesProjetadoIsento.rubricas.find((r) => r.tipo === "desconto" && r.categoria === "B");
+  assertIgual(retencaoIsento?.valorComRedu ?? 0, 0, "estimativa anual (500×12=6.000€) abaixo do limite de 15.000€ → sem retenção projetada");
+
+  // Sem `taxasRetencaoCategoriaB` (chamador antigo) — comportamento anterior preservado, sem exceções.
+  const semTabela = projetarAno({ documentosReais: docReal, ajustesManuais: [], anoFiscal: 2026 });
+  const mesSemTabela = semTabela.mesAMes.find((m) => m.mes === 2);
+  const retencaoSemTabela = mesSemTabela.rubricas.find((r) => r.tipo === "desconto" && r.categoria === "B");
+  assertIgual(retencaoSemTabela ? 1 : 0, 0, "chamador antigo sem `taxasRetencaoCategoriaB` não projeta retenção (retrocompatibilidade)");
+}
+
 console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
 // Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
 // 800/700/600€ por declaração. Em regime individual o teto é 400€; em

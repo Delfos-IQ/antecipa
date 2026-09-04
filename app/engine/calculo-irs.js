@@ -65,7 +65,18 @@ function calcularRendimentoGlobal(rubricasPorPessoa) {
  * Categoria B (regime simplificado): coeficiente por tipo de atividade,
  * com mínimo garantido de 15% do rendimento bruto se superior.
  */
-function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabela, coeficienteB }) {
+// Mapa "atividade escolhida em Perfil" → chave em tabela.coeficientesSimplificadoB.
+// "vendaMercadorias" no Perfil cobre também restauração/alojamento (ver
+// i18n.js) — usa-se sempre o coeficiente de vendaMercadorias (0,15), que é
+// igual ao de hoteleiraELocalAlojamento nesta tabela.
+const CHAVE_COEFICIENTE_POR_ATIVIDADE = {
+  servicosGeral: "prestacaoServicosGeral",
+  tabelaAnexa151: "prestacaoServicosTabelaAnexa",
+  vendaMercadorias: "vendaMercadorias",
+  propriedadeIntelectual: "outrosRendimentosCapitaisEPrediais",
+};
+
+function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabela, coeficienteB, atividadesCategoriaB = [] }) {
   let deducaoA = 0;
   const majoracao = tabela.majoracaoQuotizacaoSindical ?? { percentagem: 1, limitePercentagemRendimentoBruto: 0.01 };
   for (const rubricas of rubricasPorPessoa) {
@@ -86,10 +97,34 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
     deducaoA += tabela.deducaoEspecificaCategoriaA.valorFixo + Math.max(0, deducaoSindical);
   }
 
-  const coefAplicavel = coeficienteB ?? tabela.coeficientesSimplificadoB.prestacaoServicosGeral;
-  const deducaoBPorCoeficiente = rendimentoGlobal.categoriaB * (1 - coefAplicavel);
+  // Categoria B: coeficiente aplicado PESSOA A PESSOA (04/09/2026, a pedido
+  // do Dani) — antes desta alteração usava-se um único coeficiente (por
+  // omissão, prestacaoServicosGeral=0,35) para o total combinado de
+  // Categoria B do agregado, o que estava errado para quem exerce uma
+  // atividade da tabela do art.º 151º (coeficiente 0,75). `coeficienteB`
+  // continua a existir como override explícito (usado nos testes e por
+  // quem quiser forçar um valor) e, quando presente, tem sempre prioridade
+  // sobre a atividade escolhida em Perfil — aplicado a TODAS as pessoas por
+  // igual, tal como antes.
+  let deducaoB = 0;
+  let coeficienteBAplicadoResumo = coeficienteB ?? null; // só para retrocompatibilidade do campo devolvido
+  rubricasPorPessoa.forEach((rubricas, i) => {
+    const categoriaBPessoa = rubricas
+      .filter((r) => r.tipo === "abono" && r.categoria === "B")
+      .reduce((s, r) => s + (r.valorComRedu ?? r.valorSemRedu ?? 0), 0);
+    if (categoriaBPessoa <= 0) return;
+
+    const chaveAtividade = CHAVE_COEFICIENTE_POR_ATIVIDADE[atividadesCategoriaB[i]];
+    const coefPessoa =
+      coeficienteB ?? (chaveAtividade && tabela.coeficientesSimplificadoB[chaveAtividade] != null
+        ? tabela.coeficientesSimplificadoB[chaveAtividade]
+        : tabela.coeficientesSimplificadoB.prestacaoServicosGeral);
+    if (coeficienteBAplicadoResumo == null) coeficienteBAplicadoResumo = coefPessoa;
+
+    deducaoB += Math.max(categoriaBPessoa * (1 - coefPessoa), 0);
+  });
+
   const minimoGarantido = rendimentoGlobal.categoriaB * tabela.coeficientesSimplificadoB.minimoGarantidoPercentagem;
-  const deducaoB = Math.max(deducaoBPorCoeficiente, 0);
 
   return {
     linhaOficial: 2,
@@ -97,7 +132,7 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
     categoriaA: round2(deducaoA),
     categoriaB: round2(deducaoB),
     minimoGarantidoB: round2(minimoGarantido),
-    coeficienteBAplicado: coefAplicavel,
+    coeficienteBAplicado: coeficienteBAplicadoResumo ?? tabela.coeficientesSimplificadoB.prestacaoServicosGeral,
     total: round2(deducaoA + deducaoB),
   };
 }
@@ -648,11 +683,16 @@ export function calcularDeclaracao(input) {
   const tabela = obterTabelaFiscal(anoFiscal, dataReferencia);
 
   const rendimentoGlobal = calcularRendimentoGlobal(rubricasPorPessoa);
+  // `pessoas` está alinhado por índice com `rubricasPorPessoa` em todos os
+  // chamadores atuais (ver ui/ventana-14.js e compararRegimes) — usado aqui
+  // só para ler `atividadeCategoriaB` de cada pessoa, índice a índice.
+  const atividadesCategoriaB = pessoas.map((p) => p?.atividadeCategoriaB);
   const deducoesEspecificas = calcularDeducoesEspecificas({
     rendimentoGlobal,
     rubricasPorPessoa,
     tabela,
     coeficienteB,
+    atividadesCategoriaB,
   });
   const rendimentoColetavelResult = calcularRendimentoColetavel({
     rendimentoGlobal,

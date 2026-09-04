@@ -7,6 +7,7 @@ import { pt } from "../data/i18n.js";
 import { getHousehold, getPessoas, getDependentes, getAscendentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
 import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias, detectarSugestoesPagamento } from "../engine/calculo-irs.js";
+import { obterTabelaFiscal } from "../data/legislacao-2026.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
 
 function formatarMoeda(v) {
@@ -61,6 +62,13 @@ export async function renderVentana14({ container, anoFiscal }) {
     return;
   }
 
+  // taxasRetencaoCategoriaB (04/09/2026): só existe para projetar a
+  // retenção estimada dos meses de Categoria B ainda sem documento real —
+  // ver engine/projecao.js. Se o ano fiscal não tiver este bloco (ex.:
+  // legislação de um ano futuro ainda não atualizada), fica undefined e
+  // projetarAno simplesmente não projeta nenhuma retenção (mesmo
+  // comportamento de antes desta funcionalidade).
+  const tabelaFiscal = obterTabelaFiscal(anoFiscal);
   const rubricasPorPessoa = [];
   for (const p of pessoas) {
     const docsDaPessoa = documentos
@@ -71,6 +79,8 @@ export async function renderVentana14({ container, anoFiscal }) {
       documentosReais: docsDaPessoa,
       ajustesManuais: ajustes.filter((a) => a.pessoaId === p.id),
       anoFiscal,
+      atividadeCategoriaB: p.atividadeCategoriaB,
+      taxasRetencaoCategoriaB: tabelaFiscal.taxasRetencaoCategoriaB,
     });
     rubricasPorPessoa.push({ pessoaId: p.id, rubricas: achatarRubricasDoAno(mesAMes), percentagemMesesReais });
   }

@@ -124,6 +124,36 @@ export const legislacaoFiscal = [
         "modelado nesta versão.",
     },
 
+    // Retenção na fonte sobre rendimentos de Categoria B (art.º 101º/1-b)
+    // CIRS) — adicionado 04/09/2026, a pedido do Dani (confirmou ser
+    // enfermeiro, atividade da tabela do art.º 151º). Até aqui a app só
+    // lia a retenção de documentos REAIS já carregados (o que estava
+    // correto, seja qual for a taxa que o cliente aplicou) — o que
+    // faltava era projetar uma retenção estimada para os meses de
+    // Categoria B ainda SEM documento real, que ficavam sem nenhuma
+    // retenção projetada (equivalente, sem intenção, a assumir isenção
+    // total). Ver engine/projecao.js.
+    taxasRetencaoCategoriaB: {
+      tabelaAnexa151: 0.23, // atividades profissionais da tabela do art.º 151º (médicos, advogados, engenheiros, enfermeiros, etc.)
+      servicosGeral: 0.115, // restantes prestações de serviços (a maioria dos recibos verdes "genéricos")
+      propriedadeIntelectual: 0.165, // direitos de propriedade intelectual/industrial
+      // Venda de mercadorias/produtos não tem retenção na fonte tipificada
+      // no art.º 101º/1 (a lista cobre prestações de serviços e afins) —
+      // por isso "vendaMercadorias" fica de fora deste bloco.
+      limiteIsencaoAnual: 15000, // art.º 101º-B, por remissão para o art.º 53º/1 CIVA (15.000€ desde 2025)
+      limiteIsencaoPorRetencao: 25, // art.º 101º-B — cada retenção calculada abaixo de 25€ está dispensada
+      confirmado: true,
+      fonte:
+        "art.º 101º CIRS (info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/" +
+        "Pages/irs101.aspx, texto oficial: '23%, tratando-se de rendimentos... na tabela [151º]'; '11,5%... " +
+        "alínea b) do n.º1 e alíneas g) e i) do n.º2'; '16,5%... alínea c) do n.º1 do artigo 3.º') e art.º " +
+        "101º-B CIRS (irs101b.aspx, texto oficial: 'sempre que o montante de cada retenção seja inferior a " +
+        "25€'). Limite anual de 15.000€ confirmado via calculariva.pt/taxas-regras/regime-isencao-art53 " +
+        "('em vigor desde 2025 e mantém-se em 2026') — remissão do art.º101º-B para o art.º53º/1 CIVA. " +
+        "Cruzado com multigestao.com/recibos-verdes-e-retencao-na-fonte-irs (mesmos valores). NOTA: doutorfinancas.pt " +
+        "tinha um artigo com 25% e 12.500€ — descartado por desatualizado face ao texto oficial atual.",
+    },
+
     quociente: {
       base: { individual: 1, conjunta: 2 },
       confirmado: true,
@@ -407,6 +437,36 @@ export const legislacaoFiscal = [
         "(subsídios à exploração e outros rendimentos B não especificados), 0,50 (alojamento local em zona de " +
         "contenção) e 1,00 (transparência fiscal / participação qualificada na entidade pagadora) — casos menos " +
         "comuns, o utilizador nesses casos fica com um valor aproximado.",
+    },
+
+    // Retenção na fonte sobre rendimentos de Categoria B (art.º 101º/1-b)
+    // CIRS) — adicionado 04/09/2026, a pedido do Dani (confirmou ser
+    // enfermeiro, atividade da tabela do art.º 151º). Até aqui a app só
+    // lia a retenção de documentos REAIS já carregados (o que estava
+    // correto, seja qual for a taxa que o cliente aplicou) — o que
+    // faltava era projetar uma retenção estimada para os meses de
+    // Categoria B ainda SEM documento real, que ficavam sem nenhuma
+    // retenção projetada (equivalente, sem intenção, a assumir isenção
+    // total). Ver engine/projecao.js.
+    taxasRetencaoCategoriaB: {
+      tabelaAnexa151: 0.23, // atividades profissionais da tabela do art.º 151º (médicos, advogados, engenheiros, enfermeiros, etc.)
+      servicosGeral: 0.115, // restantes prestações de serviços (a maioria dos recibos verdes "genéricos")
+      propriedadeIntelectual: 0.165, // direitos de propriedade intelectual/industrial
+      // Venda de mercadorias/produtos não tem retenção na fonte tipificada
+      // no art.º 101º/1 (a lista cobre prestações de serviços e afins) —
+      // por isso "vendaMercadorias" fica de fora deste bloco.
+      limiteIsencaoAnual: 15000, // art.º 101º-B, por remissão para o art.º 53º/1 CIVA (15.000€ desde 2025)
+      limiteIsencaoPorRetencao: 25, // art.º 101º-B — cada retenção calculada abaixo de 25€ está dispensada
+      confirmado: true,
+      fonte:
+        "art.º 101º CIRS (info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/" +
+        "Pages/irs101.aspx, texto oficial: '23%, tratando-se de rendimentos... na tabela [151º]'; '11,5%... " +
+        "alínea b) do n.º1 e alíneas g) e i) do n.º2'; '16,5%... alínea c) do n.º1 do artigo 3.º') e art.º " +
+        "101º-B CIRS (irs101b.aspx, texto oficial: 'sempre que o montante de cada retenção seja inferior a " +
+        "25€'). Limite anual de 15.000€ confirmado via calculariva.pt/taxas-regras/regime-isencao-art53 " +
+        "('em vigor desde 2025 e mantém-se em 2026') — remissão do art.º101º-B para o art.º53º/1 CIVA. " +
+        "Cruzado com multigestao.com/recibos-verdes-e-retencao-na-fonte-irs (mesmos valores). NOTA: doutorfinancas.pt " +
+        "tinha um artigo com 25% e 12.500€ — descartado por desatualizado face ao texto oficial atual.",
     },
 
     // Quociente familiar (art.º 69º CIRS). CORRIGIDO na auditoria de

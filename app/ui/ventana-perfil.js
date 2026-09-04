@@ -152,6 +152,15 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
               }
             </div>
             ${p.deficiencia ? `<p class="field-hint" style="margin-top:var(--space-1)">${pt.perfil.deficienciaAjuda}</p>` : ""}
+            <div class="field" style="margin-top:var(--space-2)">
+              <label for="atividade-categoria-b-${p.id}">${pt.perfil.atividadeCategoriaBLabel}</label>
+              <select id="atividade-categoria-b-${p.id}" data-pessoa-campo="atividadeCategoriaB" data-pessoa-id="${p.id}">
+                ${Object.entries(pt.perfil.atividadeCategoriaBOpcoes)
+                  .map(([valor, label]) => `<option value="${valor}" ${(p.atividadeCategoriaB ?? "servicosGeral") === valor ? "selected" : ""}>${label}</option>`)
+                  .join("")}
+              </select>
+              <p class="field-hint">${pt.perfil.atividadeCategoriaBAjuda}</p>
+            </div>
           </div>`
           )
           .join("")}
@@ -456,6 +465,9 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     });
     container.querySelectorAll('[data-pessoa-campo="deficiencia"], [data-pessoa-campo="incapacidadeIgualOuSuperior90"]').forEach((el) => {
       el.addEventListener("change", () => gravarPessoa(el.dataset.pessoaId, { reRenderizar: true }));
+    });
+    container.querySelectorAll('[data-pessoa-campo="atividadeCategoriaB"]').forEach((el) => {
+      el.addEventListener("change", () => gravarPessoa(el.dataset.pessoaId));
     });
 
     container.querySelector('[data-action="adicionar-pessoa"]')?.addEventListener("click", async () => {

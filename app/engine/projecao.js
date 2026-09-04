@@ -15,14 +15,24 @@ function media(valores) {
   return valores.reduce((a, b) => a + b, 0) / valores.length;
 }
 
+function round2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
 /**
  * @param {Object} params
  * @param {Array<{mes:number, rubricas:Array}>} params.documentosReais - por mês, já ordenado
  * @param {Array<Object>} params.ajustesManuais - registos de storage/db.js
  * @param {number} params.anoFiscal
+ * @param {string} [params.atividadeCategoriaB] - chave escolhida em Perfil (ver data/i18n.js
+ *   atividadeCategoriaBOpcoes) — usada só para projetar a retenção na fonte estimada dos
+ *   meses de Categoria B ainda sem documento real (ver bloco "Categoria B" abaixo).
+ * @param {Object} [params.taxasRetencaoCategoriaB] - tabela.taxasRetencaoCategoriaB do ano
+ *   fiscal em causa (data/legislacao-2026.js) — omitido = nenhuma retenção projetada
+ *   (comportamento anterior a 04/09/2026, preservado para chamadores antigos).
  * @returns {{mesAMes: Array, percentagemMesesReais: number, rubricasProjetadasTotais: Array}}
  */
-export function projetarAno({ documentosReais, ajustesManuais, anoFiscal }) {
+export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, atividadeCategoriaB, taxasRetencaoCategoriaB }) {
   const mesesComReal = new Set(documentosReais.map((d) => d.mes));
   const mesAMes = [];
 
@@ -51,6 +61,28 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal }) {
   const catBStats = categoriaB.length
     ? { min: Math.min(...categoriaB), media: media(categoriaB), max: Math.max(...categoriaB) }
     : { min: 0, media: 0, max: 0 };
+
+  // Retenção na fonte estimada para os meses de Categoria B ainda SEM
+  // documento real (04/09/2026, a pedido do Dani). Antes desta alteração,
+  // meses projetados de Categoria B só recebiam o rendimento bruto
+  // (abono), nunca uma retenção — o que subestimava sistematicamente as
+  // "Retenções na Fonte acumuladas" (linha 10) para quem tem recibos
+  // verdes ainda por documentar, mesmo quando não está isento. Documentos
+  // REAIS continuam a usar sempre a retenção que consta do próprio
+  // documento, seja qual for a taxa aplicada pelo cliente — isto só afeta
+  // a PROJEÇÃO dos meses em falta.
+  //
+  // Estimativa aproximada (não é uma exigência de rigor absoluto, é uma
+  // projeção): total anual de Categoria B ≈ soma dos meses reais + média
+  // desses meses × meses projetados. Comparado com o limite de isenção do
+  // art.º 101º-B (15.000€/ano) para decidir se há retenção a projetar.
+  const totalCategoriaBReal = categoriaB.reduce((a, b) => a + b, 0);
+  const mesesProjetadosCount = 12 - mesesComReal.size;
+  const estimativaAnualCategoriaB = totalCategoriaBReal + catBStats.media * mesesProjetadosCount;
+  const taxaRetencaoAplicavel = taxasRetencaoCategoriaB
+    ? taxasRetencaoCategoriaB[atividadeCategoriaB] ?? taxasRetencaoCategoriaB.servicosGeral
+    : null;
+  const isentoPorLimiteAnual = !!taxasRetencaoCategoriaB && estimativaAnualCategoriaB < taxasRetencaoCategoriaB.limiteIsencaoAnual;
 
   for (let mes = 1; mes <= 12; mes++) {
     if (mesesComReal.has(mes)) {
@@ -125,6 +157,29 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal }) {
         origemDetalhe: `Intervalo observado: ${catBStats.min.toFixed(2)}–${catBStats.max.toFixed(2)} € (média ${catBStats.media.toFixed(2)} €)`,
         intervalo: catBStats,
       });
+
+      // Retenção na fonte estimada sobre este valor projetado (ver nota
+      // acima) — só se houver uma tabela de taxas para o ano fiscal, o
+      // limite de isenção anual não for atingido, e a retenção calculada
+      // não ficar abaixo do limite de dispensa por retenção (25€, art.º
+      // 101º-B).
+      if (taxaRetencaoAplicavel != null && !isentoPorLimiteAnual) {
+        const retencaoEstimada = round2(valor * taxaRetencaoAplicavel);
+        if (retencaoEstimada >= taxasRetencaoCategoriaB.limiteIsencaoPorRetencao) {
+          rubricasProjetadas.push({
+            categoria: "B",
+            tipo: "desconto",
+            categoriaIRS: true,
+            descricao: "Retenção na fonte estimada (projetado)",
+            valorComRedu: retencaoEstimada,
+            origem: "projetado",
+            origemDetalhe:
+              `${(taxaRetencaoAplicavel * 100).toFixed(1)}% sobre ${valor.toFixed(2)} € — estimativa anual de ` +
+              `Categoria B: ${estimativaAnualCategoriaB.toFixed(2)} € (acima do limite de isenção de ` +
+              `${taxasRetencaoCategoriaB.limiteIsencaoAnual}€, art.º 101º-B CIRS)`,
+          });
+        }
+      }
     }
 
     mesAMes.push({ mes, origem: "projetado", rubricas: rubricasProjetadas });

@@ -239,6 +239,14 @@ export const pt = {
     deficienciaLabel: "Pessoa com deficiência (grau de incapacidade ≥ 60%)",
     deficienciaAjuda: "Dá direito a uma dedução adicional à coleta (art.º 87º CIRS), comprovada por atestado médico de incapacidade multiúso.",
     incapacidade90Label: "Incapacidade ≥ 90% (despesa de acompanhamento)",
+    atividadeCategoriaBLabel: "Atividade (recibos verdes / Categoria B)",
+    atividadeCategoriaBAjuda: "Só relevante se tiver rendimentos de Categoria B (recibos verdes). Define o coeficiente do regime simplificado (art.º 31º CIRS) e a taxa de retenção na fonte (art.º 101º CIRS) usados na Simulação.",
+    atividadeCategoriaBOpcoes: {
+      servicosGeral: "Prestação de serviços (geral)",
+      tabelaAnexa151: "Atividade da tabela do art.º 151º (ex.: medicina, enfermagem, engenharia, advocacia...)",
+      vendaMercadorias: "Venda de mercadorias / produtos, restauração ou alojamento",
+      propriedadeIntelectual: "Propriedade intelectual/industrial",
+    },
     ascendentesTitulo: "Ascendentes a cargo",
     ascendentesCorpo:
       "Pais, avós ou outros ascendentes que vivam consigo e cujo rendimento não exceda a pensão mínima do regime geral dão direito a uma dedução à coleta (art.º 78º-A CIRS) — 635€ se for o único ascendente do agregado, ou 525€ cada se houver mais do que um. A app não verifica o requisito de rendimento — confirme que qualifica antes de registar.",
