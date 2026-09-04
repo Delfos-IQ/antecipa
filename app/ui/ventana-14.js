@@ -144,7 +144,18 @@ export async function renderVentana14({ container, anoFiscal }) {
     // modo resultadoUnico/comparação, ao contrário de "oportunidades"
     // acima: só precisa do tipo do resultado final, do household e das
     // deduções já registadas, todos já disponíveis aqui.
-    const sugestoesPagamento = detectarSugestoesPagamento({ resultado: resultadoParaSelo }, { household: estado.household, deducoesColeta: estado.deducoesColeta });
+    // mesesRestantes (04/09/2026): quantos meses do ano fiscal ainda NÃO
+    // têm documento real — percentagemMediaReal já traz essa fração
+    // (engine/projecao.js). Um ano totalmente carregado (ex.: simulação
+    // retrospetiva de um ano fiscal já fechado) dá 0 meses restantes, e
+    // detectarSugestoesPagamento sabe omitir a sugestão de retenção
+    // superior nesse caso — não faz sentido pedir mais retenção a um ano
+    // que já acabou.
+    const mesesRestantes = Math.round((1 - percentagemMediaReal) * 12);
+    const sugestoesPagamento = detectarSugestoesPagamento(
+      { resultado: resultadoParaSelo },
+      { household: estado.household, deducoesColeta: estado.deducoesColeta, mesesRestantes }
+    );
 
     container.innerHTML = `
       <h2>${pt.ventana14.titulo}</h2>
@@ -293,7 +304,16 @@ function renderComparacao(comparacao) {
 // engine/calculo-irs.js:detectarSugestoesPagamento sobre porquê).
 function renderSugestoesPagamento(sugestoes) {
   const RENDERERS = {
-    retencaoSuperior: () => renderSugestaoSimples("sugestaoRetencaoSuperiorTitulo", "sugestaoRetencaoSuperiorCorpo"),
+    // 04/09/2026: quando o motor conseguiu calcular um valor mensal
+    // sugerido (ver detectarSugestoesPagamento/mesesRestantes), usa-se a
+    // variante de texto com o valor preenchido em vez da genérica.
+    retencaoSuperior: (s) =>
+      renderSugestaoSimples(
+        "sugestaoRetencaoSuperiorTitulo",
+        typeof s.valorMensalSugerido === "number"
+          ? { texto: pt.ventana14.sugestaoRetencaoSuperiorCorpoComValor.replace("{valor}", formatarMoeda(s.valorMensalSugerido)) }
+          : "sugestaoRetencaoSuperiorCorpo"
+      ),
     compararRegimes: () =>
       renderSugestaoSimples("sugestaoCompararRegimesTitulo", "sugestaoCompararRegimesCorpo", {
         action: "ir-perfil",
@@ -310,17 +330,23 @@ function renderSugestoesPagamento(sugestoes) {
   return `
     <div class="oportunidades card" style="margin-top:var(--space-5)" data-tipo="sugestoes-pagamento">
       <p class="section-title" style="margin-top:0">${pt.ventana14.sugestoesPagamentoTitulo}</p>
-      ${sugestoes.map((s) => RENDERERS[s.tipo]?.() ?? "").join("")}
+      ${sugestoes.map((s) => RENDERERS[s.tipo]?.(s) ?? "").join("")}
       <p class="field-hint" style="margin-top:var(--space-3)">${pt.ventana14.sugestoesPagamentoAviso}</p>
     </div>
   `;
 }
 
+// chaveCorpo aceita a chave de i18n habitual (string) OU, quando o corpo
+// já foi montado com um valor calculado em runtime (ex.: valor mensal
+// sugerido de retenção, 04/09/2026), um objeto { texto } com o texto já
+// pronto — evita ter de inventar uma chave de i18n só para um texto que
+// nunca é estático.
 function renderSugestaoSimples(chaveTitulo, chaveCorpo, botao) {
+  const corpo = typeof chaveCorpo === "string" ? pt.ventana14[chaveCorpo] : chaveCorpo.texto;
   return `
     <div class="oportunidade-item">
       <p class="oportunidade-item__titulo">${pt.ventana14[chaveTitulo]}</p>
-      <p class="field-hint">${pt.ventana14[chaveCorpo]}</p>
+      <p class="field-hint">${corpo}</p>
       ${botao ? `<button class="btn btn-ghost" style="margin-top:var(--space-2)" data-action="${botao.action}">${botao.label}</button>` : ""}
     </div>
   `;

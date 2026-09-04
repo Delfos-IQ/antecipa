@@ -515,6 +515,32 @@ if (JSON.stringify(sugestoesReciboVerde.map((s) => s.tipo)) !== JSON.stringify([
   console.log("OK: sujeito só com recibos verdes (sem trabalho dependente) só recebe a sugestão de donativos");
 }
 
+console.log("\n--- Sugestão de retenção quantificada (04/09/2026) ---");
+// Casal/individual não interessa aqui, só que haja trabalho dependente e
+// um valor a pagar, para isolar o cálculo de valorMensalSugerido.
+const contextoBase = { household: { situacao: "individual", fontesRendimento: ["trabalhoDependente"] }, deducoesColeta: { donativos: 1 } };
+
+const comMesesRestantes = detectarSugestoesPagamento({ resultado: { tipo: "a_pagar", valor: 600 } }, { ...contextoBase, mesesRestantes: 4 });
+const retencaoComValor = comMesesRestantes.find((s) => s.tipo === "retencaoSuperior");
+assertIgual(retencaoComValor?.valorMensalSugerido, 150, "valor mensal sugerido = valor a pagar / meses restantes (600€ / 4 meses)");
+
+const semMesesInformados = detectarSugestoesPagamento({ resultado: { tipo: "a_pagar", valor: 600 } }, contextoBase);
+const retencaoSemValor = semMesesInformados.find((s) => s.tipo === "retencaoSuperior");
+if (retencaoSemValor?.valorMensalSugerido !== undefined) {
+  console.error(`FALHOU: sem mesesRestantes informado, a sugestão não devia ter um valor calculado, obtido ${retencaoSemValor?.valorMensalSugerido}`);
+  process.exitCode = 1;
+} else {
+  console.log("OK: sem mesesRestantes informado, mantém-se a sugestão genérica sem valor (compatibilidade com chamadas antigas)");
+}
+
+const anoFechado = detectarSugestoesPagamento({ resultado: { tipo: "a_pagar", valor: 600 } }, { ...contextoBase, mesesRestantes: 0 });
+if (anoFechado.some((s) => s.tipo === "retencaoSuperior")) {
+  console.error("FALHOU: com mesesRestantes=0 (ano fiscal já fechado), a sugestão de retenção superior não devia aparecer");
+  process.exitCode = 1;
+} else {
+  console.log("OK: com mesesRestantes=0 (ano fechado, ex. simulação retrospetiva completa), a sugestão de retenção superior é omitida");
+}
+
 console.log("\n--- Ano fiscal 2025 (adicionado 04/09/2026, a pedido do Dani, para simulação retrospetiva) ---");
 // Não repete a auditoria completa do ficheiro de legislação — só garante
 // que 2025 tem tabela própria, distinta de 2026, e que o motor a usa sem

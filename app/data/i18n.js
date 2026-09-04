@@ -170,6 +170,14 @@ export const pt = {
     sugestaoRetencaoSuperiorTitulo: "Peça uma retenção na fonte mais alta",
     sugestaoRetencaoSuperiorCorpo:
       "A lei (art.º 99º-F do CIRS) permite pedir à entidade empregadora para reter mais IRS por mês do que a tabela padrão indica — formaliza-se com uma declaração ao departamento de RH. Descontar um pouco mais todos os meses evita o valor elevado a pagar de uma vez na declaração.",
+    // Variante com valor calculado (04/09/2026) — só aparece quando ainda
+    // há meses do ano por carregar (ver mesesRestantes em
+    // detectarSugestoesPagamento). Não é o valor exato da tabela oficial
+    // de retenção da AT (essa não está modelada na app) — é uma divisão
+    // simples do valor a pagar pelos meses restantes, deliberadamente
+    // aproximada, para dar uma ordem de grandeza a pedir ao RH.
+    sugestaoRetencaoSuperiorCorpoComValor:
+      "A lei (art.º 99º-F do CIRS) permite pedir à entidade empregadora para reter mais IRS por mês do que a tabela padrão indica — formaliza-se com uma declaração ao departamento de RH. Com base no valor a pagar e nos meses que ainda faltam este ano, pedir cerca de {valor} a mais por mês evitaria a maior parte desse valor na declaração final (estimativa aproximada, não é o cálculo oficial da tabela de retenção).",
     sugestaoCompararRegimesTitulo: "Compare declaração conjunta vs. separada",
     sugestaoCompararRegimesCorpo:
       "O seu agregado ainda não está a comparar os dois regimes tributários. Em Perfil, mude o regime de tributação para \"comparar ambos\" e veja qual sai mais vantajoso.",

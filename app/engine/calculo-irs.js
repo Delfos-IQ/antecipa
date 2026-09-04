@@ -822,21 +822,40 @@ export function detectarOportunidadeMaisValias(input, resultadoAtual) {
  * cada sugestão devolvida deve ser sempre confirmada com um contabilista.
  *
  * @param {Object} declaracao - resultado de calcularDeclaracao (só precisa
- *   de .resultado.tipo).
- * @param {Object} contexto - { household, deducoesColeta }
+ *   de .resultado.tipo e .resultado.valor).
+ * @param {Object} contexto - { household, deducoesColeta, mesesRestantes }
+ *   mesesRestantes (04/09/2026, pedido do Dani ao ver as tabelas oficiais
+ *   de retenção na fonte — ver conversa): quantos meses do ano fiscal
+ *   ainda NÃO têm documento real carregado (ui/ventana-14.js já calcula
+ *   isto via percentagemMediaReal, de engine/projecao.js). Não replicamos
+ *   as tabelas de retenção oficiais (11 tabelas, dezenas de escalões cada
+ *   — risco de transcrição alto para o benefício, decidido em conversa com
+ *   o Dani); em vez disso quantificamos a sugestão "pedir retenção
+ *   superior" com o motor que já temos verificado: valor a pagar dividido
+ *   pelos meses que ainda restam para agir. Se mesesRestantes === 0 (ano
+ *   fechado, ex.: simulação retrospetiva de um ano fiscal passado com
+ *   todos os documentos já carregados), a sugestão não faz sentido — já
+ *   não há meses restantes onde pedir mais retenção mude alguma coisa — e
+ *   é omitida. Se mesesRestantes não for passado (omisso), mantém-se o
+ *   comportamento antigo (sugestão genérica, sem valor calculado), para
+ *   não quebrar chamadas existentes.
  * @returns {Array<{tipo:string}>} lista ordenada por impacto/facilidade de
  *   ação — retenção e comparação de regimes primeiro (o utilizador pode
  *   agir já), explicações estruturais por último.
  */
-export function detectarSugestoesPagamento(declaracao, { household, deducoesColeta = {} } = {}) {
+export function detectarSugestoesPagamento(declaracao, { household, deducoesColeta = {}, mesesRestantes } = {}) {
   if (!declaracao || declaracao.resultado?.tipo !== "a_pagar") return [];
 
   const temTrabalhoDependente = (household?.fontesRendimento || []).includes("trabalhoDependente");
   const eCasal = household?.situacao === "casal";
   const sugestoes = [];
 
-  if (temTrabalhoDependente) {
-    sugestoes.push({ tipo: "retencaoSuperior" });
+  if (temTrabalhoDependente && mesesRestantes !== 0) {
+    const valorMensalSugerido =
+      typeof mesesRestantes === "number" && mesesRestantes > 0
+        ? round2(declaracao.resultado.valor / mesesRestantes)
+        : undefined;
+    sugestoes.push({ tipo: "retencaoSuperior", valorMensalSugerido });
   }
   if (eCasal && household?.regimeTributacao !== "comparar_ambos") {
     sugestoes.push({ tipo: "compararRegimes" });
