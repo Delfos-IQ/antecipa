@@ -18,6 +18,21 @@ import { parsearTalao } from "../parsers/parser-talao.js";
 import { parsearReciboVerde } from "../parsers/parser-recibo-verde.js";
 import { abrirConfirmacao } from "./components/confirmacao.js";
 
+// Escapa texto de origem não confiável (descrição de rubrica extraída de um
+// PDF carregado pelo utilizador, ou nome livre introduzido em Perfil) antes
+// de o injetar via innerHTML — ver mesmo helper em
+// ui/components/confirmacao.js, onde esta descrição é mostrada pela
+// primeira vez.
+function escapeHtml(valor) {
+  return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
 function formatarMoeda(valor) {
   // ver nota em ui/ventana-14.js: substitui o nbsp antes do € por um
   // espaço reduzido (.moeda), para não parecer desalinhado em fonte mono.
@@ -131,7 +146,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
       ${
         duasPessoas
           ? `<div class="pessoa-tabs" role="tablist">
-              ${pessoas.map((p) => `<button class="pessoa-tab" role="tab" aria-selected="${p.id === pessoaAtiva}" data-pessoa="${p.id}">${p.nome || p.id}</button>`).join("")}
+              ${pessoas.map((p) => `<button class="pessoa-tab" role="tab" aria-selected="${p.id === pessoaAtiva}" data-pessoa="${p.id}">${escapeHtml(p.nome || p.id)}</button>`).join("")}
             </div>`
           : ""
       }
@@ -248,7 +263,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
       <div class="doc-card">
         <div class="doc-card__row">
           <span class="tag" data-tipo="${doc.tipo}">${doc.tipo === "recibo_verde" ? pt.mensal.tipoReciboVerde : pt.mensal.tipoTalao}</span>
-          ${pessoaDoDoc?.nome ? `<span class="doc-card__pessoa">${pessoaDoDoc.nome}</span>` : ""}
+          ${pessoaDoDoc?.nome ? `<span class="doc-card__pessoa">${escapeHtml(pessoaDoDoc.nome)}</span>` : ""}
           <span class="doc-card__valor num">${formatarMoeda(totalLiquido)}</span>
         </div>
         ${doc.dataUpload ? `<p class="doc-card__data">Carregado a ${formatarDataHora(doc.dataUpload)}</p>` : ""}
@@ -256,7 +271,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
           <summary>${doc.rubricas.length} rubrica${doc.rubricas.length === 1 ? "" : "s"}</summary>
           ${doc.rubricas
             .map(
-              (r) => `<div class="rubrica-linha"><span>${r.descricao}</span><span class="num">${r.tipo === "desconto" ? "− " : ""}${formatarMoeda(r.valorComRedu)}</span></div>`
+              (r) => `<div class="rubrica-linha"><span>${escapeHtml(r.descricao)}</span><span class="num">${r.tipo === "desconto" ? "− " : ""}${formatarMoeda(r.valorComRedu)}</span></div>`
             )
             .join("")}
         </details>
@@ -269,7 +284,7 @@ async function montarCorpoMes({ body, mes, anoFiscal, pessoas, duasPessoas, docs
               ? `<label class="field-hint" style="display:flex;align-items:center;gap:4px;margin-bottom:var(--space-2)">
                   ${pt.mensal.reatribuirLabel}
                   <select data-action="reatribuir-documento" data-doc-id="${doc.id}">
-                    ${pessoas.map((p) => `<option value="${p.id}" ${p.id === doc.pessoaId ? "selected" : ""}>${p.nome || p.id}</option>`).join("")}
+                    ${pessoas.map((p) => `<option value="${p.id}" ${p.id === doc.pessoaId ? "selected" : ""}>${escapeHtml(p.nome || p.id)}</option>`).join("")}
                   </select>
                 </label>`
               : ""

@@ -16,6 +16,22 @@
 import { chaveDescricao } from "../../parsers/parser-talao.js";
 import { carregarPdfJs } from "../../parsers/pdf-text.js";
 
+// Escapa texto vindo de fora da app (extraído de um PDF, portanto não
+// confiável) antes de o injetar via innerHTML — sem isto, uma "descrição"
+// de rubrica fabricada (ex.: `"><img src=x onerror=...>`) dentro do PDF
+// carregado corria como HTML/JS neste ecrã. Ver também
+// ui/ventanas-mensais.js, onde a mesma descrição é reexibida depois de
+// gravada.
+function escapeHtml(valor) {
+  return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[c]));
+}
+
 const ROTULOS_CATEGORIA = {
   irs: "IRS",
   ss: "Segurança Social",
@@ -60,7 +76,7 @@ function renderTalao(resultadoParsing, resumo, linhas) {
           .map(
             (l, i) => `
           <div class="row" style="gap:var(--space-2);align-items:center;justify-content:space-between">
-            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.descricao} — ${l.valorComRedu.toFixed(2)}€</span>
+            <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.descricao)} — ${l.valorComRedu.toFixed(2)}€</span>
             <select data-linha-categoria="${i}" style="flex-shrink:0;width:auto;min-height:auto;padding:6px 8px">
               ${Object.entries(ROTULOS_CATEGORIA)
                 .map(([v, rotulo]) => `<option value="${v}" ${l.categoriaClassificada === v ? "selected" : ""}>${rotulo}</option>`)
@@ -92,7 +108,7 @@ function renderListaRubricas(rubricas, tipo) {
         <div class="doc-card" data-idx="${i}">
           <div class="field">
             <label>Descrição</label>
-            <input type="text" data-campo="descricao" data-idx="${i}" value="${r.descricao ?? ""}" />
+            <input type="text" data-campo="descricao" data-idx="${i}" value="${escapeHtml(r.descricao)}" />
           </div>
           <div class="row" style="gap:var(--space-3)">
             <div class="field" style="flex:1">
@@ -233,7 +249,7 @@ function renderSeletorPessoa(pessoas, pessoaIdSelecionada) {
     <div class="field" style="margin-bottom:var(--space-3)">
       <label for="confirmacao-pessoa">De quem é este documento?</label>
       <select id="confirmacao-pessoa" data-action="mudar-pessoa">
-        ${pessoas.map((p) => `<option value="${p.id}" ${p.id === pessoaIdSelecionada ? "selected" : ""}>${p.nome || p.id}</option>`).join("")}
+        ${pessoas.map((p) => `<option value="${p.id}" ${p.id === pessoaIdSelecionada ? "selected" : ""}>${escapeHtml(p.nome || p.id)}</option>`).join("")}
       </select>
     </div>`;
 }
