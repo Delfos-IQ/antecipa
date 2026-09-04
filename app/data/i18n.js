@@ -232,6 +232,21 @@ export const pt = {
     semDataNascimento: "Sem data de nascimento — aplicado o valor base, sem majoração por idade.",
     semDependentes: "Ainda sem dependentes registados.",
     adicionarDependente: "+ Adicionar dependente",
+    // Deficiência (art.º 87º CIRS) — NOVO (04/09/2026, a pedido do Dani a
+    // partir do folheto oficial de deduções da AT). Checkbox em pessoas e
+    // dependentes; "incapacidade ≥90%" só aparece quando "deficiência" já
+    // está marcado, para não sugerir que se pode ter uma sem a outra.
+    deficienciaLabel: "Pessoa com deficiência (grau de incapacidade ≥ 60%)",
+    deficienciaAjuda: "Dá direito a uma dedução adicional à coleta (art.º 87º CIRS), comprovada por atestado médico de incapacidade multiúso.",
+    incapacidade90Label: "Incapacidade ≥ 90% (despesa de acompanhamento)",
+    ascendentesTitulo: "Ascendentes a cargo",
+    ascendentesCorpo:
+      "Pais, avós ou outros ascendentes que vivam consigo e cujo rendimento não exceda a pensão mínima do regime geral dão direito a uma dedução à coleta (art.º 78º-A CIRS) — 635€ se for o único ascendente do agregado, ou 525€ cada se houver mais do que um. A app não verifica o requisito de rendimento — confirme que qualifica antes de registar.",
+    ascendenteNomePlaceholder: "Nome",
+    semAscendentes: "Ainda sem ascendentes registados.",
+    adicionarAscendente: "+ Adicionar ascendente",
+    removerAscendente: "Remover",
+    deducaoAscendenteLabel: "Dedução deste ascendente",
     anoFiscalTitulo: "Ano fiscal ativo",
     anoFiscalCorpo:
       "Os documentos, ajustes e simulações ficam sempre associados a um ano fiscal. Toque num ano para o tornar ativo, comece um novo exercício, ou remova um ano criado por engano.",
@@ -303,6 +318,12 @@ export const pt = {
         titulo: "Outras deduções",
         donativos: { label: "Donativos (mecenato)", hint: "Total anual doado a IPSS, associações ou instituições particulares de solidariedade social. Dedução de 25%, até 15% da coleta." },
         duplaTributacao: { label: "Crédito por dupla tributação internacional", hint: "Imposto pago no estrangeiro sobre rendimento também tributado em Portugal, dedutível nos termos de acordo ou convenção." },
+        // NOVO (04/09/2026) — art.º 78º-H CIRS, dedução recente (desde
+        // 2025), encontrada no folheto oficial de deduções da AT.
+        trabalhoDomestico: {
+          label: "Trabalho doméstico",
+          hint: "Retribuição paga a trabalhadores domésticos, a mesma declarada à Segurança Social (art.º 78º-H CIRS). Dedução de 5%, até 200€.",
+        },
       },
       // Não é uma dedução — é um adiantamento de imposto já pago, tal como
       // a retenção na fonte, mas normalmente associado a Categoria B

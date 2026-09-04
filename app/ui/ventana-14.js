@@ -4,7 +4,7 @@
 // + modo comparação + disclaimer + exportação PDF.
 
 import { pt } from "../data/i18n.js";
-import { getHousehold, getPessoas, getDependentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
+import { getHousehold, getPessoas, getDependentes, getAscendentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
 import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias, detectarSugestoesPagamento } from "../engine/calculo-irs.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
@@ -40,6 +40,7 @@ export async function renderVentana14({ container, anoFiscal }) {
   const household = await getHousehold();
   const pessoas = await getPessoas();
   const dependentes = await getDependentes();
+  const ascendentes = await getAscendentes();
   const { documentos, rubricas } = await getTodasRubricas(anoFiscal);
   const ajustes = await getAjustesManuais(anoFiscal);
   const deducoesColeta = await getDeducoesColeta(anoFiscal, "household");
@@ -107,11 +108,16 @@ export async function renderVentana14({ container, anoFiscal }) {
   const regime = household?.regimeTributacao ?? "individual";
 
   if (regime === "comparar_ambos" && pessoas.length === 2) {
+    // ascendentesAtribuidos segue a MESMA simplificação já existente para
+    // dependentesAtribuidos: tudo atribuído a A por omissão, B fica sem
+    // nenhum — atribuição por pessoa ainda não modelada nesta ventana em
+    // modo comparação (04/09/2026, mesmo padrão pré-existente).
     comparacao = compararRegimes(
       inputBase,
-      { rubricas: rubricasPorPessoa[0].rubricas, dependentesAtribuidos: dependentes },
-      { rubricas: rubricasPorPessoa[1].rubricas, dependentesAtribuidos: [] },
-      dependentes
+      { rubricas: rubricasPorPessoa[0].rubricas, dependentesAtribuidos: dependentes, pessoa: pessoas[0], ascendentesAtribuidos: ascendentes },
+      { rubricas: rubricasPorPessoa[1].rubricas, dependentesAtribuidos: [], pessoa: pessoas[1], ascendentesAtribuidos: [] },
+      dependentes,
+      ascendentes
     );
   } else {
     const inputResultadoUnico = {
@@ -119,6 +125,8 @@ export async function renderVentana14({ container, anoFiscal }) {
       regime: regime === "conjunta" ? "conjunta" : "individual",
       rubricasPorPessoa: rubricasPorPessoa.map((p) => p.rubricas),
       dependentes,
+      pessoas,
+      ascendentes,
     };
     resultadoUnico = calcularDeclaracao(inputResultadoUnico);
     // Oportunidades de poupança fiscal — só para o modo "resultado único"

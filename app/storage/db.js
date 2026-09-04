@@ -4,12 +4,17 @@
 // nada daqui é enviado para nenhum servidor.
 
 const DB_NAME = "antecipa";
-const DB_VERSION = 2;
+// v3 (04/09/2026): nova store "ascendentes" (ver getAscendentes/
+// saveAscendente/removeAscendente abaixo) — bump necessário para o
+// onupgradeneeded criar a store em quem já tinha a base de dados de uma
+// versão anterior da app.
+const DB_VERSION = 3;
 
 const STORES = {
   household: { keyPath: "id" },
   pessoas: { keyPath: "id" },
   dependentes: { keyPath: "id", autoIncrement: true },
+  ascendentes: { keyPath: "id", autoIncrement: true },
   documentos: { keyPath: "id", autoIncrement: true, indexes: [["mes_ano_pessoa", ["mes", "anoFiscal", "pessoaId"]]] },
   rubricas: { keyPath: "id", autoIncrement: true, indexes: [["documentoId", "documentoId"]] },
   ajusteManual: { keyPath: "id", autoIncrement: true, indexes: [["mes_ano_pessoa", ["mes", "anoFiscal", "pessoaId"]]] },
@@ -143,6 +148,26 @@ export async function saveDependente(dependente) {
 
 export async function removeDependente(id) {
   return db.delete("dependentes", id);
+}
+
+// Ascendentes a cargo (art.º 78º-A CIRS) — NOVO (04/09/2026, pedido do
+// Dani a partir do folheto oficial de deduções da AT). Mesma forma que
+// dependentes: um registo por ascendente, com `nome` e `deficiencia`
+// (boolean, para a dedução extra do art.º 87º — ver engine/calculo-irs.js).
+// O requisito legal de rendimento do ascendente (não pode exceder a
+// pensão mínima do regime geral) não é verificado pela app — o
+// utilizador confirma que qualifica antes de o registar aqui.
+export async function getAscendentes() {
+  return db.getAll("ascendentes");
+}
+
+export async function saveAscendente(ascendente) {
+  const id = await db.put("ascendentes", ascendente);
+  return { ...ascendente, id };
+}
+
+export async function removeAscendente(id) {
+  return db.delete("ascendentes", id);
 }
 
 export async function getDocumentosDoMes(mes, anoFiscal, pessoaId) {

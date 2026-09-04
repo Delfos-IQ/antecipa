@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.28";
+export const VERSAO_ATUAL = "2.29";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.29", resumo: "Novo: deduções de ascendentes a cargo, deficiência e trabalho doméstico" },
   { versao: "2.28", resumo: "A sugestão de pedir mais retenção agora diz quanto, em euros/mês" },
   { versao: "2.27", resumo: "Novo: pode simular o ano fiscal de 2025, retrospetivamente" },
   { versao: "2.26", resumo: "Correção: quociente familiar estimado aparecia \"NaN\" no onboarding" },

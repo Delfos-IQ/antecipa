@@ -12,7 +12,7 @@
 import { pt } from "../data/i18n.js";
 import { revisaoFiscal, obterTabelaFiscal } from "../data/legislacao-2026.js";
 import { VERSAO_ATUAL, HISTORICO_VERSOES } from "../data/versao.js";
-import { valorDeducaoPorDependente } from "../engine/calculo-irs.js";
+import { valorDeducaoPorDependente, valorDeducaoAscendente } from "../engine/calculo-irs.js";
 import {
   getHousehold,
   getPessoas,
@@ -22,6 +22,9 @@ import {
   getDependentes,
   saveDependente,
   removeDependente,
+  getAscendentes,
+  saveAscendente,
+  removeAscendente,
   getAnosFiscaisComDados,
   exportarTudo,
   limparAnoFiscal,
@@ -87,6 +90,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     const household = await getHousehold();
     const pessoas = await getPessoas();
     const dependentes = (await getDependentes()).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+    const ascendentes = (await getAscendentes()).sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
     const anos = await getAnosFiscaisComDados();
     const anoAtivo = household?.anoFiscalAtivo ?? anoFiscal;
 
@@ -133,6 +137,21 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
               <input type="text" data-pessoa-campo="nif" data-pessoa-id="${p.id}" value="${p.nif ?? ""}" placeholder="${pt.perfil.agregadoNifPlaceholder}" inputmode="numeric" maxlength="9" style="flex:1 1 110px" />
               ${i > 0 ? `<button class="btn btn-ghost" data-action="remover-pessoa" data-pessoa-id="${p.id}" style="color:var(--pagar)">${pt.perfil.removerPessoa}</button>` : ""}
             </div>
+            <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center;margin-top:var(--space-2)">
+              <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem">
+                <input type="checkbox" data-pessoa-campo="deficiencia" data-pessoa-id="${p.id}" ${p.deficiencia ? "checked" : ""} />
+                ${pt.perfil.deficienciaLabel}
+              </label>
+              ${
+                p.deficiencia
+                  ? `<label style="display:flex;align-items:center;gap:4px;font-size:0.82rem">
+                      <input type="checkbox" data-pessoa-campo="incapacidadeIgualOuSuperior90" data-pessoa-id="${p.id}" ${p.incapacidadeIgualOuSuperior90 ? "checked" : ""} />
+                      ${pt.perfil.incapacidade90Label}
+                    </label>`
+                  : ""
+              }
+            </div>
+            ${p.deficiencia ? `<p class="field-hint" style="margin-top:var(--space-1)">${pt.perfil.deficienciaAjuda}</p>` : ""}
           </div>`
           )
           .join("")}
@@ -171,6 +190,18 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                     <input type="checkbox" data-dep-campo="guarda" data-dep-id="${d.id}" ${d.guarda === "partilhada" ? "checked" : ""} />
                     ${pt.perfil.guardaPartilhada}
                   </label>
+                  <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">
+                    <input type="checkbox" data-dep-campo="deficiencia" data-dep-id="${d.id}" ${d.deficiencia ? "checked" : ""} />
+                    ${pt.perfil.deficienciaLabel}
+                  </label>
+                  ${
+                    d.deficiencia
+                      ? `<label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">
+                          <input type="checkbox" data-dep-campo="incapacidadeIgualOuSuperior90" data-dep-id="${d.id}" ${d.incapacidadeIgualOuSuperior90 ? "checked" : ""} />
+                          ${pt.perfil.incapacidade90Label}
+                        </label>`
+                      : ""
+                  }
                   <button class="btn btn-ghost" data-action="remover-dependente" data-dep-id="${d.id}" style="color:var(--pagar)">${pt.perfil.remover}</button>
                 </div>
                 <div data-dep-guarda-ajuda>${d.guarda === "partilhada" ? `<p class="field-hint" style="margin-top:var(--space-2)">${pt.perfil.guardaPartilhadaAjuda}</p>` : ""}</div>
@@ -184,6 +215,34 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
             : `<p class="empty-state">${pt.perfil.semDependentes}</p>`
         }
         <button class="btn btn-secondary btn-block" data-action="adicionar-dependente" style="margin-top:var(--space-2)">${pt.perfil.adicionarDependente}</button>
+      </div>
+
+      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+        <p class="section-title">${pt.perfil.ascendentesTitulo}</p>
+        <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.ascendentesCorpo}</p>
+        ${
+          ascendentes.length
+            ? ascendentes
+                .map(
+                  (a) => `
+              <div class="doc-card" style="margin-bottom:var(--space-2)" data-asc-card="${a.id}">
+                <input type="text" data-asc-campo="nome" data-asc-id="${a.id}" value="${a.nome ?? ""}" placeholder="${pt.perfil.ascendenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-2)" />
+                <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
+                  <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">
+                    <input type="checkbox" data-asc-campo="deficiencia" data-asc-id="${a.id}" ${a.deficiencia ? "checked" : ""} />
+                    ${pt.perfil.deficienciaLabel}
+                  </label>
+                  <button class="btn btn-ghost" data-action="remover-ascendente" data-asc-id="${a.id}" style="color:var(--pagar)">${pt.perfil.removerAscendente}</button>
+                </div>
+                <p class="muted" style="margin-top:var(--space-2);font-size:0.8rem">
+                  ${pt.perfil.deducaoAscendenteLabel}: ${formatarMoeda(valorDeducaoAscendente(a, ascendentes.length, limitesDeducoes))}
+                </p>
+              </div>`
+                )
+                .join("")
+            : `<p class="empty-state">${pt.perfil.semAscendentes}</p>`
+        }
+        <button class="btn btn-secondary btn-block" data-action="adicionar-ascendente" style="margin-top:var(--space-2)">${pt.perfil.adicionarAscendente}</button>
       </div>
 
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
@@ -265,8 +324,15 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         const id = Number(el.dataset.depId);
         const atual = getAtual(id);
         const campo = el.dataset.depCampo;
-        atual[campo] = campo === "guarda" ? (el.checked ? "partilhada" : "exclusiva") : el.value;
+        if (campo === "guarda") atual[campo] = el.checked ? "partilhada" : "exclusiva";
+        else if (el.type === "checkbox") atual[campo] = el.checked;
+        else atual[campo] = el.value;
       });
+      // "incapacidade ≥90%" sem "deficiência" marcado não faz sentido —
+      // mesma limpeza já feita para pessoas, acima.
+      for (const atual of porId.values()) {
+        if (!atual.deficiencia) atual.incapacidadeIgualOuSuperior90 = false;
+      }
       // Dia/mês/ano separados (ver comentário mais abaixo, mesmo motivo do
       // date input nativo no onboarding) — recompõe a data ISO a partir dos
       // três campos, lendo os que não mudaram diretamente do dependente
@@ -318,6 +384,17 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     }
 
     container.querySelectorAll("[data-dep-campo]").forEach((el) => {
+      // "deficiencia" precisa de um re-render completo (montar()), não só
+      // do resumo — é o que decide se o checkbox "incapacidade ≥90%"
+      // aparece ou não. Os restantes campos continuam a usar
+      // gravarEAtualizarResumo (mais leve, preserva o foco em edição).
+      if (el.dataset.depCampo === "deficiencia") {
+        el.addEventListener("change", async () => {
+          await gravarTodosOsCamposVisiveis();
+          await montar();
+        });
+        return;
+      }
       const evento = el.type === "checkbox" ? "change" : "blur";
       el.addEventListener(evento, gravarEAtualizarResumo);
     });
@@ -350,16 +427,35 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       await montar();
     });
 
-    container.querySelectorAll("[data-pessoa-campo]").forEach((el) => {
-      el.addEventListener("blur", async () => {
-        const id = el.dataset.pessoaId;
-        const pessoaOriginal = pessoas.find((p) => p.id === id) ?? { id };
-        const atual = { ...pessoaOriginal };
-        container.querySelectorAll(`[data-pessoa-id="${id}"]`).forEach((campoEl) => {
-          atual[campoEl.dataset.pessoaCampo] = campoEl.value;
-        });
-        await savePessoa(atual);
+    // gravarPessoa: lê TODOS os campos data-pessoa-campo desta pessoa (não
+    // só o que disparou o evento) — mesmo padrão já usado para
+    // dependentes/ascendentes, para nunca gravar um campo com um valor
+    // desatualizado. Checkboxes (deficiencia/incapacidadeIgualOuSuperior90)
+    // lêem `.checked`, os restantes `.value`. reRenderizar=true (usado nos
+    // checkboxes) chama montar() no fim, para o checkbox de incapacidade
+    // ≥90% aparecer/desaparecer consoante "deficiência" — os campos de
+    // texto (nome/NIF) usam só "blur" e não precisam de reRenderizar,
+    // porque nada na UI depende deles condicionalmente.
+    async function gravarPessoa(id, { reRenderizar = false } = {}) {
+      const pessoaOriginal = pessoas.find((p) => p.id === id) ?? { id };
+      const atual = { ...pessoaOriginal };
+      container.querySelectorAll(`[data-pessoa-id="${id}"]`).forEach((campoEl) => {
+        const campo = campoEl.dataset.pessoaCampo;
+        atual[campo] = campoEl.type === "checkbox" ? campoEl.checked : campoEl.value;
       });
+      // "incapacidade ≥90%" sem "deficiência" marcado não faz sentido —
+      // limpa-o se a deficiência for desmarcada, em vez de deixar um valor
+      // órfão na base de dados que o motor ignoraria de qualquer forma.
+      if (!atual.deficiencia) atual.incapacidadeIgualOuSuperior90 = false;
+      await savePessoa(atual);
+      if (reRenderizar) await montar();
+    }
+
+    container.querySelectorAll('[data-pessoa-campo="nome"], [data-pessoa-campo="nif"]').forEach((el) => {
+      el.addEventListener("blur", () => gravarPessoa(el.dataset.pessoaId));
+    });
+    container.querySelectorAll('[data-pessoa-campo="deficiencia"], [data-pessoa-campo="incapacidadeIgualOuSuperior90"]').forEach((el) => {
+      el.addEventListener("change", () => gravarPessoa(el.dataset.pessoaId, { reRenderizar: true }));
     });
 
     container.querySelector('[data-action="adicionar-pessoa"]')?.addEventListener("click", async () => {
@@ -391,6 +487,43 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
 
     container.querySelector('[data-action="adicionar-dependente"]')?.addEventListener("click", async () => {
       await saveDependente({ nome: "", dataNascimento: "", guarda: "exclusiva" });
+      await montar();
+    });
+
+    // Ascendentes a cargo — NOVO (04/09/2026). Bem mais simples que
+    // dependentes (sem data de nascimento/guarda partilhada), por isso não
+    // precisa do padrão "gravarTodosOsCamposVisiveis" + resumo separado:
+    // grava tudo e volta a montar() de cada vez, já que não há um campo de
+    // texto onde perder o foco no Tab seja um problema real (só 1 campo
+    // de texto por linha, "nome").
+    async function gravarAscendente(id) {
+      const original = ascendentes.find((a) => a.id === id) ?? { id };
+      const atual = { ...original };
+      container.querySelectorAll(`[data-asc-id="${id}"]`).forEach((el) => {
+        atual[el.dataset.ascCampo] = el.type === "checkbox" ? el.checked : el.value;
+      });
+      await saveAscendente(atual);
+    }
+
+    container.querySelectorAll('[data-asc-campo="nome"]').forEach((el) => {
+      el.addEventListener("blur", () => gravarAscendente(Number(el.dataset.ascId)));
+    });
+    container.querySelectorAll('[data-asc-campo="deficiencia"]').forEach((el) => {
+      el.addEventListener("change", async () => {
+        await gravarAscendente(Number(el.dataset.ascId));
+        await montar();
+      });
+    });
+
+    container.querySelectorAll('[data-action="remover-ascendente"]').forEach((el) =>
+      el.addEventListener("click", async () => {
+        await removeAscendente(Number(el.dataset.ascId));
+        await montar();
+      })
+    );
+
+    container.querySelector('[data-action="adicionar-ascendente"]')?.addEventListener("click", async () => {
+      await saveAscendente({ nome: "", deficiencia: false });
       await montar();
     });
 

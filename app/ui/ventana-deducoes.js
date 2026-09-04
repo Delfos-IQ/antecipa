@@ -19,7 +19,7 @@ const GRUPOS_DEDUCOES = [
   { chave: "familia", campos: ["despesasGerais", "despesasGeraisDependentes"] },
   { chave: "exigenciaFatura", campos: ["exigenciaFaturaRestauracao", "exigenciaFaturaReparacaoAutomovel", "exigenciaFaturaPassesMensais", "exigenciaFaturaOutras"] },
   { chave: "capital", campos: ["maisValias"] },
-  { chave: "outras", campos: ["donativos", "duplaTributacao"] },
+  { chave: "outras", campos: ["donativos", "duplaTributacao", "trabalhoDomestico"] },
   { chave: "pagamentos", campos: ["pagamentosPorConta"] },
 ];
 

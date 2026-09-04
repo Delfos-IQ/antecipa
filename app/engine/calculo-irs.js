@@ -269,6 +269,57 @@ export function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limite
   return dependente?.guarda === "partilhada" ? round2(valor / 2) : valor;
 }
 
+// Dedução extra do art.º 87º CIRS para um dependente com deficiência —
+// NOVO (04/09/2026, pedido do Dani). Soma-se ao valor "normal" de
+// valorDeducaoPorDependente acima (ver `confirmado: false` em
+// legislacao-2026.js/deficiencia sobre esta acumulação não estar
+// confirmada letra a letra). Aplica-se a mesma divisão por 2 em guarda
+// partilhada que já se aplica ao valor normal, por consistência — não
+// confirmado especificamente para esta dedução.
+function valorDeficienciaDependente(dependente, limites) {
+  if (!dependente?.deficiencia) return 0;
+  const config = limites.deficiencia;
+  if (!config) return 0;
+  let valor = config.dependenteOuAscendente;
+  if (dependente.incapacidadeIgualOuSuperior90) valor += config.despesaAcompanhamentoIncapacidade90;
+  return dependente?.guarda === "partilhada" ? round2(valor / 2) : round2(valor);
+}
+
+// Dedução por ascendente a cargo (art.º 78º-A CIRS) + extra por
+// deficiência (art.º 87º), se aplicável — NOVO (04/09/2026). `posicao`
+// e `totalAscendentes` decidem entre o valor "único ascendente" (635€,
+// só quando há exatamente 1 no agregado) e o valor "por ascendente"
+// (525€ cada, quando há 2 ou mais) — ver nota em legislacao-2026.js
+// sobre isto ser um valor de SUBSTITUIÇÃO, não uma majoração adicional.
+// Ao contrário dos dependentes, a dedução de deficiência de um ascendente
+// não tem a "despesa de acompanhamento" de incapacidade ≥90% (o art.º 87º
+// só a prevê para sujeito passivo ou dependente).
+export function valorDeducaoAscendente(ascendente, totalAscendentes, limites) {
+  const config = limites.ascendentes;
+  if (!config) return 0;
+  const base = totalAscendentes === 1 ? config.unicoAscendente : config.primeiro;
+  const extraDeficiencia = ascendente?.deficiencia ? (limites.deficiencia?.dependenteOuAscendente ?? 0) : 0;
+  return round2(base + extraDeficiencia);
+}
+
+// Dedução por deficiência do(s) próprio(s) sujeito(s) passivo(s) (art.º
+// 87º CIRS) — NOVO (04/09/2026). `pessoas` aqui é só quem está incluído
+// NESTA declaração (1 pessoa em regime separada, 2 em conjunta) — quem
+// decide isso é calcularDeducoesAColeta, que já recebe só as pessoas
+// certas.
+function somaDeficienciaSujeitosPassivos(pessoas, limites) {
+  const config = limites.deficiencia;
+  if (!config) return 0;
+  return round2(
+    sum(pessoas ?? [], (p) => {
+      if (!p?.deficiencia) return 0;
+      let valor = config.sujeitoPassivo;
+      if (p.incapacidadeIgualOuSuperior90) valor += config.despesaAcompanhamentoIncapacidade90;
+      return valor;
+    })
+  );
+}
+
 // Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8 CIRS) —
 // NOVO nesta auditoria (03/09/2026, 2ª ronda). Ver legislacao-2026.js,
 // limitesDeducoes.limiteAgregado, para a fonte e o nível de confiança.
@@ -304,6 +355,8 @@ function calcularLimiteAgregadoDeducoes({ rendimentoPorQuociente, numDependentes
 function calcularDeducoesAColeta({
   deducoesColeta,
   dependentes,
+  pessoas = [],
+  ascendentes = [],
   tabela,
   regime,
   anoFiscal,
@@ -389,6 +442,16 @@ function calcularDeducoesAColeta({
 
   const porDependentes = sum(dependentes, (d, i) => valorDeducaoPorDependente(d, i, anoFiscal, limites));
 
+  // Ascendentes a cargo + deficiência (art.º 78º-A e art.º 87º CIRS) —
+  // NOVO (04/09/2026). Tratados como porDependentes: fora do limite
+  // agregado do art.º 78º n.º 7/8 (dependentes/ascendentes são
+  // expressamente excluídos desse limite; deficiência é um artigo
+  // totalmente à parte, 87º, não uma alínea do 78º).
+  const porAscendentes = round2(sum(ascendentes, (a) => valorDeducaoAscendente(a, ascendentes.length, limites)));
+  const deficienciaSujeitosPassivos = somaDeficienciaSujeitosPassivos(pessoas, limites);
+  const deficienciaDependentes = round2(sum(dependentes, (d) => valorDeficienciaDependente(d, limites)));
+  const deficiencia = round2(deficienciaSujeitosPassivos + deficienciaDependentes);
+
   const duplaTributacao = round2(deducoesColeta.duplaTributacao || 0);
 
   // Donativos (mecenato, art.º 63º EBF) — 25% do valor doado, até 15% da
@@ -400,14 +463,24 @@ function calcularDeducoesAColeta({
     ? clamp((deducoesColeta.donativos || 0) * limites.donativos.percentagem, limiteDonativos)
     : 0;
 
+  // Trabalho doméstico (art.º 78º-H CIRS, alínea m) do n.º 1 do art.º 78º)
+  // — NOVO (04/09/2026). Ao contrário de dependentes/ascendentes, a
+  // alínea m) ESTÁ na lista de alíneas sujeitas ao limite agregado do
+  // art.º 78º n.º 7/8 (ver comentário abaixo) — por isso entra em
+  // subtotalSujeitoALimite, não é somado à parte como porDependentes.
+  const trabalhoDomestico = limites.trabalhoDomestico
+    ? clamp((deducoesColeta.trabalhoDomestico || 0) * limites.trabalhoDomestico.percentagem, limites.trabalhoDomestico.limite)
+    : 0;
+
   // Limite agregado (art.º 78º, n.º 7/8 CIRS): aplica-se só à soma das
   // deduções "gerais" do art.º 78º — saúde, educação, habitação, PPR,
-  // despesas gerais e familiares e exigência de fatura. Fica DE FORA:
-  // dependentes (alínea a) do n.º 1, expressamente excluída), dupla
-  // tributação internacional (regida por tratado, fora do art.º 78º) e
-  // donativos (regime próprio do art.º 63º EBF, já com o seu teto de 15%
-  // da coleta aplicado acima).
-  const subtotalSujeitoALimite = round2(saude + educacao + habitacao + ppr + despesasGerais + exigenciaFatura);
+  // despesas gerais e familiares, exigência de fatura e trabalho
+  // doméstico. Fica DE FORA: dependentes/ascendentes (alínea a)/b) do
+  // n.º 1, expressamente excluídas), deficiência (art.º 87º, artigo à
+  // parte do 78º), dupla tributação internacional (regida por tratado,
+  // fora do art.º 78º) e donativos (regime próprio do art.º 63º EBF, já
+  // com o seu teto de 15% da coleta aplicado acima).
+  const subtotalSujeitoALimite = round2(saude + educacao + habitacao + ppr + despesasGerais + exigenciaFatura + trabalhoDomestico);
   const limiteAgregado = calcularLimiteAgregadoDeducoes({
     rendimentoPorQuociente: rendimentoPorQuociente ?? 0,
     numDependentes: dependentes.length,
@@ -416,18 +489,21 @@ function calcularDeducoesAColeta({
   const limiteAgregadoAplicado = limiteAgregado !== Infinity && subtotalSujeitoALimite > limiteAgregado;
   const subtotalAposLimite = limiteAgregadoAplicado ? limiteAgregado : subtotalSujeitoALimite;
 
-  const total = round2(subtotalAposLimite + porDependentes + duplaTributacao + donativos);
+  const total = round2(subtotalAposLimite + porDependentes + porAscendentes + deficiencia + duplaTributacao + donativos);
 
   return {
     linhaOficial: 8,
-    referenciaLegal: "art.º 78º (n.º 1 a n.º 8) CIRS + art.º 63º EBF (donativos)",
+    referenciaLegal: "art.º 78º (n.º 1 a n.º 8) CIRS + art.º 63º EBF (donativos) + art.º 87º CIRS (deficiência)",
     saude,
     educacao,
     ppr,
     habitacao,
     exigenciaFatura,
     despesasGerais,
+    trabalhoDomestico,
     porDependentes: round2(porDependentes),
+    porAscendentes,
+    deficiencia,
     duplaTributacao,
     donativos,
     limiteAgregado: limiteAgregado === Infinity ? null : limiteAgregado,
@@ -549,6 +625,14 @@ export function calcularDeclaracao(input) {
     regime,
     rubricasPorPessoa,
     dependentes = [],
+    // pessoas/ascendentes (04/09/2026): só quem está incluído NESTA
+    // declaração (1 sujeito passivo em regime separada, 2 em conjunta) —
+    // usados apenas para a dedução de deficiência do(s) sujeito(s)
+    // passivo(s) e de ascendentes a cargo (ver calcularDeducoesAColeta).
+    // Omissos por omissão para não quebrar chamadas existentes que ainda
+    // não passam isto.
+    pessoas = [],
+    ascendentes = [],
     deducoesColeta = {},
     coeficienteB,
     perdasARecuperar = 0,
@@ -605,6 +689,8 @@ export function calcularDeclaracao(input) {
   const deducoesAColeta = calcularDeducoesAColeta({
     deducoesColeta,
     dependentes,
+    pessoas,
+    ascendentes,
     tabela,
     regime,
     anoFiscal,
@@ -655,12 +741,21 @@ export function calcularDeclaracao(input) {
  * @param {Object} pessoaB - { rubricas, dependentesAtribuidos }
  * @param {Array<Object>} todosDependentes - lista completa para o cenário conjunto
  */
-export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes) {
+// pessoaA/pessoaB podem trazer também `.pessoa` (o registo da própria
+// pessoa, para a dedução de deficiência do sujeito passivo — art.º 87º
+// CIRS) e `.ascendentesAtribuidos` (mesmo padrão de dependentesAtribuidos,
+// para a dedução de ascendentes a cargo — art.º 78º-A). `todosAscendentes`
+// (04/09/2026, novo 5º parâmetro) segue o mesmo padrão de todosDependentes
+// para o cenário conjunto. Tudo opcional, para não quebrar chamadas
+// existentes que ainda não passam isto.
+export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes, todosAscendentes = []) {
   const conjunta = calcularDeclaracao({
     ...inputBase,
     regime: "conjunta",
     rubricasPorPessoa: [pessoaA.rubricas, pessoaB.rubricas],
     dependentes: todosDependentes,
+    pessoas: [pessoaA.pessoa, pessoaB.pessoa].filter(Boolean),
+    ascendentes: todosAscendentes,
   });
 
   const separadaA = calcularDeclaracao({
@@ -668,6 +763,8 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes) {
     regime: "separada",
     rubricasPorPessoa: [pessoaA.rubricas],
     dependentes: pessoaA.dependentesAtribuidos ?? [],
+    pessoas: [pessoaA.pessoa].filter(Boolean),
+    ascendentes: pessoaA.ascendentesAtribuidos ?? [],
   });
 
   const separadaB = calcularDeclaracao({
@@ -675,6 +772,8 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes) {
     regime: "separada",
     rubricasPorPessoa: [pessoaB.rubricas],
     dependentes: pessoaB.dependentesAtribuidos ?? [],
+    pessoas: [pessoaB.pessoa].filter(Boolean),
+    ascendentes: pessoaB.ascendentesAtribuidos ?? [],
   });
 
   const sinal = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);

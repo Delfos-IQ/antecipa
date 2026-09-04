@@ -194,13 +194,83 @@ export const legislacaoFiscal = [
         confirmado: false,
         fonte: "Herdado do bloco 2026 (art.º 63º EBF) — não re-confirmado especificamente para 2025 nesta sessão.",
       },
+      // NOVO (04/09/2026) — 3 deduções encontradas no folheto oficial da AT
+      // "IRS_deducoes_2025.pdf" (info.portaldasfinancas.gov.pt), que a app
+      // ainda não modelava. Pedido do Dani, depois de partilhar o link:
+      // implementar as 3, mesmo não se aplicando ao seu próprio agregado.
+      //
+      // Ascendentes a cargo (art.º 78º-A, alínea b), n.º 1 CIRS) —
+      // confirmado por 2 fontes (santander.pt/salto/ascendentes-irs-deducao-
+      // requisitos, folheto oficial da AT): 525€ por ascendente, ou 635€ se
+      // for o único ascendente a cargo do agregado (valor de SUBSTITUIÇÃO,
+      // não adicional — só um ascendente = 635€; dois ou mais = 525€ cada).
+      // Requisito de rendimento do ascendente (não pode exceder a pensão
+      // mínima do regime geral, ~331,79€/mês em 2025) NÃO verificado pela
+      // app — fica ao critério do utilizador confirmar que qualifica,
+      // mesma abordagem já usada para outros requisitos não verificáveis
+      // sem mais dados (ex.: guarda partilhada em dependentes).
+      ascendentes: {
+        primeiro: 525,
+        unicoAscendente: 635,
+        confirmado: true,
+        fonte:
+          "art.º 78º-A, alínea b), n.º 1 CIRS — santander.pt/salto/ascendentes-irs-deducao-requisitos e folheto " +
+          "oficial da AT (IRS_deducoes_2025.pdf, info.portaldasfinancas.gov.pt).",
+      },
+      // Deficiência (art.º 87º CIRS) — valores em múltiplos do IAS,
+      // confirmados por 3 fontes convergentes (texto do próprio artigo em
+      // info.portaldasfinancas.gov.pt/.../irs87.aspx, folheto oficial da AT,
+      // montepio.org) que batem certo com IAS 2025 × multiplicador: sujeito
+      // passivo = 4×522,50 = 2.090€; dependente/ascendente = 2,5×522,50 =
+      // 1.306,25€; despesa de acompanhamento (incapacidade ≥90%, só
+      // sujeito passivo ou dependente, não ascendente) = mais 4×522,50 =
+      // 2.090€. NOTA: uma 4ª fonte (abanca.pt) e um folheto mais antigo
+      // (apir.org.pt, de 2018) davam valores bem mais baixos (1.900€/
+      // 712,50€) — não batem certo com a fórmula do multiplicador de IAS
+      // do texto oficial do artigo, e o folheto de 2018 usa um IAS de
+      // 419,22€ (de uma altura antes de uma subida de multiplicador),
+      // por isso tratados como desatualizados e ignorados aqui.
+      // `confirmado: false` porque NENHUMA fonte consultada esclareceu se
+      // esta dedução SOMA à dedução normal por dependente/ascendente
+      // (art.º 78º-A) ou a substitui — a app assume que soma (mais comum
+      // neste tipo de "acréscimo" no CIRS), mas isto precisa de
+      // confirmação de um contabilista antes de uso em produção.
+      deficiencia: {
+        sujeitoPassivo: 2090.0,
+        dependenteOuAscendente: 1306.25,
+        despesaAcompanhamentoIncapacidade90: 2090.0,
+        grauMinimoIncapacidade: 0.6,
+        grauIncapacidadeAcompanhamento: 0.9,
+        confirmado: false,
+        fonte:
+          "art.º 87º CIRS — info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/" +
+          "Pages/irs87.aspx (texto do artigo), folheto oficial da AT (IRS_deducoes_2025.pdf), montepio.org/ei/" +
+          "pessoal/impostos/quais-os-beneficios-fiscais-em-irs-para-pessoas-com-deficiencia. Acumulação com a " +
+          "dedução normal de dependentes/ascendentes NÃO confirmada — ver nota acima.",
+      },
+      // Trabalho doméstico (art.º 78º-H CIRS, NOVA dedução introduzida
+      // pela Lei n.º 82/2023, regulamentada pela Portaria n.º 36/2025/1,
+      // em vigor desde fevereiro de 2025 — logo já se aplica ao ano fiscal
+      // 2025 completo). 5% da retribuição paga a trabalhadores domésticos
+      // (a mesma declarada à Segurança Social), até 200€. Confirmado via
+      // cms.law (nova-deducao-a-coleta-do-irs-relativa-a-encargos-com-
+      // retribuicao-pela-prestacao-de-trabalho-domestico).
+      trabalhoDomestico: {
+        percentagem: 0.05,
+        limite: 200,
+        confirmado: true,
+        fonte:
+          "art.º 78º-H CIRS, Lei n.º 82/2023, regulamentado pela Portaria n.º 36/2025/1 — " +
+          "cms.law/pt/prt/publication/nova-deducao-a-coleta-do-irs-relativa-a-encargos-com-retribuicao-pela-" +
+          "prestacao-de-trabalho-domestico.",
+      },
       limiteAgregado: {
         semLimiteAteEscalao1: true,
         minimo: 1000,
         maximo: 2500,
         majoracaoPorDependentePercentagem: 0.05,
         numDependentesParaMajoracao: 3,
-        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura"],
+        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura", "trabalhoDomestico"],
         confirmado: false,
         fonte: "Herdado do bloco 2026 (art.º 78º, n.º 7 e n.º 8 CIRS) — não re-confirmado especificamente para 2025 nesta sessão.",
       },
@@ -496,6 +566,39 @@ export const legislacaoFiscal = [
           "cgd.pt/Site/Saldo-Positivo/leis-e-impostos/Pages/deduzir-donativos-no-IRS.aspx, " +
           "montepio.org/ei/pessoal/impostos/como-deduzir-donativos-no-irs/.",
       },
+      // Ascendentes, deficiência e trabalho doméstico — ver bloco 2025
+      // acima para a pesquisa completa e as fontes (04/09/2026, pedido do
+      // Dani). Ascendentes e trabalho doméstico herdados sem mudança
+      // (nenhuma fonte consultada indicou revisão para 2026); deficiência
+      // recalculada com o IAS 2026 (537,13€ em vez de 522,50€) pela mesma
+      // fórmula de multiplicador do art.º 87º CIRS.
+      ascendentes: {
+        primeiro: 525,
+        unicoAscendente: 635,
+        confirmado: false,
+        fonte: "Herdado do bloco 2025 (art.º 78º-A, alínea b), n.º 1 CIRS) — não re-confirmado especificamente para 2026 nesta sessão.",
+      },
+      deficiencia: {
+        // 4×537,13 = 2.148,52€; 2,5×537,13 = 1.342,825€ ≈ 1.342,83€.
+        sujeitoPassivo: 2148.52,
+        dependenteOuAscendente: 1342.83,
+        despesaAcompanhamentoIncapacidade90: 2148.52,
+        grauMinimoIncapacidade: 0.6,
+        grauIncapacidadeAcompanhamento: 0.9,
+        confirmado: false,
+        fonte:
+          "art.º 87º CIRS — fórmula (4×IAS sujeito passivo, 2,5×IAS dependente/ascendente, +4×IAS para " +
+          "incapacidade ≥90%) confirmada no bloco 2025 contra 3 fontes; valores em euros aqui recalculados com " +
+          "IAS 2026 (537,13€), não re-confirmados individualmente contra uma fonte que já publique os valores " +
+          "2026 em euros. Acumulação com a dedução normal de dependentes/ascendentes NÃO confirmada — mesma " +
+          "ressalva do bloco 2025.",
+      },
+      trabalhoDomestico: {
+        percentagem: 0.05,
+        limite: 200,
+        confirmado: false,
+        fonte: "Herdado do bloco 2025 (art.º 78º-H CIRS, Lei n.º 82/2023) — não re-confirmado especificamente para 2026 nesta sessão.",
+      },
       // Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8
       // CIRS) — NOVO na auditoria de 03/09/2026 (2ª ronda), o gap de maior
       // prioridade identificado na 1ª ronda. Mecanismo (confiança ALTA,
@@ -525,7 +628,7 @@ export const legislacaoFiscal = [
         maximo: 2500,
         majoracaoPorDependentePercentagem: 0.05,
         numDependentesParaMajoracao: 3,
-        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura"],
+        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura", "trabalhoDomestico"],
         confirmado: false,
         fonte:
           "art.º 78º, n.º 7 e n.º 8 CIRS (NÃO '78º-A' como referenciado antes noutros blocos — esse artigo não " +

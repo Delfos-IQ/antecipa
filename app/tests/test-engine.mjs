@@ -564,4 +564,52 @@ if (!r2025?.resultado?.tipo) {
   console.log(`OK: calcularDeclaracao corre para o ano fiscal 2025 sem exceções (resultado: ${r2025.resultado.tipo}, ${r2025.resultado.valor}€)`);
 }
 
+console.log("\n--- Ascendentes, deficiência e trabalho doméstico (04/09/2026, a pedido do Dani a partir do folheto oficial de deduções da AT) ---");
+
+function deducoesDe(extra) {
+  return calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricasA],
+    dependentes: [],
+    pessoas: [],
+    ascendentes: [],
+    deducoesColeta: {},
+    ...extra,
+  }).linhas[8];
+}
+
+// Ascendentes: valor de SUBSTITUIÇÃO (não adicional) — 1 só ascendente dá
+// 635€; 2 ou mais dão 525€ cada.
+assertIgual(deducoesDe({ ascendentes: [{ nome: "Avó" }] }).porAscendentes, 635, "1 ascendente (só) = 635€ (valor 'único ascendente')");
+assertIgual(
+  deducoesDe({ ascendentes: [{ nome: "Avó" }, { nome: "Avô" }] }).porAscendentes,
+  1050,
+  "2 ascendentes = 525€ cada (1.050€ no total, não 635€ cada)"
+);
+assertIgual(
+  deducoesDe({ ascendentes: [{ nome: "Avó", deficiencia: true }] }).porAscendentes,
+  635 + 1342.83,
+  "1 ascendente, único, com deficiência = 635€ + 1.342,83€ (extra do art.º 87º)"
+);
+
+// Deficiência do sujeito passivo, com e sem o acréscimo de incapacidade ≥90%.
+assertIgual(deducoesDe({ pessoas: [{ id: "A", deficiencia: true }] }).deficiencia, 2148.52, "sujeito passivo deficiente = 2.148,52€ (4×IAS 2026)");
+assertIgual(
+  deducoesDe({ pessoas: [{ id: "A", deficiencia: true, incapacidadeIgualOuSuperior90: true }] }).deficiencia,
+  2148.52 * 2,
+  "sujeito passivo deficiente com incapacidade ≥90% = dobro (base + despesa de acompanhamento)"
+);
+assertIgual(deducoesDe({ pessoas: [{ id: "A", incapacidadeIgualOuSuperior90: true }] }).deficiencia, 0, "incapacidade ≥90% sem `deficiencia: true` não conta sozinha (evita dado incoerente)");
+
+// Deficiência de um dependente: soma-se ao valor normal do dependente
+// (porDependentes), não o substitui.
+const comDependenteDeficiente = deducoesDe({ dependentes: [{ id: 1, nome: "Filho", deficiencia: true }] });
+assertIgual(comDependenteDeficiente.porDependentes, 600, "dependente deficiente continua a ter o valor normal (600€) em porDependentes");
+assertIgual(comDependenteDeficiente.deficiencia, 1342.83, "...e o extra de deficiência (1.342,83€) aparece à parte, em `deficiencia`");
+
+// Trabalho doméstico (art.º 78º-H, novo desde 2025): 5% até 200€.
+assertIgual(deducoesDe({ deducoesColeta: { trabalhoDomestico: 1000 } }).trabalhoDomestico, 50, "trabalho doméstico: 5% de 1.000€ = 50€ (dentro do teto)");
+assertIgual(deducoesDe({ deducoesColeta: { trabalhoDomestico: 10000 } }).trabalhoDomestico, 200, "trabalho doméstico: 5% de 10.000€ = 500€, mas o teto é 200€");
+
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));
