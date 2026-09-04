@@ -203,6 +203,13 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
             })
             .join("")}
           <button class="btn btn-secondary" data-action="novo-ano" style="margin-top:var(--space-1)">${pt.perfil.novoAno}</button>
+          <div style="margin-top:var(--space-2)">
+            <p class="field-hint" style="margin-bottom:var(--space-1)">${pt.perfil.adicionarAnoAnteriorLabel}</p>
+            <div class="row" style="gap:var(--space-2)">
+              <input type="number" data-campo="ano-anterior" placeholder="${pt.perfil.adicionarAnoAnteriorPlaceholder}" style="flex:1 1 90px" />
+              <button class="btn btn-secondary" data-action="adicionar-ano-anterior" style="flex:none">${pt.perfil.adicionarAnoAnteriorBotao}</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -415,6 +422,31 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       const proximo = Math.max(...anosDisponiveis, anoAtivo) + 1;
       await definirAnoFiscalAtivo(proximo);
       onAnoFiscalMudou?.(proximo);
+      await montar();
+    });
+
+    // Pedido do Dani (04/09/2026): "Podemos colocar o ano fiscal a partir
+    // de 2025 [...] fazer uma simulação retrospetiva e ver se coincide."
+    // O botão "novo-ano" acima só avança (max+1) — pensado para começar o
+    // exercício seguinte. Este segundo caminho deixa escolher QUALQUER
+    // ano, incluindo anos anteriores ao atual, desde que exista tabela
+    // fiscal (data/legislacao-2026.js) para esse ano — obterTabelaFiscal
+    // lança um erro claro com a lista de anos disponíveis quando não há,
+    // e é esse erro que aproveitamos para a mensagem de aviso ao
+    // utilizador, em vez de duplicar a lista aqui.
+    container.querySelector('[data-action="adicionar-ano-anterior"]')?.addEventListener("click", async () => {
+      const campo = container.querySelector('[data-campo="ano-anterior"]');
+      const ano = Number(campo?.value);
+      if (!ano || !Number.isInteger(ano)) return;
+      try {
+        obterTabelaFiscal(ano);
+      } catch (err) {
+        const anosSuportados = err.message.match(/Anos disponíveis: (.+)\)?$/)?.[1] ?? "";
+        window.alert(`${pt.perfil.anoFiscalSemSuporte}: ${anosSuportados}`);
+        return;
+      }
+      await definirAnoFiscalAtivo(ano);
+      onAnoFiscalMudou?.(ano);
       await montar();
     });
 

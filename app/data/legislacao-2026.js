@@ -15,6 +15,216 @@
 
 export const legislacaoFiscal = [
   {
+    // Ano fiscal 2025 — ADICIONADO a pedido do Dani (04/09/2026): "Podemos
+    // colocar o ano fiscal a partir de 2025. Em 2025 tenho dados completos
+    // e poderia fazer uma simulação retrospetiva e ver se coincide."
+    // Objetivo: validar a precisão do motor contra uma Demonstração de
+    // Liquidação REAL de 2025 já emitida pela AT — não é um ano corrente,
+    // é um teste de regressão contra a realidade.
+    //
+    // Metodologia desta pesquisa (04/09/2026): os escalões e a percentagem
+    // do limite de encargos com habitação vêm de pwc.pt/pt/pwcinforfisco/
+    // guia-fiscal/2025/irs.html (a MESMA fonte já usada como desempate no
+    // ficheiro 2026, que resolveu lá um erro de transcrição de ~2€
+    // propagado por vários blogs — por isso preferida aqui também).
+    // Verificação de continuidade matemática feita (Coleta deve ser
+    // contínua em cada fronteira de escalão, Coleta = RC×taxa−parcela): as
+    // 9 parcelas do PwC batem certo entre si com um resíduo máximo de
+    // 0,27€ (ruído normal de arredondamento das taxas publicadas a 1
+    // casa decimal — muito abaixo do erro de ~2€ que tinha de ser
+    // corrigido no ficheiro 2026, portanto sem sinal de erro de
+    // transcrição desta vez).
+    //
+    // Todos os restantes blocos (quociente familiar, coeficientes da
+    // Categoria B, deduções à coleta exceto habitação, limite agregado,
+    // mínimo de existência, taxa de solidariedade, quotização sindical,
+    // benefício municipal, tributação autónoma de mais-valias) são regras
+    // do CIRS que NÃO mudaram entre 2025 e 2026 segundo as fontes
+    // consultadas — reutilizados tal e qual do bloco 2026 abaixo, com a
+    // mesma ressalva de confiança (`confirmado`) de cada um. Duas exceções
+    // conhecidas e explicitamente NÃO modeladas: (1) os coeficientes do
+    // regime simplificado da Categoria B só têm esta redação a partir de
+    // 1/07/2025 (DL 49/2025) — a 1ª metade de 2025 usava o texto anterior
+    // do art.º 31º, ligeiramente diferente; o motor não faz "split" a meio
+    // do ano, por isso um recibo verde com atividade emitido no 1º
+    // semestre de 2025 pode ter um coeficiente ligeiramente diferente do
+    // real; (2) a majoração da quotização sindical (100%) parece já estar
+    // em vigor desde 2024 segundo fontes sindicais (stal.pt), pelo que foi
+    // mantida igual a 2026 sem re-confirmar letra a letra.
+    anoFiscal: 2025,
+    vigenciaDesde: "2025-01-01",
+    confirmado: false,
+    fonte:
+      "Lei do Orçamento do Estado 2025 (Lei 45-A/2024) e art.º 68º CIRS. Escalões e limite de encargos com " +
+      "habitação confirmados via pwc.pt/pt/pwcinforfisco/guia-fiscal/2025/irs.html (verificação de continuidade " +
+      "matemática entre escalões feita nesta sessão, resíduo máximo 0,27€). IAS 2025 (522,50€) e dedução " +
+      "específica de Categoria A (4.462,15€) confirmados por 2 fontes (OCC — occ.pt/sites/default/files/" +
+      "public/2024-12/ANALISE_OE2025.pdf — e o próprio ficheiro 2026, que já usava este valor como retrocálculo " +
+      "de verificação). Restantes blocos herdados de 2026 por ausência de indicação de mudança nas fontes " +
+      "consultadas — ver nota de metodologia acima para as 2 exceções conhecidas e não modeladas. Ainda por " +
+      "confirmar letra a letra contra o Diário da República antes de uso em produção.",
+
+    escaloes: [
+      { limite: 8059, taxaMarginal: 0.125, parcelaAbater: 0 },
+      { limite: 12160, taxaMarginal: 0.16, parcelaAbater: 282.07 },
+      { limite: 17233, taxaMarginal: 0.215, parcelaAbater: 950.91 },
+      { limite: 22306, taxaMarginal: 0.244, parcelaAbater: 1450.67 },
+      { limite: 28400, taxaMarginal: 0.314, parcelaAbater: 3011.98 },
+      { limite: 41629, taxaMarginal: 0.349, parcelaAbater: 4006.1 },
+      { limite: 44987, taxaMarginal: 0.431, parcelaAbater: 7419.54 },
+      { limite: 83696, taxaMarginal: 0.446, parcelaAbater: 8094.51 },
+      { limite: Infinity, taxaMarginal: 0.48, parcelaAbater: 10939.9 },
+    ],
+
+    taxaSolidariedade: [
+      { desde: 80000, ate: 250000, taxa: 0.025 },
+      { desde: 250000, ate: Infinity, taxa: 0.05 },
+    ],
+
+    // IAS 2025 = 522,50€ → 8,54 × 522,50 = 4.462,15€. Este é exatamente o
+    // valor já usado como retrocálculo de verificação no comentário do
+    // bloco 2026 acima ("bate certo com a Demonstração de Liquidação real
+    // de referência") — por isso trazido com confiança alta para aqui.
+    deducaoEspecificaCategoriaA: {
+      valorFixo: 4462.15,
+      confirmado: true,
+      fonte:
+        "art.º 25º/1 CIRS. IAS 2025 = 522,50€ (occ.pt/sites/default/files/public/2024-12/ANALISE_OE2025.pdf). " +
+        "8,54 × 522,50 = 4.462,15€ — valor já confirmado por retrocálculo cruzado no ficheiro do ano fiscal 2026 " +
+        "desta mesma tabela (bate certo com uma Demonstração de Liquidação real usada nessa auditoria).",
+    },
+
+    majoracaoQuotizacaoSindical: {
+      percentagem: 1,
+      limitePercentagemRendimentoBruto: 0.01,
+      confirmado: true,
+      fonte:
+        "Herdado do bloco 2026 — a majoração de 100% (dobro) parece já estar em vigor desde 2024/2025 segundo " +
+        "fontes sindicais (stal.pt/index.php/jornal/n-º-127-abril-2024, snqtb.pt/media/nkbafzov/" +
+        "comunicado_18_2025.pdf), não re-confirmado letra a letra para 2025 nesta sessão.",
+    },
+
+    // Coeficientes do regime simplificado — Categoria B. Herdados de 2026
+    // (mesma redação do art.º 31º, DL 49/2025). RESSALVA (ver nota de
+    // metodologia acima): esta redação só vigora desde 1/07/2025 — o 1º
+    // semestre de 2025 usava o texto anterior do artigo, ligeiramente
+    // diferente, não modelado nesta versão (o motor não faz split a meio
+    // do ano fiscal).
+    coeficientesSimplificadoB: {
+      vendaMercadorias: 0.15,
+      hoteleiraELocalAlojamento: 0.15,
+      prestacaoServicosGeral: 0.35,
+      prestacaoServicosTabelaAnexa: 0.75,
+      outrosRendimentosCapitaisEPrediais: 0.95,
+      minimoGarantidoPercentagem: 0.15,
+      confirmado: false,
+      fonte:
+        "Herdado do bloco 2026 (art.º 31º CIRS, redação DL 49/2025, em vigor desde 1/07/2025). Para rendimentos " +
+        "de Categoria B do 1º semestre de 2025, a redação anterior do artigo pode divergir ligeiramente — não " +
+        "modelado nesta versão.",
+    },
+
+    quociente: {
+      base: { individual: 1, conjunta: 2 },
+      confirmado: true,
+      fonte: "Herdado do bloco 2026 — art.º 69º CIRS, regra inalterada desde a Lei n.º 7-A/2016.",
+    },
+
+    limitesDeducoes: {
+      dependentes: {
+        primeiro: 600,
+        primeiroComMajoracaoAte3Anos: 726,
+        segundoEmDianteAte6Anos: 900,
+        confirmado: false,
+        fonte: "Herdado do bloco 2026 (art.º 78º-A CIRS) — não re-confirmado especificamente para 2025 nesta sessão.",
+      },
+      saude: {
+        percentagem: 0.15,
+        limite: 1000,
+        confirmado: true,
+        fonte: "art.º 78º-C CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2025/irs.html.",
+      },
+      educacao: {
+        percentagem: 0.3,
+        limite: 800,
+        confirmado: true,
+        fonte: "art.º 78º-D CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2025/irs.html.",
+      },
+      ppr: {
+        percentagem: 0.2,
+        limiteAte35Anos: 400,
+        limite35a50Anos: 350,
+        limiteMais50Anos: 300,
+        confirmado: false,
+        fonte:
+          "Herdado do bloco 2026 (art.º 21º/2 EBF, valores desde a Lei n.º 60-A/2005, nunca atualizados) — não " +
+          "re-confirmado especificamente para 2025 nesta sessão.",
+      },
+      // Único valor que se sabe ter mudado de 2025 para 2026: o limite
+      // geral de encargos com habitação subiu de 700€ (2025) para 900€
+      // (2026) — o próprio comentário do bloco 2026 já menciona "a
+      // divergência anterior (700€ a 900€)" a propósito disto, e o guia
+      // PwC 2025 confirma 700€ para este ano. A distinção por 1º escalão
+      // (1.100€) só aparece nas fontes de 2026 — não modelada para 2025.
+      encargosHabitacao: {
+        percentagem: 0.15,
+        limite: 700,
+        confirmado: true,
+        fonte:
+          "art.º 78º-E CIRS — pwc.pt/pt/pwcinforfisco/guia-fiscal/2025/irs.html (700€, antes da subida para 900€ " +
+          "em 2026 confirmada por comunicado do Conselho de Ministros — ver bloco 2026).",
+      },
+      exigenciaFatura: {
+        percentagem: 0.15,
+        percentagemTransportesPublicos: 1.0,
+        limite: 250,
+        confirmado: false,
+        fonte: "Herdado do bloco 2026 (art.º 78º-F CIRS) — não re-confirmado especificamente para 2025 nesta sessão.",
+      },
+      despesasGeraisFamiliares: {
+        percentagem: 0.35,
+        limiteCasal: 500,
+        limiteSolteiro: 250,
+        confirmado: true,
+        fonte: "art.º 78º CIRS — confirmado via pwc.pt/pt/pwcinforfisco/guia-fiscal/2025/irs.html.",
+      },
+      donativos: {
+        percentagem: 0.25,
+        limitePercentagemColeta: 0.15,
+        confirmado: false,
+        fonte: "Herdado do bloco 2026 (art.º 63º EBF) — não re-confirmado especificamente para 2025 nesta sessão.",
+      },
+      limiteAgregado: {
+        semLimiteAteEscalao1: true,
+        minimo: 1000,
+        maximo: 2500,
+        majoracaoPorDependentePercentagem: 0.05,
+        numDependentesParaMajoracao: 3,
+        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura"],
+        confirmado: false,
+        fonte: "Herdado do bloco 2026 (art.º 78º, n.º 7 e n.º 8 CIRS) — não re-confirmado especificamente para 2025 nesta sessão.",
+      },
+    },
+
+    minimoExistencia: {
+      // MAX(12.180€, 1,5×14×IAS). Com IAS 2025 = 522,50€: 1,5×14×522,50 =
+      // 10.972,50€, inferior a 12.180€ — prevalece o valor fixo, igual ao
+      // usado em 2026 (o mesmo cálculo lá também resulta no valor fixo).
+      valorAnual: 12180,
+      confirmado: false,
+      fonte:
+        "art.º 70º CIRS — MAX(12.180€, 1,5×14×IAS). IAS 2025 = 522,50€ → 1,5×14×522,50 = 10.972,50€ < 12.180€ → " +
+        "usa-se o valor fixo. Herdado do mecanismo do bloco 2026, `confirmado: false` pela mesma razão (fórmula " +
+        "com confiança alta, valor fixo de 12.180€ não confirmado letra a letra contra o Diário da República).",
+    },
+
+    beneficioMunicipalMaximo: 0.05,
+    beneficioMunicipalFonte: "Herdado do bloco 2026 — Lei das Finanças Locais, participação variável de IRS (0%-5%), regra inalterada.",
+
+    taxaAutonomaMaisValias: 0.28,
+    taxaAutonomaMaisValiasFonte: "Herdado do bloco 2026 — art.º 72º/1 CIRS, taxa fixa inalterada.",
+  },
+  {
     anoFiscal: 2026,
     vigenciaDesde: "2026-01-01",
     confirmado: false,

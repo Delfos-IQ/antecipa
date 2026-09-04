@@ -11,6 +11,7 @@ import {
   detectarOportunidadeMaisValias,
   detectarSugestoesPagamento,
 } from "../engine/calculo-irs.js";
+import { obterTabelaFiscal } from "../data/legislacao-2026.js";
 
 function assertIgual(valor, esperado, mensagem) {
   if (Math.abs(valor - esperado) > 0.005) {
@@ -512,6 +513,29 @@ if (JSON.stringify(sugestoesReciboVerde.map((s) => s.tipo)) !== JSON.stringify([
   process.exitCode = 1;
 } else {
   console.log("OK: sujeito só com recibos verdes (sem trabalho dependente) só recebe a sugestão de donativos");
+}
+
+console.log("\n--- Ano fiscal 2025 (adicionado 04/09/2026, a pedido do Dani, para simulação retrospetiva) ---");
+// Não repete a auditoria completa do ficheiro de legislação — só garante
+// que 2025 tem tabela própria, distinta de 2026, e que o motor a usa sem
+// rebentar (a mesma entrada de rubricas dá coleta diferente em 2025 vs
+// 2026, porque as taxas dos escalões 2-5 baixaram 0,3pp de 2025 para
+// 2026 — ver comentário em data/legislacao-2026.js).
+const t2025 = obterTabelaFiscal(2025);
+const t2026 = obterTabelaFiscal(2026);
+assertIgual(t2025.escaloes[1].taxaMarginal, 0.16, "taxa marginal do 2º escalão em 2025 (antes da descida de 0,3pp em 2026)");
+if (t2025.escaloes[1].taxaMarginal === t2026.escaloes[1].taxaMarginal) {
+  console.error("FALHOU: tabela de 2025 não devia ser a mesma referência/valores que a de 2026");
+  process.exitCode = 1;
+} else {
+  console.log("OK: 2025 e 2026 têm tabelas de escalões distintas");
+}
+const r2025 = calcularDeclaracao({ anoFiscal: 2025, regime: "individual", rubricasPorPessoa: [rubricasA], dependentes: [], deducoesColeta: {} });
+if (!r2025?.resultado?.tipo) {
+  console.error("FALHOU: calcularDeclaracao com anoFiscal 2025 não devolveu um resultado válido");
+  process.exitCode = 1;
+} else {
+  console.log(`OK: calcularDeclaracao corre para o ano fiscal 2025 sem exceções (resultado: ${r2025.resultado.tipo}, ${r2025.resultado.valor}€)`);
 }
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));
