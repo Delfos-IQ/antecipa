@@ -65,9 +65,27 @@ async function renderMesItem({ mes, anoFiscal, pessoas, duasPessoas }) {
     if (docs.length) temAlgum = true;
   }
 
-  const totalMes = Object.values(docsPorPessoa)
-    .flat()
-    .reduce((acc, d) => acc + (d.totalLiquido ?? 0), 0);
+  // BUG corrigido (03/09/2026, relatado pelo Dani — captura de ecrã com
+  // todos os meses a mostrar "0,00 €" apesar de terem documentos
+  // carregados): `documento` NUNCA guarda um campo `totalLiquido` na BD —
+  // esse valor só existe calculado on-the-fly em renderDocCard, a partir
+  // de `doc.rubricas` (anexadas ali por getRubricasDoDocumento, à parte
+  // do registo em si). Aqui em cima, `docs` vem direto de
+  // getDocumentosDoMes(), sem `.rubricas` anexado, por isso `d.totalLiquido`
+  // era sempre `undefined` → `?? 0` mascarava isso como "0,00 €" em todos
+  // os meses com documentos, mesmo quando os "abonos" somavam milhares de
+  // euros (confirmado pela Simulação, que calcula direto das rubricas e
+  // sempre esteve correta) — o resumo do acordeão é que nunca leu o valor
+  // certo. Corrigido calculando o mesmo somatório que renderDocCard já usa
+  // (rubricas do tipo "abono"), por documento, aqui também.
+  const todosDocs = Object.values(docsPorPessoa).flat();
+  const totaisPorDoc = await Promise.all(
+    todosDocs.map(async (d) => {
+      const rubricas = await getRubricasDoDocumento(d.id);
+      return rubricas.filter((r) => r.tipo === "abono").reduce((a, r) => a + (r.valorComRedu ?? 0), 0);
+    })
+  );
+  const totalMes = totaisPorDoc.reduce((a, v) => a + v, 0);
 
   const item = document.createElement("div");
   item.className = "mes-item";
