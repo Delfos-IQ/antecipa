@@ -89,12 +89,44 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
       .filter((r) => r.tipo === "desconto" && r.categoriaSindicato)
       .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
 
-    const deducaoSindical = Math.min(
-      quotaSindicalPaga * (1 + majoracao.percentagem),
-      rendimentoBrutoCategoriaAPessoa * majoracao.limitePercentagemRendimentoBruto
-    );
+    // CORRIGIDO 04/09/2026: o limite de 1% aplica-se à quota ANTES da
+    // majoração, não ao valor já duplicado — confirmado pelo texto oficial
+    // do art.º 25º/1, alínea c) CIRS ("quotizações sindicais... desde que
+    // não excedam, em relação a cada sujeito passivo, 1% do rendimento
+    // bruto desta categoria, sendo acrescidas de 100%"): primeiro aplica-se
+    // o teto de 1% à quota paga, só depois se duplica o que sobra do teto.
+    // A versão anterior fazia o inverso (duplicava primeiro, testava o
+    // teto depois), o que cortava a dedução sempre que a quota paga já
+    // excedia sozinha metade do teto — mesmo quando a quota em si (sem
+    // duplicar) estava bem dentro do limite de 1%. Confirmado com uma
+    // Demonstração de Liquidação real (2025): só a ordem correta (teto
+    // antes de duplicar) reproduz o valor real de "Deduções Específicas"
+    // reportado pela AT.
+    const quotaSindicalDentroDoLimite = Math.min(quotaSindicalPaga, rendimentoBrutoCategoriaAPessoa * majoracao.limitePercentagemRendimentoBruto);
+    const deducaoSindical = quotaSindicalDentroDoLimite * (1 + majoracao.percentagem);
 
-    deducaoA += tabela.deducaoEspecificaCategoriaA.valorFixo + Math.max(0, deducaoSindical);
+    // Base da dedução específica (art.º 25º/1, alíneas a) e b), CIRS):
+    // 8,54×IAS (valorFixo) por omissão, MAS se as contribuições
+    // obrigatórias para regimes de proteção social (Segurança Social) e
+    // subsistemas legais de saúde (ADSE, etc.) excederem esse valor fixo,
+    // a dedução passa a ser o TOTAL dessas contribuições em vez do valor
+    // fixo — não são somadas às duas, é sempre a maior das duas.
+    // CORRIGIDO 04/09/2026: até aqui usava-se sempre o valor fixo, nunca
+    // esta comparação — confirmado via texto oficial (irs25.aspx: "Se,
+    // porém, as contribuições obrigatórias para regimes de proteção
+    // social e para subsistemas legais de saúde excederem o limite
+    // fixado na alínea a) do número anterior, aquela dedução é pelo
+    // montante total dessas contribuições") e via uma Demonstração de
+    // Liquidação real (2025): "Deduções Específicas" ali reportada só
+    // reconcilia se se usarem as contribuições reais de SS de cada
+    // sujeito passivo (ambas acima do valor fixo da tabela desse ano),
+    // não o valor fixo.
+    const contribuicoesObrigatoriasPessoa = rubricas
+      .filter((r) => r.tipo === "desconto" && (r.categoriaSS || r.categoriaSubsistemaSaude))
+      .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
+    const baseDeducaoA = Math.max(tabela.deducaoEspecificaCategoriaA.valorFixo, contribuicoesObrigatoriasPessoa);
+
+    deducaoA += baseDeducaoA + Math.max(0, deducaoSindical);
   }
 
   // Categoria B: coeficiente aplicado PESSOA A PESSOA (04/09/2026, a pedido
@@ -153,10 +185,38 @@ function calcularRendimentoColetavel({ rendimentoGlobal, deducoesEspecificas, pe
 }
 
 /**
- * 4. Ajuste por quociente de rendimentos de anos anteriores (raro no v1).
+ * 4. Ajuste por rendimentos de anos anteriores pagos/colocados à disposição
+ * no ano (art.º 74º CIRS — englobamento por "quociente" de anos, para
+ * suavizar a progressividade quando o valor se reporta a mais do que um
+ * ano). Caso raro (sem campo próprio na UI ainda — só chega aqui se um
+ * chamador o passar diretamente), mas modelado com precisão porque uma
+ * Demonstração de Liquidação real (2025) o mostrou em ação e permitiu
+ * confirmar as DUAS componentes separadas que o art.º 74º exige:
+ *
+ * - "quociente" (linha 7 da Demonstração real, "Quociente rendimentos anos
+ *   anteriores") — SUBTRAÍDO ao rendimento coletável antes de determinar a
+ *   taxa (linha 9: "TOTAL DO RENDIMENTO PARA DETERMINAÇÃO DA TAXA (6+8-7)"),
+ *   para não empurrar artificialmente o contribuinte para um escalão mais
+ *   alto por causa de um rendimento que na prática se reparte por vários
+ *   anos.
+ * - "imposto" (linha 13, "Imposto correspondente a rendimentos anos
+ *   anteriores") — SOMADO diretamente à Coleta Total (linha 18), depois de
+ *   já ter sido calculado à taxa correta (fora do âmbito deste motor: quem
+ *   fornece este valor já fez essa conta separadamente, por ano).
+ *
+ * Aceita tanto um número (legado — tratado como só a componente "quociente",
+ * sem "imposto", para não quebrar chamadas antigas) como um objeto
+ * `{ quociente, imposto }`.
  */
-function calcularAjusteRendimentosAnosAnteriores(valor = 0) {
-  return { linhaOficial: 4, referenciaLegal: "art.º 74º CIRS", total: round2(valor) };
+function calcularAjusteRendimentosAnosAnteriores(input = 0) {
+  const { quociente = 0, imposto = 0 } = typeof input === "number" ? { quociente: input, imposto: 0 } : input || {};
+  return {
+    linhaOficial: 4,
+    referenciaLegal: "art.º 74º CIRS",
+    quociente: round2(quociente),
+    imposto: round2(imposto),
+    total: round2(quociente),
+  };
 }
 
 /**
@@ -199,8 +259,8 @@ function calcularQuocienteFamiliar({ regime, dependentes, tabela }) {
  * (Rendimento Coletável ÷ Quociente) × Taxa marginal − Parcela a Abater,
  * depois × Quociente.
  */
-function calcularImportanciaApurada({ rendimentoColetavel, quociente, tabela }) {
-  const rendimentoPorQuociente = quociente.total > 0 ? rendimentoColetavel.total / quociente.total : 0;
+function calcularImportanciaApurada({ rendimentoParaTaxa, quociente, tabela }) {
+  const rendimentoPorQuociente = quociente.total > 0 ? rendimentoParaTaxa / quociente.total : 0;
 
   const escalao =
     tabela.escaloes.find((e) => rendimentoPorQuociente <= e.limite) ?? tabela.escaloes[tabela.escaloes.length - 1];
@@ -226,39 +286,65 @@ function calcularImportanciaApurada({ rendimentoColetavel, quociente, tabela }) 
 }
 
 /**
- * 6-bis. Taxa adicional de solidariedade (art.º 68º-A), sobre o rendimento
- * coletável total (sem divisão pelo quociente), na parte que exceda os
- * limiares. Soma-se à coleta, não é afetada pelo quociente.
+ * 6-bis. Taxa adicional de solidariedade (art.º 68º-A CIRS).
+ *
+ * CORRIGIDO (04/09/2026, auditoria com uma Demonstração de Liquidação
+ * real, ano fiscal 2025): em tributação conjunta, o art.º 68º-A/3 CIRS diz
+ * expressamente: "No caso de tributação conjunta, o procedimento referido
+ * nos números anteriores aplica-se a metade do rendimento coletável, sendo
+ * a coleta obtida pela multiplicação do resultado dessa operação por
+ * dois." — ou seja, os limiares (80.000€/250.000€) aplicam-se a METADE do
+ * rendimento coletável (mesmo mecanismo de "dividir por 2, aplicar taxas,
+ * multiplicar de novo por 2" da coleta geral do art.º 68º, embora o art.º
+ * 68º-A não remeta para o art.º 69º — é uma regra própria).
+ *
+ * O código anterior aplicava os escalões ao rendimento coletável TOTAL do
+ * casal sem qualquer divisão, o que inflacionava artificialmente a taxa
+ * adicional em qualquer declaração conjunta com rendimento coletável entre
+ * 80.000€ e 160.000€ (que fica abaixo do limiar depois de dividido por 2,
+ * mas ficava acima antes da correção). Bug confirmado com um caso real: um
+ * casal com rendimento coletável conjunto abaixo de 160.000€ (portanto
+ * abaixo de 80.000€ por sujeito passivo) tinha, na Demonstração de
+ * Liquidação real, "Taxa adicional (0,00 x 0,0% + 0,00 x 0%) x 2,00" =
+ * 0,00€ — enquanto o motor, antes desta correção, calculava um valor
+ * positivo e indevido de taxa adicional para o mesmo caso.
  */
-function calcularTaxaSolidariedade({ rendimentoColetavel, tabela }) {
-  let valor = 0;
+function calcularTaxaSolidariedade({ rendimentoParaTaxa, quociente, tabela }) {
+  const divisor = quociente?.total > 0 ? quociente.total : 1;
+  const baseDividida = rendimentoParaTaxa / divisor;
+  let valorPorUnidade = 0;
   const detalhe = [];
   for (const escalao of tabela.taxaSolidariedade) {
     const baseTributavel = Math.max(
       0,
-      Math.min(rendimentoColetavel.total, escalao.ate) - escalao.desde
+      Math.min(baseDividida, escalao.ate) - escalao.desde
     );
     if (baseTributavel > 0) {
       const parcial = baseTributavel * escalao.taxa;
-      valor += parcial;
+      valorPorUnidade += parcial;
       detalhe.push({ desde: escalao.desde, ate: escalao.ate, taxa: escalao.taxa, baseTributavel: round2(baseTributavel), valor: round2(parcial) });
     }
   }
-  return { linhaOficial: "6-A", referenciaLegal: "art.º 68º-A CIRS", detalhe, total: round2(valor) };
+  const valor = valorPorUnidade * divisor;
+  return { linhaOficial: "6-A", referenciaLegal: "art.º 68º-A CIRS", divisor, baseDividida: round2(baseDividida), detalhe, total: round2(valor) };
 }
 
 /**
  * 7. Coleta Total
  * Importância apurada + taxa de solidariedade + tributações autónomas
- * (capitais não englobados a taxa fixa, se aplicável).
+ * (capitais não englobados a taxa fixa, se aplicável) + imposto
+ * correspondente a rendimentos de anos anteriores (art.º 74º CIRS — linha
+ * 13 da Demonstração de Liquidação real: soma-se diretamente, já calculado
+ * à parte, à taxa própria de cada ano a que o rendimento se reporta).
  */
-function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoesAutonomas = 0, tributacaoCapitalAutonoma = 0 }) {
-  const total = importanciaApurada.total + taxaSolidariedade.total + tributacoesAutonomas + tributacaoCapitalAutonoma;
+function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoesAutonomas = 0, tributacaoCapitalAutonoma = 0, impostoAnosAnteriores = 0 }) {
+  const total = importanciaApurada.total + taxaSolidariedade.total + tributacoesAutonomas + tributacaoCapitalAutonoma + impostoAnosAnteriores;
   return {
     linhaOficial: 7,
-    referenciaLegal: "art.º 68º + 68º-A + 72º CIRS",
+    referenciaLegal: "art.º 68º + 68º-A + 72º + 74º CIRS",
     tributacoesAutonomas: round2(tributacoesAutonomas),
     tributacaoCapitalAutonoma: round2(tributacaoCapitalAutonoma),
+    impostoAnosAnteriores: round2(impostoAnosAnteriores),
     total: round2(Math.max(total, 0)),
   };
 }
@@ -507,15 +593,26 @@ function calcularDeducoesAColeta({
     ? clamp((deducoesColeta.trabalhoDomestico || 0) * limites.trabalhoDomestico.percentagem, limites.trabalhoDomestico.limite)
     : 0;
 
-  // Limite agregado (art.º 78º, n.º 7/8 CIRS): aplica-se só à soma das
-  // deduções "gerais" do art.º 78º — saúde, educação, habitação, PPR,
-  // despesas gerais e familiares, exigência de fatura e trabalho
-  // doméstico. Fica DE FORA: dependentes/ascendentes (alínea a)/b) do
-  // n.º 1, expressamente excluídas), deficiência (art.º 87º, artigo à
+  // Limite agregado (art.º 78º, n.º 7/8 CIRS): aplica-se só às deduções
+  // das alíneas c), d), e), f), h), k) e m) do n.º 1 do art.º 78º — saúde,
+  // educação, habitação, PPR, exigência de fatura e trabalho doméstico
+  // (texto oficial confirmado em info.portaldasfinancas.gov.pt/pt/
+  // informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs78.aspx: "A
+  // soma das deduções à coleta previstas nas alíneas c) a h), k) e m) do
+  // n.º 1 não pode exceder..."). CORRIGIDO 04/09/2026: `despesasGerais`
+  // estava a entrar aqui por engano — as despesas gerais e familiares são
+  // alínea b) do n.º 1 (art.º 78º-B CIRS), FORA do intervalo c)-h)
+  // coberto pelo limite, tal como dependentes/ascendentes (também fora).
+  // Confirmado com uma Demonstração de Liquidação real (04/09/2026, Dani):
+  // "Total das Deduções sujeitas a limite (art 78)" ali reportado é
+  // exatamente saúde+educação+exigência de fatura+PPR, SEM as despesas
+  // gerais familiares — o bug estava a incluir um valor que a AT
+  // explicitamente exclui. Fica também DE FORA: dependentes/ascendentes
+  // (alínea a), expressamente excluída), deficiência (art.º 87º, artigo à
   // parte do 78º), dupla tributação internacional (regida por tratado,
   // fora do art.º 78º) e donativos (regime próprio do art.º 63º EBF, já
   // com o seu teto de 15% da coleta aplicado acima).
-  const subtotalSujeitoALimite = round2(saude + educacao + habitacao + ppr + despesasGerais + exigenciaFatura + trabalhoDomestico);
+  const subtotalSujeitoALimite = round2(saude + educacao + habitacao + ppr + exigenciaFatura + trabalhoDomestico);
   const limiteAgregado = calcularLimiteAgregadoDeducoes({
     rendimentoPorQuociente: rendimentoPorQuociente ?? 0,
     numDependentes: dependentes.length,
@@ -524,7 +621,7 @@ function calcularDeducoesAColeta({
   const limiteAgregadoAplicado = limiteAgregado !== Infinity && subtotalSujeitoALimite > limiteAgregado;
   const subtotalAposLimite = limiteAgregadoAplicado ? limiteAgregado : subtotalSujeitoALimite;
 
-  const total = round2(subtotalAposLimite + porDependentes + porAscendentes + deficiencia + duplaTributacao + donativos);
+  const total = round2(subtotalAposLimite + despesasGerais + porDependentes + porAscendentes + deficiencia + duplaTributacao + donativos);
 
   return {
     linhaOficial: 8,
@@ -581,9 +678,23 @@ function aplicarMinimoExistencia({ coletaAntes, rendimentoGlobal, tabela }) {
   return Math.max(0, round2(total - minimo.valorAnual));
 }
 
+// CORRIGIDO (04/09/2026, auditoria com uma Demonstração de Liquidação
+// real, ano fiscal 2025): a "participação variável no IRS" (Lei das
+// Finanças Locais, art.º 26º) incide sobre a coleta JÁ NET das deduções à
+// coleta, não sobre a coleta total bruta — confirma-se pela própria ordem
+// da fórmula oficial "COLETA LÍQUIDA (18 - 19 - 20 (>=0) + 21)": a linha
+// 20 (Benefício Municipal) é aplicada depois da 19 (Deduções à Coleta) já
+// ter saído do valor, não antes. Testado com o caso real: o valor de
+// benefício municipal reportado pela AT só reconcilia (dentro de
+// cêntimos, considerando a taxa exata do município variar ligeiramente
+// à volta da etiqueta arredondada "0,30%") se a percentagem incidir sobre
+// (coleta total − deduções à coleta), não sobre a coleta total sozinha —
+// que era a base usada antes desta correção, e que inflacionava o
+// benefício em cerca de 15% neste caso.
 function calcularColetaLiquida({ coletaTotal, deducoesAColeta, tabela, participacaoMunicipal = 0, rendimentoGlobal }) {
+  const baseBeneficioMunicipal = Math.max(coletaTotal.total - deducoesAColeta.total, 0);
   const beneficioMunicipal = round2(
-    coletaTotal.total * Math.min(participacaoMunicipal, tabela.beneficioMunicipalMaximo)
+    baseBeneficioMunicipal * Math.min(participacaoMunicipal, tabela.beneficioMunicipalMaximo)
   );
   const antesDoMinimo = Math.max(coletaTotal.total - deducoesAColeta.total - beneficioMunicipal, 0);
   const total = aplicarMinimoExistencia({ coletaAntes: antesDoMinimo, rendimentoGlobal, tabela });
@@ -706,12 +817,21 @@ export function calcularDeclaracao(input) {
     dependentes,
     tabela,
   });
+  // Linha 9 da Demonstração real: "TOTAL DO RENDIMENTO PARA DETERMINAÇÃO DA
+  // TAXA (6+8-7)" — o rendimento coletável, ajustado pelo "quociente" de
+  // rendimentos de anos anteriores (ver calcularAjusteRendimentosAnosAnteriores),
+  // é a base usada para determinar a taxa marginal (linha 6) E a taxa
+  // adicional de solidariedade (linha 6-A) — nunca o rendimento coletável
+  // "cru". Rendimentos isentos englobados para determinação da taxa
+  // (linha 8 da Demonstração) ainda não têm campo próprio no motor (caso
+  // raro, sem UI) — tratados como 0.
+  const rendimentoParaTaxa = Math.max(0, rendimentoColetavelResult.total - ajusteAnosAnteriores.quociente);
   const importanciaApurada = calcularImportanciaApurada({
-    rendimentoColetavel: rendimentoColetavelResult,
+    rendimentoParaTaxa,
     quociente,
     tabela,
   });
-  const taxaSolidariedade = calcularTaxaSolidariedade({ rendimentoColetavel: rendimentoColetavelResult, tabela });
+  const taxaSolidariedade = calcularTaxaSolidariedade({ rendimentoParaTaxa, quociente, tabela });
   // Mais-valias e rendimentos de capitais não englobados (art.º 72º/1
   // CIRS) — tributados autonomamente à taxa fixa da tabela (28% em 2026,
   // confirmado por fonte primária, ver legislacao-2026.js), fora do
@@ -725,6 +845,7 @@ export function calcularDeclaracao(input) {
     taxaSolidariedade,
     tributacoesAutonomas,
     tributacaoCapitalAutonoma,
+    impostoAnosAnteriores: ajusteAnosAnteriores.imposto,
   });
   const deducoesAColeta = calcularDeducoesAColeta({
     deducoesColeta,

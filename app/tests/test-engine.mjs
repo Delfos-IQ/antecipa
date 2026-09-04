@@ -555,6 +555,161 @@ if (dentroPrimeiroEscalao.linhas[8].limiteAgregadoAplicado !== false) {
   console.log("OK: sem limite agregado dentro do 1º escalão de IRS");
 }
 
+console.log("\n--- Despesas gerais familiares FORA do limite agregado (bug real, 04/09/2026, confirmado com uma Demonstração de Liquidação real) ---");
+// Até esta correção, `despesasGerais` entrava por engano na soma sujeita
+// ao limite do art.º 78º n.º 7/8 — a AT só sujeita a esse limite as
+// alíneas c) a h), k) e m) do n.º 1 (saúde, educação, habitação, PPR,
+// exigência de fatura, trabalho doméstico), NUNCA a alínea b) (despesas
+// gerais e familiares, art.º 78º-B). Caso real: rendimento alto (último
+// escalão, limite agregado = 1.000€), despesasGerais isolado bem acima do
+// que caberia dentro desse limite se estivesse incluído.
+const semDespesasGeraisNoLimite = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasRendimentoAlto],
+  dependentes: [],
+  deducoesColeta: { despesasGerais: 800 }, // 800×35%→250€ (teto solteiro), sozinho, sem mais nenhuma dedução "sujeita a limite"
+});
+assertIgual(
+  semDespesasGeraisNoLimite.linhas[8].limiteAgregadoAplicado ? 1 : 0,
+  0,
+  "despesasGerais sozinho (250€) não aciona o limite agregado (1.000€), porque fica de fora dele"
+);
+assertIgual(semDespesasGeraisNoLimite.linhas[8].total, 250, "despesasGerais (250€) entra no total das deduções à coleta na mesma, só não conta para o limite");
+
+// Reprodução da estrutura de um caso real (números redondos/fictícios por
+// privacidade): a soma de saúde+educação+exigência de fatura+PPR deve
+// corresponder exatamente ao "Total das Deduções sujeitas a limite" que a
+// AT reporta — com despesasGerais bem maior à parte, sem ser cortado nem
+// somado ao subtotal limitado.
+const casoDespesasSujeitasALimite = calcularDeclaracao({
+  anoFiscal: 2025,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasRendimentoAlto],
+  dependentes: [],
+  // Soma abaixo do limite agregado (1.000€ no último escalão) para isolar
+  // só o que este teste verifica: que despesasGerais fica de fora da soma,
+  // sem interferência do próprio corte do limite.
+  deducoesColeta: { saude: 1000, educacao: 1000, exigenciaFatura: 100, ppr: 1000, despesasGerais: 30000 },
+});
+assertIgual(
+  casoDespesasSujeitasALimite.linhas[8].saude +
+    casoDespesasSujeitasALimite.linhas[8].educacao +
+    casoDespesasSujeitasALimite.linhas[8].exigenciaFatura +
+    casoDespesasSujeitasALimite.linhas[8].ppr,
+  750,
+  "saúde (150€) + educação (300€) + exigência de fatura (100€) + PPR (200€) = 750€, exatamente o 'Total das Deduções sujeitas a limite' (despesasGerais de 30.000€ fica de fora)"
+);
+
+// --- Dedução específica de Cat. A: MAX(valor fixo, contribuições SS reais) (bug real, 04/09/2026) ---
+// art.º 25º/1 CIRS: a dedução específica de Cat. A é o valor fixo da
+// tabela (8,54×IAS) OU as contribuições obrigatórias reais para a
+// Segurança Social/subsistemas de saúde, se estas forem SUPERIORES — o
+// motor, antes desta correção, usava sempre o valor fixo, ignorando
+// contribuições reais mais altas (caso comum em quem descontou por um
+// salário elevado durante o ano todo).
+const rSemSSAlta = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [[
+    { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 90000 },
+    { categoria: "A", tipo: "desconto", descricao: "Segurança Social", categoriaSS: true, valorComRedu: 6000 },
+  ]],
+  dependentes: [],
+});
+assertIgual(
+  rSemSSAlta.linhas[2].categoriaA,
+  6000,
+  "dedução específica de Cat. A usa as contribuições SS reais (6.000€) quando excedem o valor fixo da tabela (4.587,09€)"
+);
+const rComSSBaixa = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [[
+    { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 20000 },
+    { categoria: "A", tipo: "desconto", descricao: "Segurança Social", categoriaSS: true, valorComRedu: 2200 },
+  ]],
+  dependentes: [],
+});
+assertIgual(
+  rComSSBaixa.linhas[2].categoriaA,
+  4587.09,
+  "dedução específica de Cat. A mantém-se no valor fixo da tabela (4.587,09€) quando as contribuições SS reais (2.200€) são inferiores"
+);
+
+// --- Quotização sindical: teto de 1% aplicado ANTES de duplicar (bug real, 04/09/2026) ---
+// art.º 25º/1-d) CIRS + majoração: a quota sindical é majorada em 100%
+// (duplicada), mas o teto de 1% do rendimento bruto de Cat. A aplica-se
+// à quota ORIGINAL, antes de duplicar — não ao valor já duplicado. O
+// motor, antes desta correção, duplicava primeiro e só depois cortava
+// pelo teto, o que subestimava a dedução em qualquer caso em que a quota
+// original já estivesse perto do teto de 1%.
+const rSindical = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [[
+    { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 50000 },
+    { categoria: "A", tipo: "desconto", descricao: "Quotização sindical", categoriaSindicato: true, valorComRedu: 700 },
+  ]],
+  dependentes: [],
+});
+assertIgual(
+  rSindical.linhas[2].categoriaA,
+  4587.09 + 1000,
+  "quota sindical de 700€, rendimento bruto de 50.000€ (teto de 1% = 500€): o teto corta a quota para 500€ e SÓ DEPOIS duplica (500×2=1.000€ de dedução sindical), somados ao valor fixo de 4.587,09€"
+);
+
+// --- Caso combinado (casal, IRS 2025, tributação conjunta) ---
+// Cenário representativo de um agregado real que motivou esta auditoria
+// (04/09/2026) — números redondos/fictícios aqui por privacidade, mas com
+// a mesma estrutura que expôs os bugs num caso real (um dos titulares com
+// Categoria A + recibos verdes na tabela do art.º 151º, rendimento
+// coletável conjunto entre 80.000€ e 160.000€, contribuições de SS acima
+// do valor fixo, quotização sindical perto do teto de 1%) — usado para
+// testar TRÊS correções em conjunto:
+//   1. dedução específica de Cat. A = MAX(valor fixo, contribuições SS reais);
+//   2. teto de 1% da quotização sindical aplicado ANTES de duplicar (majoração);
+//   3. taxa adicional de solidariedade (art.º 68º-A) dividida pelo quociente
+//      conjugal (2,00) antes de comparar com os limiares de 80.000€/250.000€
+//      — sem esta correção, este casal pagaria uma taxa adicional indevida.
+const rubricasPessoaA2025 = [
+  { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 60000 },
+  { categoria: "A", tipo: "desconto", descricao: "Retenção IRS", categoriaIRS: true, valorComRedu: 9000 },
+  { categoria: "A", tipo: "desconto", descricao: "Segurança Social", categoriaSS: true, valorComRedu: 8000 },
+  { categoria: "A", tipo: "desconto", descricao: "Quotização sindical", categoriaSindicato: true, valorComRedu: 700 },
+  { categoria: "B", tipo: "abono", descricao: "Recibo verde (enfermagem)", valorComRedu: 8000 },
+];
+const rubricasPessoaB2025 = [
+  { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 45000 },
+  { categoria: "A", tipo: "desconto", descricao: "Retenção IRS", categoriaIRS: true, valorComRedu: 6500 },
+  { categoria: "A", tipo: "desconto", descricao: "Segurança Social", categoriaSS: true, valorComRedu: 5000 },
+];
+const dependentesCasoCombinado = [
+  { id: 1, dataNascimento: "2010-01-01", guarda: "exclusiva" },
+  { id: 2, dataNascimento: "2012-01-01", guarda: "exclusiva" },
+  { id: 3, dataNascimento: "2014-01-01", guarda: "exclusiva" },
+];
+const casoCombinado = calcularDeclaracao({
+  anoFiscal: 2025,
+  regime: "conjunta",
+  rubricasPorPessoa: [rubricasPessoaA2025, rubricasPessoaB2025],
+  dependentes: dependentesCasoCombinado,
+  pessoas: [{ id: "A", atividadeCategoriaB: "tabelaAnexa151" }, { id: "B" }],
+  deducoesColeta: { saude: 1200, educacao: 8000, exigenciaFatura: 130, ppr: 3000, despesasGerais: 30000 },
+  tributacoesAutonomas: 100,
+});
+assertIgual(casoCombinado.linhas[3].total, 96800, "rendimento coletável do casal fica abaixo de 160.000€ (48.400€ por sujeito passivo)");
+assertIgual(
+  casoCombinado.linhas[2].categoriaA,
+  14200,
+  "dedução específica de Cat. A dos dois sujeitos passivos = MAX(fixo, SS) de cada um (8.000+5.000) + sindical já com teto aplicado antes de duplicar (600×2=1.200)"
+);
+assertIgual(
+  casoCombinado.linhas["6A"].total,
+  0,
+  "taxa adicional de solidariedade = 0€ (rendimento coletável dividido por 2 = 48.400€, abaixo do limiar de 80.000€, art.º 68º-A/3 CIRS — antes da correção o motor aplicava o limiar ao total conjunto e cobrava taxa adicional indevida)"
+);
+
 // detectarSugestoesPagamento (03/09/2026) — não aparece nada quando o
 // resultado é "a devolver", mesmo com household preenchido.
 const semSugestoesQuandoDevolve = detectarSugestoesPagamento(

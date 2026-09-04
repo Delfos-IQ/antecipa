@@ -294,15 +294,26 @@ export const legislacaoFiscal = [
           "cms.law/pt/prt/publication/nova-deducao-a-coleta-do-irs-relativa-a-encargos-com-retribuicao-pela-" +
           "prestacao-de-trabalho-domestico.",
       },
+      // CORRIGIDO 04/09/2026: "despesasGerais" removido de `aplicavelA` —
+      // era um bug herdado do bloco 2026 (ver o comentário completo lá),
+      // confirmado para este ano fiscal (2025) com uma Demonstração de
+      // Liquidação de IRS real: a AT reporta "Total das Deduções sujeitas
+      // a limite" como a soma apenas de saúde + educação + exigência de
+      // fatura + PPR — as despesas gerais e familiares (alínea b)) ficam
+      // sempre fora desse subtotal, exatamente como o texto oficial diz.
       limiteAgregado: {
         semLimiteAteEscalao1: true,
         minimo: 1000,
         maximo: 2500,
         majoracaoPorDependentePercentagem: 0.05,
         numDependentesParaMajoracao: 3,
-        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura", "trabalhoDomestico"],
-        confirmado: false,
-        fonte: "Herdado do bloco 2026 (art.º 78º, n.º 7 e n.º 8 CIRS) — não re-confirmado especificamente para 2025 nesta sessão.",
+        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "exigenciaFatura", "trabalhoDomestico"],
+        confirmado: true,
+        fonte:
+          "Herdado do bloco 2026 (art.º 78º, n.º 7 e n.º 8 CIRS), mas a exclusão de despesasGerais/alínea b) " +
+          "confirmada diretamente para 2025 via uma Demonstração de Liquidação real: o 'Total das Deduções " +
+          "sujeitas a limite (art 78)' reportado pela AT corresponde exatamente à soma de saúde + educação + " +
+          "exigência de fatura + PPR, sem as despesas gerais familiares (que ficam fora desse subtotal).",
       },
     },
 
@@ -666,38 +677,50 @@ export const legislacaoFiscal = [
       // info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/
       // cirs_rep/Pages/irs78.aspx): as deduções das alíneas c) a h), k) e
       // m) do n.º 1 do art.º 78º (saúde, educação, habitação, PPR,
-      // despesas gerais e familiares, exigência de fatura, entre outras)
-      // ficam sujeitas a um limite GLOBAL por agregado que varia com o
-      // rendimento: sem limite até ao 1º escalão de IRS; entre 2.500€ (no
-      // limite do 1º escalão) e 1.000€ (no limite do último escalão
-      // finito), de forma decrescente; fixo em 1.000€ acima disso. Há
-      // ainda uma majoração de 5% por dependente para agregados com 3 ou
-      // mais dependentes (n.º 8). As alíneas a) e b) do n.º 1 — dedução
-      // por dependentes/ascendentes e quotização sindical — ficam SEMPRE
-      // de fora deste limite (já assim na app, que as trata em separado).
-      // `confirmado: false` porque os valores exatos em euros (2.500€ /
-      // 1.000€) e a lista completa e exata de alíneas abrangidas foram
-      // extrapolados a partir da descrição do artigo e de fontes
-      // secundárias convergentes, não confirmados letra-a-letra contra o
-      // Diário da República — é uma aproximação deliberadamente melhor
-      // que não ter limite nenhum (o estado anterior), não uma réplica
-      // certificada linha a linha.
+      // exigência de fatura, entre outras) ficam sujeitas a um limite
+      // GLOBAL por agregado que varia com o rendimento: sem limite até ao
+      // 1º escalão de IRS; entre 2.500€ (no limite do 1º escalão) e
+      // 1.000€ (no limite do último escalão finito), de forma
+      // decrescente; fixo em 1.000€ acima disso. Há ainda uma majoração
+      // de 5% por dependente para agregados com 3 ou mais dependentes
+      // (n.º 8). A alínea a) (dependentes/ascendentes) e a alínea b)
+      // (despesas gerais e familiares, art.º 78º-B) ficam SEMPRE de fora
+      // deste limite — o texto oficial só cobre c) a h), k) e m).
+      //
+      // CORRIGIDO 04/09/2026: até aqui "despesasGerais" estava incluído
+      // em `aplicavelA` por engano (contradizia o próprio comentário
+      // anterior deste bloco, que já dizia "alíneas a) e b)... ficam
+      // sempre de fora"). Confirmado via texto oficial (irs78.aspx: "A
+      // soma das deduções à coleta previstas nas alíneas c) a h), k) e m)
+      // do n.º 1 não pode exceder...") E via uma Demonstração de
+      // Liquidação real: o "Total das Deduções sujeitas a limite (art 78)"
+      // que a AT reporta corresponde exatamente à soma de saúde + educação
+      // + exigência de fatura + PPR — SEM as despesas gerais e familiares,
+      // que aparecem no "Total das Deduções" geral mas não neste subtotal.
+      // `confirmado: true` para a exclusão de despesasGerais e para o
+      // mecanismo geral (agora verificado contra um caso real); os
+      // valores exatos em euros dos limiares (2.500€/1.000€/escalões)
+      // continuam `confirmado: false` — não confirmados letra-a-letra
+      // contra o Diário da República, e o caso real usado nesta auditoria
+      // não os testou (o limite não chegou a ser aplicado nessa
+      // declaração).
       limiteAgregado: {
         semLimiteAteEscalao1: true,
         minimo: 1000,
         maximo: 2500,
         majoracaoPorDependentePercentagem: 0.05,
         numDependentesParaMajoracao: 3,
-        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "despesasGerais", "exigenciaFatura", "trabalhoDomestico"],
+        aplicavelA: ["saude", "educacao", "habitacao", "ppr", "exigenciaFatura", "trabalhoDomestico"],
         confirmado: false,
         fonte:
           "art.º 78º, n.º 7 e n.º 8 CIRS (NÃO '78º-A' como referenciado antes noutros blocos — esse artigo não " +
           "existe autonomamente) — info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/" +
-          "cirs_rep/Pages/irs78.aspx. Mecanismo (sem limite/2.500€→1.000€/1.000€ fixo, majoração 5% por " +
-          "dependente com 3+, exclusão das alíneas a) e b)) confiança ALTA; valores exatos em euros e lista " +
-          "exaustiva de alíneas abrangidas confiança MÉDIA — confirmar contra o Diário da República antes de " +
-          "produção. Gap de maior prioridade identificado na auditoria de 03/09/2026 (1ª ronda), agora " +
-          "implementado como aproximação em vez de ausente.",
+          "cirs_rep/Pages/irs78.aspx: 'A soma das deduções à coleta previstas nas alíneas c) a h), k) e m) do " +
+          "n.º 1 não pode exceder...'. Lista de alíneas abrangidas (exclui despesasGerais/alínea b) e " +
+          "dependentes/alínea a)) confirmada tanto pelo texto oficial como por uma Demonstração de Liquidação " +
+          "real: 'Total das Deduções sujeitas a limite' = saúde+educação+exigência de fatura+PPR, sem despesas " +
+          "gerais. Valores exatos dos limiares (2.500€/1.000€/escalões) continuam confiança MÉDIA — não " +
+          "testados por este caso real (não chegou a atingir o limite).",
       },
     },
 

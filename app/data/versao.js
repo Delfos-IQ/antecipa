@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.30";
+export const VERSAO_ATUAL = "2.31";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.31", resumo: "Correções de precisão validadas com uma declaração de IRS real (taxa adicional, deduções, despesas gerais)" },
   { versao: "2.30", resumo: "Novo: escolher a atividade dos recibos verdes acerta o coeficiente e a retenção estimada" },
   { versao: "2.29", resumo: "Novo: deduções de ascendentes a cargo, deficiência e trabalho doméstico" },
   { versao: "2.28", resumo: "A sugestão de pedir mais retenção agora diz quanto, em euros/mês" },
