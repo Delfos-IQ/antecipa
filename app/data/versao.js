@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.42";
+export const VERSAO_ATUAL = "2.43";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.43", resumo: "Correção: apagar por completo o valor de um recibo verde projetado, no detalhe mês a mês, não atualizava o resultado" },
   { versao: "2.42", resumo: "Correção importante: ao comparar declaração conjunta vs. separadas, as despesas de saúde/educação/PPR do casal estavam a contar em dobro em cada declaração separada" },
   { versao: "2.41", resumo: "No detalhe da projeção, o salário estimado passa a chamar-se \"Vencimento bruto\" — o mesmo nome usado nos meses reais, para não confundir" },
   { versao: "2.40", resumo: "Correção importante: os meses projetados passam a estimar também IRS retido, Segurança Social, sindicato e ADSE — antes só o salário bruto entrava na conta" },

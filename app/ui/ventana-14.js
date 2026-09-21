@@ -435,7 +435,17 @@ export async function renderVentana14({ container, anoFiscal }) {
       input.addEventListener("change", async () => {
         const { pessoaId, componente } = input.dataset;
         const mes = Number(input.dataset.mes);
-        const valor = parseFloat(input.value);
+        // CORRIGIDO 21/09/2026 (relatado pelo Dani: "al eliminar los valores
+        // de los recibos verdes, el total no se mueve"): apagar o campo por
+        // completo (para dizer "este mês não vou ter recibo verde nenhum")
+        // dava um input.value === "" → parseFloat("") = NaN →
+        // !Number.isFinite(NaN) era true → a função saía sem gravar nada e
+        // sem recalcular, como se a edição nunca tivesse acontecido. Um
+        // campo vazio passa agora a valer 0 explicitamente (gravado como
+        // ajuste manual, tal como qualquer outro valor) — só um número
+        // negativo ou algo não numérico continua a ser ignorado.
+        const textoValor = input.value.trim();
+        const valor = textoValor === "" ? 0 : parseFloat(textoValor);
         if (!Number.isFinite(valor) || valor < 0) return;
         // Reutiliza o id do ajuste já existente para este mês/componente,
         // se houver — sem isto, db.put (keyPath "id", autoIncrement) criava
