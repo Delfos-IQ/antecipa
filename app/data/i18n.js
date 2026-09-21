@@ -124,6 +124,36 @@ export const pt = {
     aPagar: "Vai faltar pagar. Ainda tem tempo para se preparar.",
     confiancaPrefixo: "Já sabemos",
     confiancaSufixo: "deste ano com números reais — o resto é a nossa melhor projeção.",
+    // Alternativa ao par acima, usada quando modoCalculo === "somenteReal"
+    // (ver comentário junto a `modoCalculo` em ui/ventana-14.js).
+    confiancaSomenteRealPrefixo: "Baseado só nos",
+    confiancaSomenteRealSufixo: "do ano já confirmados por documento — os meses em falta não entram nesta conta.",
+
+    // Alternar entre incluir a projeção dos meses em falta ou olhar só
+    // para os meses com documento real carregado — NOVO (21/09/2026, a
+    // pedido do Dani: "como sé que es la mejor proyección si yo no
+    // participo"). Ver ui/ventana-14.js, `modoCalculo`.
+    modoCalculoTitulo: "O que contar nesta simulação",
+    modoCalculoProjetado: "Com projeção",
+    modoCalculoSomenteReal: "Só dados reais",
+    modoCalculoAjudaProjetado:
+      "Estima os meses ainda sem documento carregado repetindo o seu último salário/recibo conhecido. Reveja e corrija essa estimativa em \"Ver detalhe mês a mês\", abaixo.",
+    modoCalculoAjudaSomenteReal:
+      "Ignora os meses sem documento — mostra só o que já está confirmado. As deduções anuais que registou em Deduções continuam a ser usadas por inteiro, mesmo faltando meses.",
+
+    verDetalheProjecao: "Ver detalhe mês a mês",
+    fecharDetalheProjecao: "Fechar detalhe mês a mês",
+    detalheProjecaoIntro:
+      "Mês a mês, o que é real (já tem documento) e o que estamos a assumir para o resto do ano. Se uma estimativa não bater certo com o que espera receber, corrija-a aqui — a simulação recalcula logo a seguir.",
+    detalheMesTagReal: "Real",
+    detalheMesTagProjetado: "Projetado",
+    detalheMesTagProjetadoEditado: "Projetado — editado por si",
+    detalheCampoBase: "Remuneração base",
+    detalheCampoSubsidio: "Subsídio (segue o último valor real, não editável aqui)",
+    detalheCampoCategoriaB: "Recibo verde (Categoria B)",
+    detalheCampoVencimentoBrutoReal: "Vencimento bruto",
+    detalheReporAutomatico: "Repor estimativa automática",
+    detalheSemCategoriaBEsteMes: "Sem recibo verde estimado para este mês.",
     vazioTitulo: "Ainda não há nada para simular",
     vazioCorpo: "Carregue o primeiro talão ou recibo verde num dos meses para o Antecipa começar a calcular o seu IRS.",
     vazioCta: "Carregar o primeiro documento",

@@ -4,7 +4,17 @@
 // + modo comparação + disclaimer + exportação PDF.
 
 import { pt } from "../data/i18n.js";
-import { getHousehold, getPessoas, getDependentes, getAscendentes, getTodasRubricas, getAjustesManuais, getDeducoesColeta } from "../storage/db.js";
+import {
+  getHousehold,
+  getPessoas,
+  getDependentes,
+  getAscendentes,
+  getTodasRubricas,
+  getAjustesManuais,
+  getDeducoesColeta,
+  saveAjusteManual,
+  removeAjusteManual,
+} from "../storage/db.js";
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
 import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias, detectarSugestoesPagamento } from "../engine/calculo-irs.js";
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
@@ -43,7 +53,7 @@ export async function renderVentana14({ container, anoFiscal }) {
   const dependentes = await getDependentes();
   const ascendentes = await getAscendentes();
   const { documentos, rubricas } = await getTodasRubricas(anoFiscal);
-  const ajustes = await getAjustesManuais(anoFiscal);
+  let ajustes = await getAjustesManuais(anoFiscal);
   const deducoesColeta = await getDeducoesColeta(anoFiscal, "household");
 
   if (documentos.length === 0 && ajustes.length === 0) {
@@ -69,86 +79,114 @@ export async function renderVentana14({ container, anoFiscal }) {
   // projetarAno simplesmente não projeta nenhuma retenção (mesmo
   // comportamento de antes desta funcionalidade).
   const tabelaFiscal = obterTabelaFiscal(anoFiscal);
-  const rubricasPorPessoa = [];
-  for (const p of pessoas) {
-    const docsDaPessoa = documentos
-      .filter((d) => d.pessoaId === p.id)
-      .map((d) => ({ mes: d.mes, rubricas: rubricas.filter((r) => r.documentoId === d.id) }))
-      .sort((a, b) => a.mes - b.mes);
-    const { mesAMes, percentagemMesesReais } = projetarAno({
-      documentosReais: docsDaPessoa,
-      ajustesManuais: ajustes.filter((a) => a.pessoaId === p.id),
-      anoFiscal,
-      atividadeCategoriaB: p.atividadeCategoriaB,
-      taxasRetencaoCategoriaB: tabelaFiscal.taxasRetencaoCategoriaB,
-    });
-    rubricasPorPessoa.push({ pessoaId: p.id, rubricas: achatarRubricasDoAno(mesAMes), percentagemMesesReais });
-  }
-
-  const percentagemMediaReal =
-    rubricasPorPessoa.reduce((a, p) => a + p.percentagemMesesReais, 0) / (rubricasPorPessoa.length || 1);
-
-  // ADSE descontada no talão é tratada como despesa de saúde/seguro de
-  // saúde para efeitos de dedução à coleta (art.º 78º-C CIRS) — ainda não
-  // confirmado linha a linha contra fonte oficial (ver data/legislacao-2026.js),
-  // por isso soma-se ao valor de despesas de saúde já indicado manualmente
-  // pelo utilizador em vez de o substituir.
-  const totalAdseAno = rubricasPorPessoa.reduce(
-    (acc, p) => acc + p.rubricas.filter((r) => r.tipo === "desconto" && r.categoriaADSE).reduce((s, r) => s + (r.valorComRedu ?? 0), 0),
-    0
-  );
-  const deducoesColetaComAdse = { ...deducoesColeta, saude: (deducoesColeta.saude ?? 0) + totalAdseAno };
-
-  // pagamentosPorConta: adiantamentos de IRS já feitos durante o ano
-  // (comuns em Categoria B/recibos verdes) — campo em falta até à
-  // auditoria de 03/09/2026, confirmado como linha própria (23) numa
-  // Demonstração de Liquidação real, subtraído junto com as retenções na
-  // fonte (linha 24) para chegar ao resultado final (linha 25).
-  const inputBase = {
-    anoFiscal,
-    deducoesColeta: deducoesColetaComAdse,
-    pagamentosPorConta: deducoesColeta.pagamentosPorConta || 0,
-    percentagemMesesReais: percentagemMediaReal,
-  };
-
-  let resultadoUnico = null;
-  let comparacao = null;
-  let oportunidades = [];
-
   const regime = household?.regimeTributacao ?? "individual";
 
-  if (regime === "comparar_ambos" && pessoas.length === 2) {
-    // ascendentesAtribuidos segue a MESMA simplificação já existente para
-    // dependentesAtribuidos: tudo atribuído a A por omissão, B fica sem
-    // nenhum — atribuição por pessoa ainda não modelada nesta ventana em
-    // modo comparação (04/09/2026, mesmo padrão pré-existente).
-    comparacao = compararRegimes(
-      inputBase,
-      { rubricas: rubricasPorPessoa[0].rubricas, dependentesAtribuidos: dependentes, pessoa: pessoas[0], ascendentesAtribuidos: ascendentes },
-      { rubricas: rubricasPorPessoa[1].rubricas, dependentesAtribuidos: [], pessoa: pessoas[1], ascendentesAtribuidos: [] },
-      dependentes,
-      ascendentes
+  // modoCalculo (21/09/2026, pedido do Dani: "como sé que es la mejor
+  // proyección si yo no participo, no puedo editarla ni validarla"): até
+  // aqui a simulação incluía SEMPRE a projeção dos meses em falta, sem
+  // forma de a desligar nem de ver o que ela assume. Agora o utilizador
+  // escolhe entre "projetado" (comportamento anterior, projeta os meses
+  // sem documento) e "somenteReal" (ignora-os por completo — só conta o
+  // que já está confirmado por documento). `calcular()` reconstrói tudo a
+  // partir do zero sempre que este modo muda, ou sempre que um ajuste
+  // manual é gravado/removido no painel de detalhe (ver
+  // renderDetalheProjecao mais abaixo).
+  let modoCalculo = "projetado";
+
+  function calcular() {
+    const rubricasPorPessoa = [];
+    for (const p of pessoas) {
+      const docsDaPessoa = documentos
+        .filter((d) => d.pessoaId === p.id)
+        .map((d) => ({ mes: d.mes, rubricas: rubricas.filter((r) => r.documentoId === d.id) }))
+        .sort((a, b) => a.mes - b.mes);
+      const { mesAMes, percentagemMesesReais } = projetarAno({
+        documentosReais: docsDaPessoa,
+        ajustesManuais: ajustes.filter((a) => a.pessoaId === p.id),
+        anoFiscal,
+        atividadeCategoriaB: p.atividadeCategoriaB,
+        taxasRetencaoCategoriaB: tabelaFiscal.taxasRetencaoCategoriaB,
+      });
+      const mesesConsiderados = modoCalculo === "somenteReal" ? mesAMes.filter((m) => m.origem === "real") : mesAMes;
+      rubricasPorPessoa.push({
+        pessoaId: p.id,
+        rubricas: achatarRubricasDoAno(mesesConsiderados),
+        percentagemMesesReais,
+        // Sempre o ano completo (real + projetado), independentemente do
+        // modoCalculo — é o que alimenta o painel de detalhe mês a mês,
+        // que continua a mostrar a projeção mesmo quando ela não está a
+        // ser usada no cálculo, para o utilizador poder rever/validar.
+        mesAMes,
+      });
+    }
+
+    const percentagemMediaReal =
+      rubricasPorPessoa.reduce((a, p) => a + p.percentagemMesesReais, 0) / (rubricasPorPessoa.length || 1);
+
+    // ADSE descontada no talão é tratada como despesa de saúde/seguro de
+    // saúde para efeitos de dedução à coleta (art.º 78º-C CIRS) — ainda não
+    // confirmado linha a linha contra fonte oficial (ver data/legislacao-2026.js),
+    // por isso soma-se ao valor de despesas de saúde já indicado manualmente
+    // pelo utilizador em vez de o substituir.
+    const totalAdseAno = rubricasPorPessoa.reduce(
+      (acc, p) => acc + p.rubricas.filter((r) => r.tipo === "desconto" && r.categoriaADSE).reduce((s, r) => s + (r.valorComRedu ?? 0), 0),
+      0
     );
-  } else {
-    const inputResultadoUnico = {
-      ...inputBase,
-      regime: regime === "conjunta" ? "conjunta" : "individual",
-      rubricasPorPessoa: rubricasPorPessoa.map((p) => p.rubricas),
-      dependentes,
-      pessoas,
-      ascendentes,
+    const deducoesColetaComAdse = { ...deducoesColeta, saude: (deducoesColeta.saude ?? 0) + totalAdseAno };
+
+    // pagamentosPorConta: adiantamentos de IRS já feitos durante o ano
+    // (comuns em Categoria B/recibos verdes) — campo em falta até à
+    // auditoria de 03/09/2026, confirmado como linha própria (23) numa
+    // Demonstração de Liquidação real, subtraído junto com as retenções na
+    // fonte (linha 24) para chegar ao resultado final (linha 25).
+    const inputBase = {
+      anoFiscal,
+      deducoesColeta: deducoesColetaComAdse,
+      pagamentosPorConta: deducoesColeta.pagamentosPorConta || 0,
+      percentagemMesesReais: percentagemMediaReal,
     };
-    resultadoUnico = calcularDeclaracao(inputResultadoUnico);
-    // Oportunidades de poupança fiscal — só para o modo "resultado único"
-    // por agora; em modo comparação (conjunta vs. separadas) fica por
-    // implementar, pois o PPR/mais-valias podem ser atribuídos a qualquer
-    // um dos dois sujeitos passivos e essa atribuição ainda não está
-    // modelada.
-    oportunidades = [
-      detectarOportunidadePPR(inputResultadoUnico, resultadoUnico),
-      detectarOportunidadeMaisValias(inputResultadoUnico, resultadoUnico),
-    ].filter(Boolean);
+
+    let resultadoUnico = null;
+    let comparacao = null;
+    let oportunidades = [];
+
+    if (regime === "comparar_ambos" && pessoas.length === 2) {
+      // ascendentesAtribuidos segue a MESMA simplificação já existente para
+      // dependentesAtribuidos: tudo atribuído a A por omissão, B fica sem
+      // nenhum — atribuição por pessoa ainda não modelada nesta ventana em
+      // modo comparação (04/09/2026, mesmo padrão pré-existente).
+      comparacao = compararRegimes(
+        inputBase,
+        { rubricas: rubricasPorPessoa[0].rubricas, dependentesAtribuidos: dependentes, pessoa: pessoas[0], ascendentesAtribuidos: ascendentes },
+        { rubricas: rubricasPorPessoa[1].rubricas, dependentesAtribuidos: [], pessoa: pessoas[1], ascendentesAtribuidos: [] },
+        dependentes,
+        ascendentes
+      );
+    } else {
+      const inputResultadoUnico = {
+        ...inputBase,
+        regime: regime === "conjunta" ? "conjunta" : "individual",
+        rubricasPorPessoa: rubricasPorPessoa.map((p) => p.rubricas),
+        dependentes,
+        pessoas,
+        ascendentes,
+      };
+      resultadoUnico = calcularDeclaracao(inputResultadoUnico);
+      // Oportunidades de poupança fiscal — só para o modo "resultado único"
+      // por agora; em modo comparação (conjunta vs. separadas) fica por
+      // implementar, pois o PPR/mais-valias podem ser atribuídos a qualquer
+      // um dos dois sujeitos passivos e essa atribuição ainda não está
+      // modelada.
+      oportunidades = [
+        detectarOportunidadePPR(inputResultadoUnico, resultadoUnico),
+        detectarOportunidadeMaisValias(inputResultadoUnico, resultadoUnico),
+      ].filter(Boolean);
+    }
+
+    return { resultadoUnico, comparacao, oportunidades, percentagemMediaReal, rubricasPorPessoa };
   }
+
+  let { resultadoUnico, comparacao, oportunidades, percentagemMediaReal, rubricasPorPessoa } = calcular();
 
   // Regime que o utilizador está a explorar no ecrã de comparação
   // (conjunta vs. separada) — NOVO (21/09/2026, pedido do Dani): até aqui
@@ -165,8 +203,33 @@ export async function renderVentana14({ container, anoFiscal }) {
   // utilizador não ter de o reabrir a cada clique — só reinicia (fechado)
   // na primeira renderização.
   let desgloseAberto = false;
+  // Painel "Ver detalhe mês a mês" (21/09/2026, ver comentário junto a
+  // `modoCalculo` acima) — igual ao desglose, preserva-se aberto entre
+  // re-renderizações (troca de modo, edição de um ajuste) para o
+  // utilizador não perder o sítio onde estava a rever/corrigir.
+  let detalheAberto = false;
 
-  render({ resultadoUnico, comparacao, oportunidades, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes });
+  let estado = { resultadoUnico, comparacao, oportunidades, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes, rubricasPorPessoa };
+
+  // Reexecuta calcular() do zero — chamado sempre que modoCalculo muda ou
+  // um ajuste manual é gravado/removido no painel de detalhe — e volta a
+  // renderizar tudo com o resultado novo. Se o regime selecionado no
+  // ecrã de comparação deixar de fazer sentido (não deveria acontecer,
+  // "conjunta"/"separada" são sempre as duas opções, mas por segurança)
+  // recai no mais vantajoso.
+  async function recalcular() {
+    ajustes = await getAjustesManuais(anoFiscal);
+    const novo = calcular();
+    estado = { ...estado, ...novo, ajustes };
+    if (estado.comparacao) {
+      if (regimeSelecionado !== "conjunta" && regimeSelecionado !== "separada") regimeSelecionado = estado.comparacao.maisVantajoso;
+    } else {
+      regimeSelecionado = null;
+    }
+    render(estado);
+  }
+
+  render(estado);
 
   function render(estado) {
     const { resultadoUnico, comparacao, oportunidades } = estado;
@@ -205,18 +268,32 @@ export async function renderVentana14({ container, anoFiscal }) {
     // detectarSugestoesPagamento sabe omitir a sugestão de retenção
     // superior nesse caso — não faz sentido pedir mais retenção a um ano
     // que já acabou.
+    const percentagemMediaReal = estado.percentagemMediaReal;
     const mesesRestantes = Math.round((1 - percentagemMediaReal) * 12);
     const sugestoesPagamento = detectarSugestoesPagamento(
       { resultado: resultadoParaSelo },
       { household: estado.household, deducoesColeta: estado.deducoesColeta, mesesRestantes }
     );
 
+    const confiancaTexto =
+      modoCalculo === "somenteReal"
+        ? `${pt.ventana14.confiancaSomenteRealPrefixo} ${Math.round(percentagemMediaReal * 100)}% ${pt.ventana14.confiancaSomenteRealSufixo}`
+        : `${pt.ventana14.confiancaPrefixo} ${Math.round(percentagemMediaReal * 100)}% ${pt.ventana14.confiancaSufixo}`;
+
     container.innerHTML = `
       <h2>${pt.ventana14.titulo}</h2>
-      <div class="resultado-selo" data-tipo="${resultadoParaSelo.tipo}">
+
+      <p class="section-title" style="margin-top:0">${pt.ventana14.modoCalculoTitulo}</p>
+      <div class="modo-calculo-toggle" role="tablist">
+        <button type="button" class="modo-calculo-toggle__btn" data-action="modo-calculo" data-modo="projetado" aria-pressed="${modoCalculo === "projetado"}">${pt.ventana14.modoCalculoProjetado}</button>
+        <button type="button" class="modo-calculo-toggle__btn" data-action="modo-calculo" data-modo="somenteReal" aria-pressed="${modoCalculo === "somenteReal"}">${pt.ventana14.modoCalculoSomenteReal}</button>
+      </div>
+      <p class="field-hint">${modoCalculo === "somenteReal" ? pt.ventana14.modoCalculoAjudaSomenteReal : pt.ventana14.modoCalculoAjudaProjetado}</p>
+
+      <div class="resultado-selo" data-tipo="${resultadoParaSelo.tipo}" style="margin-top:var(--space-4)">
         <div class="resultado-selo__label">${resultadoParaSelo.tipo === "a_devolver" ? pt.ventana14.aDevolver : pt.ventana14.aPagar}</div>
         <div class="resultado-selo__valor num">${formatarMoeda(resultadoParaSelo.valor)}</div>
-        <div class="resultado-selo__confianca">${pt.ventana14.confiancaPrefixo} ${Math.round(percentagemMediaReal * 100)}% ${pt.ventana14.confiancaSufixo}</div>
+        <div class="resultado-selo__confianca">${confiancaTexto}</div>
       </div>
 
       ${comparacao ? renderComparacao(comparacao, regimeSelecionado) : ""}
@@ -234,6 +311,11 @@ export async function renderVentana14({ container, anoFiscal }) {
       </div>
       <div class="simulacao-layout" data-desglose-aberto="${desgloseAberto}">${desgloseAberto ? renderDesglose(declaracoesParaDesglose) : ""}</div>
 
+      <div class="row-between" style="margin-top:var(--space-4)">
+        <button class="btn btn-secondary" data-action="toggle-detalhe">${detalheAberto ? pt.ventana14.fecharDetalheProjecao : pt.ventana14.verDetalheProjecao}</button>
+      </div>
+      <div class="detalhe-projecao-wrap" style="margin-top:var(--space-3)">${detalheAberto ? renderDetalheProjecaoWrap(estado) : ""}</div>
+
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
     `;
 
@@ -249,6 +331,26 @@ export async function renderVentana14({ container, anoFiscal }) {
         ? pt.ventana14.fecharCalculoCompleto
         : pt.ventana14.verCalculoCompleto;
     });
+
+    container.querySelectorAll('[data-action="modo-calculo"]').forEach((botao) => {
+      botao.addEventListener("click", () => {
+        const novoModo = botao.dataset.modo;
+        if (novoModo === modoCalculo) return;
+        modoCalculo = novoModo;
+        recalcular();
+      });
+    });
+
+    const detalheWrap = container.querySelector(".detalhe-projecao-wrap");
+    container.querySelector('[data-action="toggle-detalhe"]').addEventListener("click", () => {
+      detalheAberto = !detalheAberto;
+      container.querySelector('[data-action="toggle-detalhe"]').textContent = detalheAberto
+        ? pt.ventana14.fecharDetalheProjecao
+        : pt.ventana14.verDetalheProjecao;
+      detalheWrap.innerHTML = detalheAberto ? renderDetalheProjecaoWrap(estado) : "";
+      if (detalheAberto) ligarEditoresDetalhe(detalheWrap);
+    });
+    if (detalheAberto) ligarEditoresDetalhe(detalheWrap);
 
     // Cartões de comparação clicáveis — trocar de regime explorado (ver
     // comentário junto a `regimeSelecionado` acima). Reexecuta render()
@@ -315,6 +417,51 @@ export async function renderVentana14({ container, anoFiscal }) {
     });
     container.querySelectorAll('[data-action="ir-perfil"]').forEach((botao) => {
       botao.addEventListener("click", () => document.querySelector('[data-rota="perfil"]')?.click());
+    });
+  }
+
+  // Liga os inputs editáveis do painel "Ver detalhe mês a mês" (21/09/2026)
+  // — cada input representa um componente projetado (remuneração base ou
+  // Categoria B) de um mês/pessoa. Gravar cria/atualiza um ajusteManual
+  // (storage/db.js) e "Repor estimativa automática" apaga-o; os dois casos
+  // acabam em recalcular(), que volta a correr projetarAno() com os
+  // ajustes atualizados e re-renderiza tudo — selo, comparação, desglose e
+  // este mesmo painel incluídos. Nested dentro de renderVentana14 (não é
+  // uma função de topo, como renderDetalheProjecaoWrap) precisamente para
+  // ter acesso direto a `anoFiscal` e `recalcular` por closure.
+  function ligarEditoresDetalhe(escopo) {
+    if (!escopo) return;
+    escopo.querySelectorAll("[data-editor-componente]").forEach((input) => {
+      input.addEventListener("change", async () => {
+        const { pessoaId, componente } = input.dataset;
+        const mes = Number(input.dataset.mes);
+        const valor = parseFloat(input.value);
+        if (!Number.isFinite(valor) || valor < 0) return;
+        // Reutiliza o id do ajuste já existente para este mês/componente,
+        // se houver — sem isto, db.put (keyPath "id", autoIncrement) criava
+        // um registo NOVO a cada edição em vez de atualizar o mesmo, e
+        // ajustePorComponente (engine/projecao.js, um Map por componente)
+        // acabava só a ver o último — mas o storage ficava com duplicados.
+        const existente = (estado.ajustes || []).find(
+          (a) => a.pessoaId === pessoaId && a.mes === mes && a.componente === componente
+        );
+        await saveAjusteManual({
+          ...(existente ? { id: existente.id } : {}),
+          pessoaId,
+          mes,
+          anoFiscal,
+          componente,
+          valorAjustado: valor,
+        });
+        await recalcular();
+      });
+    });
+    escopo.querySelectorAll("[data-repor-ajuste]").forEach((botao) => {
+      botao.addEventListener("click", async () => {
+        const ajusteId = Number(botao.dataset.reporAjuste);
+        await removeAjusteManual(ajusteId);
+        await recalcular();
+      });
     });
   }
 }
@@ -530,4 +677,163 @@ function renderDesglose(declaracoes) {
       return `${cabecalho}<div class="desglose card" style="padding:var(--space-2)">${html}</div>`;
     })
     .join("");
+}
+
+// ---------------------------------------------------------------------
+// Painel "Ver detalhe mês a mês" (21/09/2026, pedido do Dani: "como sé
+// que es la mejor proyección si yo no participo, no puedo editarla ni
+// validarla"). Mostra, para cada pessoa e cada um dos 12 meses do ano
+// fiscal, se é um mês REAL (documento carregado — só leitura, edita-se em
+// "Meses") ou PROJETADO (estimativa — editável aqui). A edição grava um
+// ajusteManual (storage/db.js) por componente; ligarEditoresDetalhe, em
+// renderVentana14, trata dos listeners e do recálculo.
+// ---------------------------------------------------------------------
+
+const NOMES_MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function totalPorCategoria(rubricasDoMes, categoria) {
+  return rubricasDoMes
+    .filter((r) => r.categoria === categoria && r.tipo === "abono")
+    .reduce((s, r) => s + (r.valorComRedu ?? r.valorSemRedu ?? 0), 0);
+}
+
+function rubricaPorDescricao(rubricasDoMes, regex, categoria) {
+  return rubricasDoMes.find((r) => r.categoria === categoria && r.tipo === "abono" && regex.test(r.descricao || ""));
+}
+
+function ajusteExistente(ajustes, pessoaId, mes, componente) {
+  return ajustes.find((a) => a.pessoaId === pessoaId && a.mes === mes && a.componente === componente);
+}
+
+function renderDetalheProjecaoWrap(estado) {
+  const { pessoas, rubricasPorPessoa, ajustes } = estado;
+  return `
+    <div class="card" style="padding:var(--space-4)">
+      <p class="field-hint" style="margin-top:0">${pt.ventana14.detalheProjecaoIntro}</p>
+      <div class="detalhe-projecao">
+        ${pessoas
+          .map((p) => {
+            const dados = rubricasPorPessoa.find((r) => r.pessoaId === p.id);
+            if (!dados) return "";
+            return renderDetalhePessoa(p, dados, ajustes.filter((a) => a.pessoaId === p.id));
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderDetalhePessoa(pessoa, dados, ajustesDaPessoa) {
+  const temCategoriaB = dados.mesAMes.some((m) => m.rubricas.some((r) => r.categoria === "B" && r.tipo === "abono"));
+  return `
+    <div>
+      <p class="detalhe-pessoa__nome">${pessoa.nome ?? ""}</p>
+      ${dados.mesAMes.map((m) => renderDetalheMes(pessoa.id, m, temCategoriaB, ajustesDaPessoa)).join("")}
+    </div>
+  `;
+}
+
+function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
+  const nomeMes = NOMES_MESES[mes.mes - 1];
+
+  if (mes.origem === "real") {
+    const catA = totalPorCategoria(mes.rubricas, "A");
+    const catB = totalPorCategoria(mes.rubricas, "B");
+    return `
+      <div class="detalhe-mes-row">
+        <div class="detalhe-mes-row__cabecalho">
+          <span class="detalhe-mes-row__mes">${nomeMes}</span>
+          <span class="tag" data-origem="real">${pt.ventana14.detalheMesTagReal}</span>
+        </div>
+        <div class="detalhe-campo">
+          <span class="detalhe-campo__label">${pt.ventana14.detalheCampoVencimentoBrutoReal} (Cat. A)</span>
+          <span class="detalhe-campo__valor num">${formatarMoeda(catA)}</span>
+        </div>
+        ${
+          temCategoriaB
+            ? `<div class="detalhe-campo">
+                 <span class="detalhe-campo__label">${pt.ventana14.detalheCampoCategoriaB}</span>
+                 <span class="detalhe-campo__valor num">${formatarMoeda(catB)}</span>
+               </div>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  // Mês projetado — até duas linhas editáveis (base + Categoria B) e uma
+  // informativa (subsídio de férias/Natal, só em agosto/dezembro, sempre
+  // a seguir o último valor real conhecido, não editável aqui para não
+  // duplicar a lógica de "última base conhecida" do motor).
+  const rubricaBase = rubricaPorDescricao(mes.rubricas, /remunera[cç][aã]o base/i, "A");
+  const rubricaSubsidio = rubricaPorDescricao(mes.rubricas, /subs[íi]dio/i, "A");
+  const rubricaCatB = rubricaPorDescricao(mes.rubricas, /recibo verde/i, "B");
+
+  const algumEditado = [rubricaBase, rubricaCatB].some((r) => r?.origem === "projetado_ajustado");
+
+  return `
+    <div class="detalhe-mes-row">
+      <div class="detalhe-mes-row__cabecalho">
+        <span class="detalhe-mes-row__mes">${nomeMes}</span>
+        <span class="tag" data-origem="${algumEditado ? "projetado_ajustado" : "projetado"}">${algumEditado ? pt.ventana14.detalheMesTagProjetadoEditado : pt.ventana14.detalheMesTagProjetado}</span>
+      </div>
+      ${renderCampoEditavel({
+        label: pt.ventana14.detalheCampoBase,
+        pessoaId,
+        mes: mes.mes,
+        componente: "remuneracao_base",
+        rubrica: rubricaBase,
+        ajustesDaPessoa,
+      })}
+      ${
+        rubricaSubsidio
+          ? `<div class="detalhe-campo">
+               <span class="detalhe-campo__label">${pt.ventana14.detalheCampoSubsidio}</span>
+               <span class="detalhe-campo__valor num">${formatarMoeda(rubricaSubsidio.valorComRedu)}</span>
+             </div>`
+          : ""
+      }
+      ${
+        temCategoriaB
+          ? renderCampoEditavel({
+              label: pt.ventana14.detalheCampoCategoriaB,
+              pessoaId,
+              mes: mes.mes,
+              componente: "categoria_b",
+              rubrica: rubricaCatB,
+              ajustesDaPessoa,
+              semValorTexto: pt.ventana14.detalheSemCategoriaBEsteMes,
+            })
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderCampoEditavel({ label, pessoaId, mes, componente, rubrica, ajustesDaPessoa, semValorTexto }) {
+  if (!rubrica) {
+    // Sem rubrica (ex.: Categoria B ainda sem nenhum recibo carregado, logo
+    // sem média nenhuma para projetar) — sem valor para editar.
+    return semValorTexto
+      ? `<div class="detalhe-campo"><span class="detalhe-campo__label">${label}</span><span class="field-hint" style="margin:0">${semValorTexto}</span></div>`
+      : "";
+  }
+  const ajuste = ajusteExistente(ajustesDaPessoa, pessoaId, mes, componente);
+  return `
+    <div class="detalhe-campo">
+      <span class="detalhe-campo__label">${label}</span>
+      <input
+        type="number" step="0.01" min="0"
+        value="${rubrica.valorComRedu.toFixed(2)}"
+        data-editor-componente
+        data-pessoa-id="${pessoaId}"
+        data-mes="${mes}"
+        data-componente="${componente}"
+      />
+      ${ajuste ? `<button type="button" class="detalhe-campo__repor" data-repor-ajuste="${ajuste.id}">${pt.ventana14.detalheReporAutomatico}</button>` : ""}
+    </div>
+  `;
 }

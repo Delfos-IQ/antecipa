@@ -606,6 +606,42 @@ input:focus, select:focus { border-color: var(--brass); }
 .comparacao-card__badge { font-size: 0.72rem; background: var(--brass); color: #fff; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .comparacao-card__selecionada { font-size: 0.72rem; color: var(--devolver); font-weight: 600; white-space: nowrap; }
 
+/* Alternar "Com projeção" / "Só dados reais" (21/09/2026, pedido do Dani) */
+.modo-calculo-toggle { display: flex; gap: var(--space-2); margin-top: var(--space-4); }
+.modo-calculo-toggle__btn {
+  flex: 1;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+}
+.modo-calculo-toggle__btn:hover { border-color: var(--brass-light); }
+.modo-calculo-toggle__btn[aria-pressed="true"] { border-color: var(--brass); background: var(--brass-soft); color: var(--brass); }
+
+/* Detalhe mês a mês da projeção (21/09/2026, pedido do Dani: poder validar
+   e corrigir a estimativa em vez de a receber já feita, sem participação). */
+.detalhe-projecao { display: grid; gap: var(--space-5); }
+.detalhe-pessoa__nome { font-weight: 600; margin-bottom: var(--space-3); }
+.detalhe-mes-row {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+}
+.detalhe-mes-row__cabecalho { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
+.detalhe-mes-row__mes { font-weight: 600; }
+.detalhe-campo { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-1) 0; flex-wrap: wrap; }
+.detalhe-campo__label { flex: 1 1 220px; font-size: 0.88rem; color: var(--muted); }
+.detalhe-campo__valor { font-family: var(--font-mono); font-weight: 600; }
+.detalhe-campo input[type="number"] { width: 140px; margin: 0; }
+.detalhe-campo__repor { font-size: 0.78rem; background: none; border: none; color: var(--brass); cursor: pointer; padding: 0; text-decoration: underline; }
+
 .desglose { display: grid; gap: 2px; }
 .desglose-linha {
   display: grid;
