@@ -330,6 +330,33 @@ export async function exportarTudo() {
   return { versao: DB_VERSION, exportadoEm: new Date().toISOString(), stores: dump };
 }
 
+// Importa um ficheiro gerado por exportarTudo() — pensado sobretudo para
+// mover os dados reais entre navegadores/dispositivos (ex.: Safari → outro
+// browser), já que a app é 100% local por desenho e nunca sincroniza
+// sozinha (21/09/2026, pedido do Dani). SUBSTITUI tudo o que já estiver
+// gravado neste dispositivo (limpa cada store antes de repor os registos
+// do ficheiro) — nunca junta ou faz merge, para não misturar dois
+// históricos diferentes em silêncio. `keyPath` de cada store é respeitado
+// tal como veio no ficheiro (incluindo os autoIncrement, como `id` de
+// documentos/rubricas) para que as referências cruzadas (ex.:
+// rubricas[].documentoId → documentos[].id) continuem válidas depois de
+// importar.
+export async function importarTudo(dump) {
+  if (!dump?.stores || typeof dump.stores !== "object") {
+    throw new Error("Ficheiro inválido: não parece ser um backup do Antecipa (falta `stores`).");
+  }
+  const nomesValidos = new Set(Object.keys(STORES));
+  const nomesDump = Object.keys(dump.stores).filter((n) => nomesValidos.has(n));
+  if (nomesDump.length === 0) {
+    throw new Error("Ficheiro inválido: nenhuma das secções reconhecidas (household, documentos, rubricas…).");
+  }
+  for (const nome of nomesDump) await db.clear(nome);
+  for (const nome of nomesDump) {
+    for (const registo of dump.stores[nome] ?? []) await db.put(nome, registo);
+  }
+  return { storesImportadas: nomesDump };
+}
+
 // Apaga apenas os dados ligados a um ano fiscal (documentos + as suas
 // rubricas, ajustes manuais, deduções à coleta e declarações/simulações
 // guardadas). Não toca em household/pessoas/dependentes/modelosEntidade —

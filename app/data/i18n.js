@@ -280,6 +280,11 @@ export const pt = {
     historicoVersoesMostrar: "Ver histórico de versões",
     historicoVersoesEsconder: "Esconder histórico de versões",
     exportarTudo: "Exportar todos os dados (JSON)",
+    importarTudo: "Importar dados de um ficheiro (JSON)",
+    importarTudoConfirmar:
+      "Isto SUBSTITUI todos os dados guardados neste dispositivo pelos do ficheiro escolhido. Não pode ser desfeito. Continuar?",
+    importarTudoSucesso: "Dados importados com sucesso. A recarregar a app…",
+    importarTudoErro: "Não foi possível importar este ficheiro",
     limparAno: "Limpar dados do ano ",
     limparTudo: "Limpar tudo e recomeçar do zero",
     confirmarLimparAno: "Tem a certeza que quer apagar todos os documentos, ajustes e simulações do ano",

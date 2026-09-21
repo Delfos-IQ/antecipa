@@ -27,6 +27,7 @@ import {
   removeAscendente,
   getAnosFiscaisComDados,
   exportarTudo,
+  importarTudo,
   limparAnoFiscal,
   limparTudo,
   definirAnoFiscalAtivo,
@@ -289,6 +290,8 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         </p>
         <div class="stack" style="gap:var(--space-2)">
           <button class="btn btn-secondary btn-block" data-action="exportar-tudo">${pt.perfil.exportarTudo}</button>
+          <button class="btn btn-secondary btn-block" data-action="importar-tudo">${pt.perfil.importarTudo}</button>
+          <input type="file" accept="application/json" data-input="importar-tudo" hidden />
           <button class="btn btn-ghost btn-block" data-action="limpar-ano" style="color:var(--pagar)">
             ${pt.perfil.limparAno}${anoAtivo}
           </button>
@@ -598,6 +601,32 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     container.querySelector('[data-action="exportar-tudo"]')?.addEventListener("click", async () => {
       const dump = await exportarTudo();
       descarregarJSON(dump, `antecipa-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    });
+
+    // Importar dados de um backup (ex.: exportado noutro navegador/
+    // dispositivo) — pedido do Dani (21/09/2026): mover a simulação real
+    // do Safari para outro browser para depuração. Confirma sempre antes
+    // (substitui tudo o que já estiver gravado aqui) e recarrega a app no
+    // fim para que todas as ventanas releiam os dados novos do zero, em
+    // vez de tentar re-renderizar tudo em memória.
+    container.querySelector('[data-action="importar-tudo"]')?.addEventListener("click", () => {
+      container.querySelector('[data-input="importar-tudo"]')?.click();
+    });
+    container.querySelector('[data-input="importar-tudo"]')?.addEventListener("change", async (e) => {
+      const ficheiro = e.target.files?.[0];
+      e.target.value = "";
+      if (!ficheiro) return;
+      if (!window.confirm(pt.perfil.importarTudoConfirmar)) return;
+      try {
+        const texto = await ficheiro.text();
+        const dump = JSON.parse(texto);
+        await importarTudo(dump);
+        window.alert(pt.perfil.importarTudoSucesso);
+        window.location.reload();
+      } catch (err) {
+        console.error("[Antecipa] Erro ao importar backup:", err);
+        window.alert(`${pt.perfil.importarTudoErro}: ${err.message ?? err}`);
+      }
     });
 
     container.querySelector('[data-action="limpar-ano"]')?.addEventListener("click", async () => {

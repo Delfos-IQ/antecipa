@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.34";
+export const VERSAO_ATUAL = "2.35";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.35", resumo: "Novo: importar dados de um ficheiro de backup — útil para levar a sua simulação para outro navegador" },
   { versao: "2.34", resumo: "Correção: dedução mínima garantida de 15% da Categoria B (recibos verdes) não estava a ser aplicada em algumas atividades" },
   { versao: "2.33", resumo: "Correção: ao comparar declaração conjunta vs. separadas, o desglose e os PDFs podiam mostrar números de um regime diferente do valor em destaque" },
   { versao: "2.32", resumo: "Segurança: corrige uma falha que permitia que um PDF carregado injetasse código na app" },
