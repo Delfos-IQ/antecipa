@@ -158,6 +158,28 @@ export async function renderVentana14({ container, anoFiscal }) {
       ? melhorResultado(comparacao)
       : resultadoUnico.resultado;
 
+    // Desglose (toggle "ver cálculo completo" + os dois PDFs) tem de
+    // corresponder SEMPRE ao mesmo regime que produziu resultadoParaSelo —
+    // bug corrigido em 21/09/2026, reportado pelo Dani ("subi recibos e a
+    // simulação continua igual"): em modo comparação, quando "separada" é
+    // mais vantajosa, o selo já mostrava corretamente a soma A+B separadas,
+    // mas o desglose (e ambos os PDFs) mostravam sempre `comparacao.conjunta`
+    // — um valor DIFERENTE do selo, na mesma tela/documento. Um utilizador
+    // que confira o desglose ou exporte o PDF via a linha 11 ("Resultado")
+    // via um número que não bate com o valor grande em cima, e pode
+    // razoavelmente achar que nada mudou ao adicionar um documento, quando
+    // na verdade estava a comparar o número errado. Agora: se "separada" é
+    // a mais vantajosa, o desglose mostra as DUAS declarações separadas
+    // (A e B), cada uma etiquetada com o nome do titular — nunca a conjunta.
+    const declaracoesParaDesglose = comparacao
+      ? comparacao.maisVantajoso === "conjunta"
+        ? [{ titulo: null, declaracao: comparacao.conjunta }]
+        : [
+            { titulo: estado.pessoas?.[0]?.nome, declaracao: comparacao.separada.A },
+            { titulo: estado.pessoas?.[1]?.nome, declaracao: comparacao.separada.B },
+          ]
+      : [{ titulo: null, declaracao: resultadoUnico }];
+
     // Painel "Sugestões para pagar menos" (03/09/2026) — independente do
     // modo resultadoUnico/comparação, ao contrário de "oportunidades"
     // acima: só precisa do tipo do resultado final, do household e das
@@ -205,9 +227,7 @@ export async function renderVentana14({ container, anoFiscal }) {
     container.querySelector('[data-action="toggle-desglose"]').addEventListener("click", () => {
       const aberto = layout.dataset.desgloseAberto !== "true";
       layout.dataset.desgloseAberto = String(aberto);
-      layout.innerHTML = aberto
-        ? renderDesglose(resultadoUnico ?? comparacao.conjunta)
-        : "";
+      layout.innerHTML = aberto ? renderDesglose(declaracoesParaDesglose) : "";
       container.querySelector('[data-action="toggle-desglose"]').textContent = aberto
         ? pt.ventana14.fecharCalculoCompleto
         : pt.ventana14.verCalculoCompleto;
@@ -226,7 +246,7 @@ export async function renderVentana14({ container, anoFiscal }) {
           percentagemMediaReal,
           household: estado.household,
           pessoas: estado.pessoas,
-          declaracao: resultadoUnico ?? comparacao?.conjunta,
+          declaracoes: declaracoesParaDesglose,
           anoFiscal,
         });
       } catch (err) {
@@ -241,7 +261,7 @@ export async function renderVentana14({ container, anoFiscal }) {
       botao.disabled = true;
       try {
         await exportarPdfContabilista({
-          declaracao: resultadoUnico ?? comparacao.conjunta,
+          declaracoes: declaracoesParaDesglose,
           documentos: [], // ver export/pdf-export.js — versão contabilista lê diretamente da BD
           anoFiscal,
           household: estado.household,
@@ -429,28 +449,42 @@ const ORDEM_LINHAS = [1, 2, 3, 4, 5, 6, "6A", 7, 8, 9, 10, 11];
 // Linhas cujo valor não é uma cifra monetária (quociente é um rácio).
 const LINHAS_NAO_MONETARIAS = new Set([5]);
 
-function renderDesglose(declaracao) {
-  const linhas = declaracao.linhas;
-  const html = ORDEM_LINHAS.filter((num) => linhas[num])
-    .map((num) => {
-      const linha = linhas[num];
-      const valor = linha.total ?? linha.valor ?? 0;
-      const valorFormatado =
-        typeof valor === "number"
-          ? LINHAS_NAO_MONETARIAS.has(num)
-            ? valor.toFixed(2)
-            : formatarMoeda(valor)
-          : valor;
-      return `
-        <div class="desglose-linha">
-          <span class="desglose-linha__num">${num}</span>
-          <span>
-            <span class="desglose-linha__desc">${LABELS_LINHA[num] ?? ""}</span><br/>
-            <span class="desglose-linha__legal">${linha.referenciaLegal ?? ""}</span>
-          </span>
-          <span class="desglose-linha__valor num">${valorFormatado}</span>
-        </div>`;
+// Aceita uma lista de { titulo, declaracao } — normalmente 1 elemento
+// (individual/conjunta), ou 2 quando o regime "separada" é o mais
+// vantajoso (ver nota em render(), 21/09/2026) e é preciso mostrar as
+// declarações de cada titular em vez de uma conjunta que não corresponde
+// ao valor do selo. O título de cada secção só aparece quando há mais do
+// que uma declaração — no caso normal (1 só), mantém o visual de sempre.
+function renderDesglose(declaracoes) {
+  return declaracoes
+    .map(({ titulo, declaracao }) => {
+      const linhas = declaracao.linhas;
+      const cabecalho =
+        declaracoes.length > 1
+          ? `<p class="desglose-titular" style="font-weight:600;margin:var(--space-3) 0 var(--space-2)">${titulo ?? ""}</p>`
+          : "";
+      const html = ORDEM_LINHAS.filter((num) => linhas[num])
+        .map((num) => {
+          const linha = linhas[num];
+          const valor = linha.total ?? linha.valor ?? 0;
+          const valorFormatado =
+            typeof valor === "number"
+              ? LINHAS_NAO_MONETARIAS.has(num)
+                ? valor.toFixed(2)
+                : formatarMoeda(valor)
+              : valor;
+          return `
+            <div class="desglose-linha">
+              <span class="desglose-linha__num">${num}</span>
+              <span>
+                <span class="desglose-linha__desc">${LABELS_LINHA[num] ?? ""}</span><br/>
+                <span class="desglose-linha__legal">${linha.referenciaLegal ?? ""}</span>
+              </span>
+              <span class="desglose-linha__valor num">${valorFormatado}</span>
+            </div>`;
+        })
+        .join("");
+      return `${cabecalho}<div class="desglose card" style="padding:var(--space-2)">${html}</div>`;
     })
     .join("");
-  return `<div class="desglose card" style="padding:var(--space-2)">${html}</div>`;
 }

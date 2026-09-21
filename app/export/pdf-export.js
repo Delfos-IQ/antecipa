@@ -160,51 +160,75 @@ function linhaSujeitos(doc, pessoas, y) {
 // descrição + valor), mas com os rótulos amigáveis já usados na app em vez
 // dos códigos técnicos — a versão completa com referências legais linha a
 // linha continua reservada ao PDF para contabilista.
-function desgloseResumido(doc, declaracao, yInicial) {
-  if (!declaracao?.linhas) return yInicial;
+//
+// Recebe SEMPRE um array de secções `{titulo, declaracao}` — nunca uma
+// declaração isolada. Corrigido em 21/09/2026 (bug reportado pelo Dani: "he
+// subido unos recibos y la simulacion sigue igual"): em modo comparação,
+// quando "separada" é a mais vantajosa, este desglose tem de mostrar as DUAS
+// declarações separadas (A e B), cada uma com o nome do titular — nunca a
+// conjunta, que antes aparecia sempre aqui independentemente do regime
+// vencedor, contradizendo o valor em destaque na faixaResultado.
+function desgloseResumido(doc, declaracoes, yInicial) {
+  const secoes = (declaracoes ?? []).filter((s) => s?.declaracao?.linhas);
+  if (secoes.length === 0) return yInicial;
 
   let y = yInicial;
-  doc.setTextColor(...NAVY_DEEP);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.text("Como chegámos a este valor", 40, y);
-  y += 18;
 
-  const linhas = declaracao.linhas;
-  const numerosPresentes = ORDEM_LINHAS.filter((num) => linhas[num]);
-
-  for (const num of numerosPresentes) {
-    const linha = linhas[num];
-    if (y > 760) {
+  for (const { titulo, declaracao } of secoes) {
+    if (y > 740) {
       doc.addPage();
       y = 60;
     }
-    const valor = linha.total ?? linha.valor ?? 0;
-    const valorFormatado =
-      typeof valor === "number"
-        ? LINHAS_NAO_MONETARIAS.has(num)
-          ? valor.toFixed(2)
-          : formatarMoeda(valor)
-        : String(valor);
-
-    doc.setDrawColor(...LINHA_HAIRLINE);
-    doc.line(40, y + 6, 555, y + 6);
-
-    doc.setTextColor(...BRASS);
-    doc.setFont("courier", "bold");
-    doc.setFontSize(9);
-    doc.text(String(num), 40, y);
-
     doc.setTextColor(...NAVY_DEEP);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(LABELS_LINHA[num] ?? "", 66, y);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(
+      secoes.length > 1 && titulo
+        ? `Como chegámos a este valor — ${titulo}`
+        : "Como chegámos a este valor",
+      40,
+      y
+    );
+    y += 18;
 
-    doc.setFont("courier", "bold");
-    doc.setFontSize(10);
-    doc.text(valorFormatado, 480, y, { align: "right" });
+    const linhas = declaracao.linhas;
+    const numerosPresentes = ORDEM_LINHAS.filter((num) => linhas[num]);
 
-    y += 22;
+    for (const num of numerosPresentes) {
+      const linha = linhas[num];
+      if (y > 760) {
+        doc.addPage();
+        y = 60;
+      }
+      const valor = linha.total ?? linha.valor ?? 0;
+      const valorFormatado =
+        typeof valor === "number"
+          ? LINHAS_NAO_MONETARIAS.has(num)
+            ? valor.toFixed(2)
+            : formatarMoeda(valor)
+          : String(valor);
+
+      doc.setDrawColor(...LINHA_HAIRLINE);
+      doc.line(40, y + 6, 555, y + 6);
+
+      doc.setTextColor(...BRASS);
+      doc.setFont("courier", "bold");
+      doc.setFontSize(9);
+      doc.text(String(num), 40, y);
+
+      doc.setTextColor(...NAVY_DEEP);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(LABELS_LINHA[num] ?? "", 66, y);
+
+      doc.setFont("courier", "bold");
+      doc.setFontSize(10);
+      doc.text(valorFormatado, 480, y, { align: "right" });
+
+      y += 22;
+    }
+
+    y += 10;
   }
 
   return y;
@@ -223,7 +247,7 @@ function rodape(doc, y) {
   doc.text(`Gerado em ${formatarDataHora(new Date())}`, 40, y + 30);
 }
 
-export async function exportarPdfPessoal({ resultado, percentagemMediaReal, household, pessoas, declaracao, anoFiscal }) {
+export async function exportarPdfPessoal({ resultado, percentagemMediaReal, household, pessoas, declaracoes, anoFiscal }) {
   const badgeImg = await carregarBadge();
 
   const doc = novoDoc();
@@ -232,14 +256,14 @@ export async function exportarPdfPessoal({ resultado, percentagemMediaReal, hous
 
   linhaSujeitos(doc, pessoas, 250);
 
-  const yAposDesglose = desgloseResumido(doc, declaracao, 280);
+  const yAposDesglose = desgloseResumido(doc, declaracoes, 280);
 
   rodape(doc, Math.max(yAposDesglose + 20, 700));
 
   doc.save(`antecipa-simulacao-pessoal-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export async function exportarPdfContabilista({ declaracao, anoFiscal, household, pessoas }) {
+export async function exportarPdfContabilista({ declaracoes, anoFiscal, household, pessoas }) {
   const badgeImg = await carregarBadge();
 
   const doc = novoDoc();
@@ -257,32 +281,53 @@ export async function exportarPdfContabilista({ declaracao, anoFiscal, household
   doc.text("Cada linha indica a equivalência à numeração oficial da Demonstração.", 40, y);
   y += 24;
 
-  const linhas = declaracao.linhas ?? declaracao.conjunta?.linhas;
+  // Recebe SEMPRE um array de secções `{titulo, declaracao}` — corrigido em
+  // 21/09/2026 junto com desgloseResumido() (ver comentário acima dessa
+  // função): em modo comparação, quando "separada" é a mais vantajosa, este
+  // PDF tem de mostrar as DUAS declarações separadas, nunca a conjunta.
+  const secoes = (declaracoes ?? []).filter((s) => s?.declaracao?.linhas);
   // Ordem explícita: Object.entries ordenaria "6A" fora de sequência (as
   // chaves numéricas do objeto sobem ao topo em JS, ficando "6A" no fim).
-  const ordemLinhas = [1, 2, 3, 4, 5, 6, "6A", 7, 8, 9, 10, 11].filter((num) => linhas[num]);
-  for (const num of ordemLinhas) {
-    const linha = linhas[num];
-    if (y > 760) {
+  const ORDEM = [1, 2, 3, 4, 5, 6, "6A", 7, 8, 9, 10, 11];
+  for (const { titulo, declaracao } of secoes) {
+    if (y > 740) {
       doc.addPage();
       y = 60;
     }
-    const valor = linha.total ?? linha.valor ?? 0;
-    doc.setTextColor(...BRASS);
-    doc.setFont("courier", "bold");
-    doc.setFontSize(9);
-    doc.text(String(num), 40, y);
+    if (secoes.length > 1) {
+      doc.setTextColor(...NAVY_DEEP);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(titulo ?? "", 40, y);
+      y += 16;
+    }
 
-    doc.setTextColor(...NAVY_DEEP);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(linha.referenciaLegal ?? "", 70, y);
+    const linhas = declaracao.linhas;
+    const ordemLinhas = ORDEM.filter((num) => linhas[num]);
+    for (const num of ordemLinhas) {
+      const linha = linhas[num];
+      if (y > 760) {
+        doc.addPage();
+        y = 60;
+      }
+      const valor = linha.total ?? linha.valor ?? 0;
+      doc.setTextColor(...BRASS);
+      doc.setFont("courier", "bold");
+      doc.setFontSize(9);
+      doc.text(String(num), 40, y);
 
-    doc.setFont("courier", "normal");
-    doc.setTextColor(...NAVY_DEEP);
-    doc.text(typeof valor === "number" ? formatarMoeda(valor) : String(valor), 430, y);
+      doc.setTextColor(...NAVY_DEEP);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.text(linha.referenciaLegal ?? "", 70, y);
 
-    y += 18;
+      doc.setFont("courier", "normal");
+      doc.setTextColor(...NAVY_DEEP);
+      doc.text(typeof valor === "number" ? formatarMoeda(valor) : String(valor), 430, y);
+
+      y += 18;
+    }
+    y += 10;
   }
 
   y += 20;
