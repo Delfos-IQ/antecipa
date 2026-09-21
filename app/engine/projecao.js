@@ -86,8 +86,14 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
 
   for (let mes = 1; mes <= 12; mes++) {
     if (mesesComReal.has(mes)) {
-      const doc = documentosReais.find((d) => d.mes === mes);
-      mesAMes.push({ mes, origem: "real", rubricas: doc.rubricas });
+      // Correção (reportado pelo Dani, set/2026): quando uma pessoa tem MAIS DE
+      // UM documento no mesmo mês (ex.: talão + recibo verde, ou dois recibos
+      // verdes), usar apenas .find() pegava só o primeiro documento desse mês e
+      // descartava silenciosamente os restantes do cálculo real — mesmo esses
+      // valores sendo corretamente somados acima para estimar a média dos meses
+      // projetados. Agora juntamos as rubricas de TODOS os documentos desse mês.
+      const rubricasDoMes = documentosReais.filter((d) => d.mes === mes).flatMap((d) => d.rubricas);
+      mesAMes.push({ mes, origem: "real", rubricas: rubricasDoMes });
       continue;
     }
 
