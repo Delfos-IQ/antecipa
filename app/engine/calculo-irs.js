@@ -153,7 +153,19 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
         : tabela.coeficientesSimplificadoB.prestacaoServicosGeral);
     if (coeficienteBAplicadoResumo == null) coeficienteBAplicadoResumo = coefPessoa;
 
-    deducaoB += Math.max(categoriaBPessoa * (1 - coefPessoa), 0);
+    // CORRIGIDO 21/09/2026: o "mínimo garantido" (15% do rendimento bruto
+    // de Categoria B, art.º 31º/1 CIRS) já era CALCULADO (minimoGarantido,
+    // abaixo) mas nunca era efetivamente aplicado à dedução — deducaoB
+    // ficava sempre no valor do coeficiente normal, mesmo quando esse
+    // coeficiente dava uma dedução menor que os 15% mínimos garantidos por
+    // lei (relevante sobretudo para outrosRendimentosCapitaisEPrediais,
+    // coeficiente 0,95 → dedução normal de só 5%, abaixo do mínimo de 15%).
+    // O efeito prático do bug era cobrar IRS a mais a quem exerce essas
+    // atividades — nunca a menos — por isso não explica por si só o caso
+    // do Dani (mais rendimento sem descer o reembolso), mas é um erro real
+    // que se aplica pessoa a pessoa, tal como a dedução em si.
+    const minimoGarantidoPessoa = categoriaBPessoa * tabela.coeficientesSimplificadoB.minimoGarantidoPercentagem;
+    deducaoB += Math.max(categoriaBPessoa * (1 - coefPessoa), minimoGarantidoPessoa, 0);
   });
 
   const minimoGarantido = rendimentoGlobal.categoriaB * tabela.coeficientesSimplificadoB.minimoGarantidoPercentagem;
