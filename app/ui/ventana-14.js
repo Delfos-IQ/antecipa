@@ -150,29 +150,43 @@ export async function renderVentana14({ container, anoFiscal }) {
     ].filter(Boolean);
   }
 
+  // Regime que o utilizador está a explorar no ecrã de comparação
+  // (conjunta vs. separada) — NOVO (21/09/2026, pedido do Dani): até aqui
+  // o selo, o desglose e os PDFs seguiam sempre `comparacao.maisVantajoso`
+  // (o regime objetivamente melhor), sem forma de ver os números do outro
+  // regime lado a lado. Agora os dois cartões são clicáveis: tocar num
+  // deles "seleciona-o" (anel azul, distinto do selo dourado "Mais
+  // vantajoso", que continua a indicar qual é objetivamente melhor) e
+  // tudo o resto do ecrã — selo, desglose, PDFs — passa a refletir o
+  // regime selecionado, não necessariamente o mais vantajoso. Começa
+  // sempre no mais vantajoso, tal como o comportamento anterior.
+  let regimeSelecionado = comparacao?.maisVantajoso ?? null;
+  // Preserva se o desglose estava aberto ao trocar de regime, para o
+  // utilizador não ter de o reabrir a cada clique — só reinicia (fechado)
+  // na primeira renderização.
+  let desgloseAberto = false;
+
   render({ resultadoUnico, comparacao, oportunidades, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes });
 
   function render(estado) {
     const { resultadoUnico, comparacao, oportunidades } = estado;
     const resultadoParaSelo = comparacao
-      ? melhorResultado(comparacao)
+      ? regimeSelecionado === "conjunta"
+        ? comparacao.conjunta.resultado
+        : melhorSeparado(comparacao.separada)
       : resultadoUnico.resultado;
 
     // Desglose (toggle "ver cálculo completo" + os dois PDFs) tem de
-    // corresponder SEMPRE ao mesmo regime que produziu resultadoParaSelo —
-    // bug corrigido em 21/09/2026, reportado pelo Dani ("subi recibos e a
-    // simulação continua igual"): em modo comparação, quando "separada" é
-    // mais vantajosa, o selo já mostrava corretamente a soma A+B separadas,
-    // mas o desglose (e ambos os PDFs) mostravam sempre `comparacao.conjunta`
-    // — um valor DIFERENTE do selo, na mesma tela/documento. Um utilizador
-    // que confira o desglose ou exporte o PDF via a linha 11 ("Resultado")
-    // via um número que não bate com o valor grande em cima, e pode
-    // razoavelmente achar que nada mudou ao adicionar um documento, quando
-    // na verdade estava a comparar o número errado. Agora: se "separada" é
-    // a mais vantajosa, o desglose mostra as DUAS declarações separadas
-    // (A e B), cada uma etiquetada com o nome do titular — nunca a conjunta.
+    // corresponder SEMPRE ao mesmo regime mostrado no selo — bug corrigido
+    // em 21/09/2026, reportado pelo Dani ("subi recibos e a simulação
+    // continua igual"): em modo comparação, o desglose (e ambos os PDFs)
+    // mostravam sempre `comparacao.conjunta`, um valor DIFERENTE do selo.
+    // Agora segue `regimeSelecionado` (ver comentário acima): se
+    // "separada" está selecionada, o desglose mostra as DUAS declarações
+    // separadas (A e B), cada uma etiquetada com o nome do titular —
+    // nunca a conjunta.
     const declaracoesParaDesglose = comparacao
-      ? comparacao.maisVantajoso === "conjunta"
+      ? regimeSelecionado === "conjunta"
         ? [{ titulo: null, declaracao: comparacao.conjunta }]
         : [
             { titulo: estado.pessoas?.[0]?.nome, declaracao: comparacao.separada.A },
@@ -205,7 +219,7 @@ export async function renderVentana14({ container, anoFiscal }) {
         <div class="resultado-selo__confianca">${pt.ventana14.confiancaPrefixo} ${Math.round(percentagemMediaReal * 100)}% ${pt.ventana14.confiancaSufixo}</div>
       </div>
 
-      ${comparacao ? renderComparacao(comparacao) : ""}
+      ${comparacao ? renderComparacao(comparacao, regimeSelecionado) : ""}
 
       ${sugestoesPagamento.length > 0 ? renderSugestoesPagamento(sugestoesPagamento) : ""}
 
@@ -218,20 +232,38 @@ export async function renderVentana14({ container, anoFiscal }) {
           <button class="btn btn-ghost" data-action="pdf-contabilista">${pt.ventana14.exportarContabilista}</button>
         </div>
       </div>
-      <div class="simulacao-layout" data-desglose-aberto="false"></div>
+      <div class="simulacao-layout" data-desglose-aberto="${desgloseAberto}">${desgloseAberto ? renderDesglose(declaracoesParaDesglose) : ""}</div>
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
     `;
 
     const layout = container.querySelector(".simulacao-layout");
+    container.querySelector('[data-action="toggle-desglose"]').textContent = desgloseAberto
+      ? pt.ventana14.fecharCalculoCompleto
+      : pt.ventana14.verCalculoCompleto;
     container.querySelector('[data-action="toggle-desglose"]').addEventListener("click", () => {
-      const aberto = layout.dataset.desgloseAberto !== "true";
-      layout.dataset.desgloseAberto = String(aberto);
-      layout.innerHTML = aberto ? renderDesglose(declaracoesParaDesglose) : "";
-      container.querySelector('[data-action="toggle-desglose"]').textContent = aberto
+      desgloseAberto = layout.dataset.desgloseAberto !== "true";
+      layout.dataset.desgloseAberto = String(desgloseAberto);
+      layout.innerHTML = desgloseAberto ? renderDesglose(declaracoesParaDesglose) : "";
+      container.querySelector('[data-action="toggle-desglose"]').textContent = desgloseAberto
         ? pt.ventana14.fecharCalculoCompleto
         : pt.ventana14.verCalculoCompleto;
     });
+
+    // Cartões de comparação clicáveis — trocar de regime explorado (ver
+    // comentário junto a `regimeSelecionado` acima). Reexecuta render()
+    // por completo para que selo, desglose (se estava aberto) e PDFs
+    // fiquem todos consistentes com o novo regime selecionado.
+    if (comparacao) {
+      container.querySelectorAll("[data-action='selecionar-regime']").forEach((el) => {
+        el.addEventListener("click", () => {
+          const regime = el.dataset.regime;
+          if (regime === regimeSelecionado) return;
+          regimeSelecionado = regime;
+          render(estado);
+        });
+      });
+    }
 
     // Exportação em PDF é async (o cabeçalho carrega o badge da marca) —
     // envolvida em try/catch com alerta ao utilizador em caso de falha,
@@ -291,9 +323,6 @@ function iconeSimulacaoVazia() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
 }
 
-function melhorResultado(comparacao) {
-  return comparacao.maisVantajoso === "conjunta" ? comparacao.conjunta.resultado : melhorSeparado(comparacao.separada);
-}
 function melhorSeparado(separada) {
   const valor = Math.abs(separada.total);
   // BUG corrigido (03/09/2026, relatado pelo Dani): esta condição estava
@@ -309,27 +338,41 @@ function melhorSeparado(separada) {
   return { tipo: separada.total >= 0 ? "a_devolver" : "a_pagar", valor };
 }
 
-function renderComparacao(comparacao) {
+// `regimeSelecionado` (21/09/2026, pedido do Dani): os cartões passam a
+// ser botões clicáveis — tocar num deles muda qual regime o resto do ecrã
+// (selo, desglose, PDFs) mostra. O anel de seleção (data-selecionado) é
+// visualmente distinto do selo "Mais vantajoso" (data-vantajoso, que nunca
+// muda com o clique — indica sempre qual É objetivamente melhor); por
+// omissão os dois coincidem, porque `regimeSelecionado` começa sempre no
+// mais vantajoso.
+function renderComparacao(comparacao, regimeSelecionado) {
   const totalA = comparacao.separada.A.resultado;
   const totalB = comparacao.separada.B.resultado;
   return `
     <div class="comparacao-grid">
-      <div class="comparacao-card" data-vantajoso="${comparacao.maisVantajoso === "conjunta"}">
+      <button type="button" class="comparacao-card" data-action="selecionar-regime" data-regime="conjunta" data-vantajoso="${comparacao.maisVantajoso === "conjunta"}" data-selecionado="${regimeSelecionado === "conjunta"}" aria-pressed="${regimeSelecionado === "conjunta"}">
         <div class="comparacao-card__titulo">
           Declaração conjunta
-          ${comparacao.maisVantajoso === "conjunta" ? `<span class="comparacao-card__badge">${pt.ventana14.maisVantajoso}</span>` : ""}
+          <span class="row" style="gap:6px">
+            ${comparacao.maisVantajoso === "conjunta" ? `<span class="comparacao-card__badge">${pt.ventana14.maisVantajoso}</span>` : ""}
+            ${regimeSelecionado === "conjunta" ? `<span class="comparacao-card__selecionada">✓ ${pt.ventana14.selecionada}</span>` : ""}
+          </span>
         </div>
         <p class="num" style="font-size:1.4rem;margin-top:var(--space-2)">${formatarMoeda(comparacao.conjunta.resultado.valor)} <span class="muted" style="font-size:.85rem">${comparacao.conjunta.resultado.tipo === "a_devolver" ? "a devolver" : "a pagar"}</span></p>
-      </div>
-      <div class="comparacao-card" data-vantajoso="${comparacao.maisVantajoso === "separada"}">
+      </button>
+      <button type="button" class="comparacao-card" data-action="selecionar-regime" data-regime="separada" data-vantajoso="${comparacao.maisVantajoso === "separada"}" data-selecionado="${regimeSelecionado === "separada"}" aria-pressed="${regimeSelecionado === "separada"}">
         <div class="comparacao-card__titulo">
           Declarações separadas
-          ${comparacao.maisVantajoso === "separada" ? `<span class="comparacao-card__badge">${pt.ventana14.maisVantajoso}</span>` : ""}
+          <span class="row" style="gap:6px">
+            ${comparacao.maisVantajoso === "separada" ? `<span class="comparacao-card__badge">${pt.ventana14.maisVantajoso}</span>` : ""}
+            ${regimeSelecionado === "separada" ? `<span class="comparacao-card__selecionada">✓ ${pt.ventana14.selecionada}</span>` : ""}
+          </span>
         </div>
         <p class="num" style="font-size:1.4rem;margin-top:var(--space-2)">${formatarMoeda(Math.abs(comparacao.separada.total))} <span class="muted" style="font-size:.85rem">${comparacao.separada.total >= 0 ? "a devolver" : "a pagar"} (A+B)</span></p>
         <p class="muted" style="font-size:.82rem">A: ${formatarMoeda(totalA.valor)} ${totalA.tipo === "a_devolver" ? "↩" : "↪"} · B: ${formatarMoeda(totalB.valor)} ${totalB.tipo === "a_devolver" ? "↩" : "↪"}</p>
-      </div>
+      </button>
     </div>
+    <p class="field-hint" style="margin-top:var(--space-2)">${pt.ventana14.escolherComparacaoDica}</p>
     <p class="muted" style="margin-top:var(--space-3)">${pt.ventana14.diferenca}: <strong class="num">${formatarMoeda(comparacao.diferenca)}</strong></p>
   `;
 }

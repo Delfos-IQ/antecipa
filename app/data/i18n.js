@@ -130,6 +130,8 @@ export const pt = {
     verCalculoCompleto: "Ver cálculo completo",
     fecharCalculoCompleto: "Fechar cálculo completo",
     maisVantajoso: "Mais vantajoso",
+    selecionada: "Selecionada",
+    escolherComparacaoDica: "Toque num cartão para explorar o cálculo completo e os PDFs desse regime.",
     diferenca: "Diferença",
     disclaimer:
       "Simulação orientativa com base nos documentos carregados. Não substitui a declaração oficial de IRS nem aconselhamento fiscal certificado.",

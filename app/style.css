@@ -582,10 +582,29 @@ input:focus, select:focus { border-color: var(--brass); }
   border-radius: var(--radius);
   padding: var(--space-4);
   background: var(--card);
+  /* Os cartões passaram a <button> clicáveis (21/09/2026, ver
+     ventana-14.js/renderComparacao) — repõe o reset de <button> para
+     continuarem a parecer cartões, não botões de formulário. */
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color .12s, box-shadow .12s;
 }
+.comparacao-card:hover { border-color: var(--brass-light); }
+.comparacao-card:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
 .comparacao-card[data-vantajoso="true"] { border-color: var(--brass); box-shadow: 0 0 0 3px var(--brass-soft); }
-.comparacao-card__titulo { font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-.comparacao-card__badge { font-size: 0.72rem; background: var(--brass); color: #fff; padding: 2px 8px; border-radius: 999px; }
+/* Anel de seleção (qual regime o utilizador está a explorar agora) —
+   deliberadamente distinto do azul "Mais vantajoso" acima, para os dois
+   sinais não se confundirem quando um cartão tem só um deles (ex.:
+   selecionar o regime que NÃO é o mais vantajoso, só para comparar). Usa
+   a mesma cor verde do selo "a devolver" — o pedido do Dani foi
+   literalmente "a tarjeta verde como selección". */
+.comparacao-card[data-selecionado="true"] { border-color: var(--devolver); box-shadow: 0 0 0 3px var(--devolver-bg); }
+.comparacao-card__titulo { font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.comparacao-card__badge { font-size: 0.72rem; background: var(--brass); color: #fff; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.comparacao-card__selecionada { font-size: 0.72rem; color: var(--devolver); font-weight: 600; white-space: nowrap; }
 
 .desglose { display: grid; gap: 2px; }
 .desglose-linha {
