@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.39";
+export const VERSAO_ATUAL = "2.40";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.40", resumo: "Correção importante: os meses projetados passam a estimar também IRS retido, Segurança Social, sindicato e ADSE — antes só o salário bruto entrava na conta" },
   { versao: "2.39", resumo: "Novo: na Simulação, pode escolher \"só dados reais\" (sem projeção) e ver/corrigir mês a mês o que estamos a assumir para o resto do ano" },
   { versao: "2.38", resumo: "Correção grave: os meses sem documento carregado ficavam sempre com 0€ de salário na projeção, mesmo tendo talões anteriores" },
   { versao: "2.37", resumo: "Correção importante: quando havia mais de um documento no mesmo mês (ex. talão e recibo verde), só o primeiro contava para o cálculo real" },

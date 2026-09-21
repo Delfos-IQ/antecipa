@@ -509,6 +509,43 @@ console.log("\n--- Projeção da Categoria A repete a remuneração base real (r
   assertIgual(subsidioNatal.length, 2, "dezembro projetado tem 2 abonos de Categoria A: base + subsídio de Natal");
 }
 
+console.log("\n--- Projeção da Categoria A também estima IRS/SS/Sindicato/ADSE, não só o bruto (reportado pelo Dani, 21/09/2026) ---");
+{
+  // Dani, depois de ver o painel de detalhe mês a mês: "continuo sin saber
+  // si estimas las diferentes rúbricas y las incluyes en el cálculo".
+  // Resposta honesta na altura: não, só o bruto (remuneração base/recibo
+  // verde) era projetado — IRS retido, Segurança Social, Sindicato e ADSE
+  // ficavam a 0€ em qualquer mês sem documento, mesmo sabendo que a
+  // entidade patronal continua a descontar esses valores todos os meses.
+  // Este teste usa 2 meses reais com uma taxa de IRS/SS conhecida (20% e
+  // 10% do bruto, respetivamente) e confirma que um mês projetado aplica
+  // essa MESMA taxa efetiva ao seu próprio bruto projetado.
+  const { projetarAno } = await import("../engine/projecao.js");
+  const docComDescontos = (mes) => ({
+    mes,
+    rubricas: [
+      { descricao: "Vencimento bruto", categoria: "A", tipo: "abono", valorComRedu: 2000 },
+      { descricao: "IRS retido", categoria: "A", tipo: "desconto", categoriaIRS: true, valorComRedu: 400 }, // 20%
+      { descricao: "Segurança Social", categoria: "A", tipo: "desconto", categoriaSS: true, valorComRedu: 200 }, // 10%
+    ],
+  });
+  const { mesAMes } = projetarAno({
+    documentosReais: [docComDescontos(1), docComDescontos(2)],
+    ajustesManuais: [],
+    anoFiscal: 2026,
+  });
+  const mesProjetadoMarco = mesAMes.find((m) => m.mes === 3);
+  const irsProjetado = mesProjetadoMarco.rubricas.find((r) => r.categoria === "A" && r.tipo === "desconto" && r.categoriaIRS);
+  const ssProjetada = mesProjetadoMarco.rubricas.find((r) => r.categoria === "A" && r.tipo === "desconto" && r.categoriaSS);
+  assertIgual(irsProjetado?.valorComRedu ?? 0, 400, "mês projetado aplica a taxa efetiva de IRS observada (20% de 2.000€ = 400€), não fica a 0€");
+  assertIgual(ssProjetada?.valorComRedu ?? 0, 200, "mês projetado aplica a taxa efetiva de SS observada (10% de 2.000€ = 200€), não fica a 0€");
+
+  // Sindicato/ADSE nunca apareceram nos documentos reais deste teste (0%
+  // de taxa efetiva) — não deve inventar-se uma rubrica de valor 0€.
+  const sindicatoProjetado = mesProjetadoMarco.rubricas.find((r) => r.categoria === "A" && r.tipo === "desconto" && r.categoriaSindicato);
+  assertIgual(sindicatoProjetado ? 1 : 0, 0, "sem sindicato nos meses reais (0% de taxa efetiva) não projeta uma rubrica de sindicato");
+}
+
 console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
 // Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
 // 800/700/600€ por declaração. Em regime individual o teto é 400€; em

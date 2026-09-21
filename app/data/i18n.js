@@ -154,6 +154,10 @@ export const pt = {
     detalheCampoVencimentoBrutoReal: "Vencimento bruto",
     detalheReporAutomatico: "Repor estimativa automática",
     detalheSemCategoriaBEsteMes: "Sem recibo verde estimado para este mês.",
+    // 21/09/2026: descontos de Categoria A (IRS/SS/sindicato/ADSE) passaram
+    // a ser projetados também (antes só o bruto era estimado) — ver
+    // engine/projecao.js e ui/ventana-14.js, renderDetalheMes.
+    detalheSemDescontosCatA: "Sem nenhum desconto observado nos meses reais (0% de taxa efetiva) — nada estimado aqui.",
     vazioTitulo: "Ainda não há nada para simular",
     vazioCorpo: "Carregue o primeiro talão ou recibo verde num dos meses para o Antecipa começar a calcular o seu IRS.",
     vazioCta: "Carregar o primeiro documento",

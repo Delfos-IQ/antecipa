@@ -771,6 +771,13 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
   const rubricaBase = rubricaPorDescricao(mes.rubricas, /remunera[cç][aã]o base/i, "A");
   const rubricaSubsidio = rubricaPorDescricao(mes.rubricas, /subs[íi]dio/i, "A");
   const rubricaCatB = rubricaPorDescricao(mes.rubricas, /recibo verde/i, "B");
+  // Descontos de Categoria A projetados (IRS/SS/Sindicato/ADSE) — NOVO
+  // (21/09/2026, reportado pelo Dani: "continuo sin saber si estimas las
+  // diferentes rúbricas... y las incluyes en el cálculo"). São sempre
+  // automáticos (taxa efetiva média sobre o bruto, ver engine/projecao.js)
+  // — não editáveis individualmente aqui, só informativos, para o
+  // utilizador poder confirmar que ENTRAM no cálculo e não ficam a 0€.
+  const descontosCatA = mes.rubricas.filter((r) => r.categoria === "A" && r.tipo === "desconto");
 
   const algumEditado = [rubricaBase, rubricaCatB].some((r) => r?.origem === "projetado_ajustado");
 
@@ -794,6 +801,21 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
                <span class="detalhe-campo__label">${pt.ventana14.detalheCampoSubsidio}</span>
                <span class="detalhe-campo__valor num">${formatarMoeda(rubricaSubsidio.valorComRedu)}</span>
              </div>`
+          : ""
+      }
+      ${
+        rubricaBase
+          ? descontosCatA.length
+            ? descontosCatA
+                .map(
+                  (d) => `
+             <div class="detalhe-campo">
+               <span class="detalhe-campo__label">${d.descricao}</span>
+               <span class="detalhe-campo__valor num">− ${formatarMoeda(d.valorComRedu)}</span>
+             </div>`
+                )
+                .join("")
+            : `<div class="detalhe-campo"><span class="field-hint" style="margin:0">${pt.ventana14.detalheSemDescontosCatA}</span></div>`
           : ""
       }
       ${

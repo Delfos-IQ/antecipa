@@ -52,9 +52,27 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
   const baseA = [];
   const variaveis = { trabalhoNoturno: [], trabalhoSuplementar: [], finsDeSemana: [] };
   const categoriaB = [];
+  // Bruto e descontos reais de Categoria A, para calcular uma TAXA EFETIVA
+  // MÉDIA (desconto ÷ bruto) por tipo de desconto — ver bloco "Descontos de
+  // Categoria A" abaixo (21/09/2026, reportado pelo Dani: "continuo sin
+  // saber si estimas las diferentes rúbricas [IRS retido, SS, sindicato,
+  // ADSE] y las incluyes en el cálculo" — resposta honesta na altura foi
+  // que NÃO, só o bruto era projetado).
+  let brutoCategoriaAReal = 0;
+  const descontosCategoriaAReais = { irs: 0, ss: 0, sindicato: 0, adse: 0 };
 
   for (const doc of documentosReais) {
+    const brutoDoDoc = doc.rubricas
+      .filter((r) => r.tipo === "abono" && r.categoria === "A")
+      .reduce((s, r) => s + (r.valorComRedu ?? r.valorSemRedu ?? 0), 0);
+    brutoCategoriaAReal += brutoDoDoc;
     for (const r of doc.rubricas) {
+      if (r.categoria === "A" && r.tipo === "desconto") {
+        if (r.categoriaIRS) descontosCategoriaAReais.irs += r.valorComRedu ?? 0;
+        else if (r.categoriaSS) descontosCategoriaAReais.ss += r.valorComRedu ?? 0;
+        else if (r.categoriaSindicato) descontosCategoriaAReais.sindicato += r.valorComRedu ?? 0;
+        else if (r.categoriaADSE) descontosCategoriaAReais.adse += r.valorComRedu ?? 0;
+      }
       if (r.tipo !== "abono") continue;
       if (r.categoria === "A" && /vencimento\s*bruto|remunera[cç][aã]o base/i.test(r.descricao || "")) baseA.push({ mes: doc.mes, valor: r.valorComRedu ?? r.valorSemRedu });
       if (r.categoria === "A" && /noturno/i.test(r.descricao || "")) variaveis.trabalhoNoturno.push(r.valorComRedu ?? r.valorSemRedu);
@@ -73,6 +91,26 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
   const catBStats = categoriaB.length
     ? { min: Math.min(...categoriaB), media: media(categoriaB), max: Math.max(...categoriaB) }
     : { min: 0, media: 0, max: 0 };
+
+  // Taxa efetiva média de cada desconto de Categoria A sobre o bruto real
+  // (ex.: se em 9 meses reais o IRS retido somou 14% do bruto total, cada
+  // mês projetado aplica 14% ao SEU bruto projetado). É a mesma lógica de
+  // "repetir o padrão já conhecido" usada no resto deste ficheiro — não
+  // tenta replicar as tabelas de retenção oficiais (essas variam por
+  // escalão/situação familiar e não estão modeladas para Categoria A), mas
+  // é claramente melhor do que 0€, que era o comportamento anterior e
+  // subestimava sistematicamente as retenções acumuladas (linha 10) e a
+  // base de Segurança Social usada nas deduções específicas (art.º 25º
+  // CIRS) para qualquer mês ainda sem documento.
+  const taxasEfetivasCategoriaA =
+    brutoCategoriaAReal > 0
+      ? {
+          irs: descontosCategoriaAReais.irs / brutoCategoriaAReal,
+          ss: descontosCategoriaAReais.ss / brutoCategoriaAReal,
+          sindicato: descontosCategoriaAReais.sindicato / brutoCategoriaAReal,
+          adse: descontosCategoriaAReais.adse / brutoCategoriaAReal,
+        }
+      : { irs: 0, ss: 0, sindicato: 0, adse: 0 };
 
   // Retenção na fonte estimada para os meses de Categoria B ainda SEM
   // documento real (04/09/2026, a pedido do Dani). Antes desta alteração,
@@ -160,6 +198,39 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
         origem: ajustePorComponente.has(label) ? "projetado_ajustado" : "projetado",
         origemDetalhe: `Igual à remuneração base conhecida: ${ultimaBase.toFixed(2)} €`,
       });
+    }
+
+    // Descontos de Categoria A (IRS retido, Segurança Social, Sindicato,
+    // ADSE) — aplicados à taxa efetiva média (ver acima) sobre o bruto
+    // projetado deste mês (base + variáveis + subsídio, se aplicável).
+    // Sem isto, um mês projetado só tinha o valor ILÍQUIDO, nunca nenhum
+    // desconto — o que inflacionava artificialmente tanto o Rendimento
+    // Global (ainda que corretamente bruto) como, mais grave, subestimava
+    // as Retenções na Fonte acumuladas (linha 10): na realidade a entidade
+    // patronal continua a reter IRS/SS todos os meses, incluindo os ainda
+    // sem talão carregado — só não sabíamos ainda o valor exato.
+    const brutoProjetadoMesA = rubricasProjetadas
+      .filter((r) => r.categoria === "A" && r.tipo === "abono")
+      .reduce((s, r) => s + r.valorComRedu, 0);
+    if (brutoProjetadoMesA > 0) {
+      for (const [chave, descricao, flag] of [
+        ["irs", "IRS retido (projetado)", "categoriaIRS"],
+        ["ss", "Segurança Social (projetado)", "categoriaSS"],
+        ["sindicato", "Sindicato (projetado)", "categoriaSindicato"],
+        ["adse", "ADSE (projetado)", "categoriaADSE"],
+      ]) {
+        const taxa = taxasEfetivasCategoriaA[chave];
+        if (taxa <= 0) continue;
+        rubricasProjetadas.push({
+          categoria: "A",
+          tipo: "desconto",
+          [flag]: true,
+          descricao,
+          valorComRedu: round2(brutoProjetadoMesA * taxa),
+          origem: "projetado",
+          origemDetalhe: `Taxa efetiva média observada nos meses reais: ${(taxa * 100).toFixed(1)}% do bruto`,
+        });
+      }
     }
 
     // Categoria B — mostrado como intervalo, usa a média como valor de cálculo.
