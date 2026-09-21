@@ -37,6 +37,18 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
   const mesAMes = [];
 
   // Extrai série de remuneração base A por mês real, para repetir o último valor.
+  //
+  // Correção crítica (reportado pelo Dani, set/2026): o regex abaixo só
+  // reconhecia "Remuneração base" — mas ui/components/confirmacao.js
+  // (rubricasFinaisDoResumo) grava SEMPRE o bruto do talão com a descrição
+  // "Vencimento bruto" (é a única forma como a app real produz esta
+  // rubrica; "Remuneração base" só existia nos fixtures de
+  // tests/test-engine.mjs, nunca nos dados reais). Resultado: baseA nunca
+  // tinha nenhum valor, ultimaBase ficava sempre 0, e TODOS os meses
+  // projetados (sem documento carregado) ficavam com 0€ de Categoria A —
+  // mesmo para quem trabalha os 12 meses do ano. Isto subestimava
+  // drasticamente o rendimento anual projetado de qualquer utilizador com
+  // menos de 12 meses de talões carregados.
   const baseA = [];
   const variaveis = { trabalhoNoturno: [], trabalhoSuplementar: [], finsDeSemana: [] };
   const categoriaB = [];
@@ -44,7 +56,7 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
   for (const doc of documentosReais) {
     for (const r of doc.rubricas) {
       if (r.tipo !== "abono") continue;
-      if (r.categoria === "A" && /remunera[cç][aã]o base/i.test(r.descricao || "")) baseA.push({ mes: doc.mes, valor: r.valorComRedu ?? r.valorSemRedu });
+      if (r.categoria === "A" && /vencimento\s*bruto|remunera[cç][aã]o base/i.test(r.descricao || "")) baseA.push({ mes: doc.mes, valor: r.valorComRedu ?? r.valorSemRedu });
       if (r.categoria === "A" && /noturno/i.test(r.descricao || "")) variaveis.trabalhoNoturno.push(r.valorComRedu ?? r.valorSemRedu);
       if (r.categoria === "A" && /suplementar|extra/i.test(r.descricao || "")) variaveis.trabalhoSuplementar.push(r.valorComRedu ?? r.valorSemRedu);
       if (r.categoria === "A" && /fim.?de.?semana/i.test(r.descricao || "")) variaveis.finsDeSemana.push(r.valorComRedu ?? r.valorSemRedu);

@@ -483,6 +483,32 @@ console.log("\n--- Retenção na fonte projetada para Categoria B (art.º 101º/
   assertIgual(retencaoSemTabela ? 1 : 0, 0, "chamador antigo sem `taxasRetencaoCategoriaB` não projeta retenção (retrocompatibilidade)");
 }
 
+console.log("\n--- Projeção da Categoria A repete a remuneração base real (reportado pelo Dani, set/2026) ---");
+{
+  // A app real NUNCA produz uma rubrica com descrição "Remuneração base" —
+  // ui/components/confirmacao.js (rubricasFinaisDoResumo) grava sempre o
+  // bruto do talão como "Vencimento bruto". Este teste usa essa descrição
+  // real, exatamente como sai do fluxo de confirmação, para garantir que a
+  // regressão de 21/09/2026 (baseA nunca reconhecia "Vencimento bruto",
+  // logo todo mês projetado ficava com 0€ de Categoria A) não volta.
+  const { projetarAno } = await import("../engine/projecao.js");
+  const docsReaisTalao = [
+    { mes: 1, rubricas: [{ descricao: "Vencimento bruto", categoria: "A", tipo: "abono", valorComRedu: 2000 }] },
+    { mes: 2, rubricas: [{ descricao: "Vencimento bruto", categoria: "A", tipo: "abono", valorComRedu: 2000 }] },
+  ];
+  const { mesAMes } = projetarAno({
+    documentosReais: docsReaisTalao,
+    ajustesManuais: [],
+    anoFiscal: 2026,
+  });
+  const mesProjetadoMarco = mesAMes.find((m) => m.mes === 3);
+  const baseProjetada = mesProjetadoMarco.rubricas.find((r) => r.categoria === "A" && r.tipo === "abono");
+  assertIgual(baseProjetada?.valorComRedu ?? 0, 2000, "mês sem documento repete a última 'Vencimento bruto' real (2.000€), não fica a 0€");
+  const mesProjetadoDezembro = mesAMes.find((m) => m.mes === 12);
+  const subsidioNatal = mesProjetadoDezembro.rubricas.filter((r) => r.categoria === "A" && r.tipo === "abono");
+  assertIgual(subsidioNatal.length, 2, "dezembro projetado tem 2 abonos de Categoria A: base + subsídio de Natal");
+}
+
 console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
 // Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
 // 800/700/600€ por declaração. Em regime individual o teto é 400€; em

@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.37";
+export const VERSAO_ATUAL = "2.38";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.38", resumo: "Correção grave: os meses sem documento carregado ficavam sempre com 0€ de salário na projeção, mesmo tendo talões anteriores" },
   { versao: "2.37", resumo: "Correção importante: quando havia mais de um documento no mesmo mês (ex. talão e recibo verde), só o primeiro contava para o cálculo real" },
   { versao: "2.36", resumo: "Novo: na comparação conjunta vs. separadas, pode tocar em cada cartão para explorar o cálculo completo e os PDFs desse regime" },
   { versao: "2.35", resumo: "Novo: importar dados de um ficheiro de backup — útil para levar a sua simulação para outro navegador" },
