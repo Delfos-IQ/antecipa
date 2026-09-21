@@ -546,6 +546,40 @@ console.log("\n--- Projeção da Categoria A também estima IRS/SS/Sindicato/ADS
   assertIgual(sindicatoProjetado ? 1 : 0, 0, "sem sindicato nos meses reais (0% de taxa efetiva) não projeta uma rubrica de sindicato");
 }
 
+console.log("\n--- Ajuste manual de 0€ ao vencimento bruto continua a aparecer (reportado pelo Dani, 21/09/2026: 'las tarjetas proyectadas ya no estan expandidas') ---");
+{
+  // Depois da correção anterior (campo vazio grava 0€ em vez de ser
+  // ignorado), um utilizador que apague o vencimento bruto de um mês
+  // projetado (a dizer "não vou trabalhar esse mês") ficava com a rubrica
+  // toda omitida — porque o código só empurrava a rubrica quando
+  // valorBase > 0, e um ajuste explícito de 0€ falha esse teste tal como o
+  // valor automático (ultimaBase) ficaria a 0€ sem nenhum documento real.
+  // Isto escondia não só o valor mas o PRÓPRIO CAMPO editável e o botão
+  // "repor estimativa automática", sem forma de desfazer pela interface.
+  const { projetarAno } = await import("../engine/projecao.js");
+  const docsReaisBase = [
+    { mes: 1, rubricas: [{ descricao: "Vencimento bruto", categoria: "A", tipo: "abono", valorComRedu: 2000 }] },
+  ];
+  const { mesAMes } = projetarAno({
+    documentosReais: docsReaisBase,
+    ajustesManuais: [{ mes: 3, anoFiscal: 2026, componente: "remuneracao_base", valorAjustado: 0 }],
+    anoFiscal: 2026,
+  });
+  const mesAjustadoAZero = mesAMes.find((m) => m.mes === 3);
+  const baseAjustada = mesAjustadoAZero.rubricas.find((r) => r.categoria === "A" && r.tipo === "abono" && /vencimento\s*bruto/i.test(r.descricao));
+  assertIgual(baseAjustada ? 1 : 0, 1, "ajuste manual de 0€ ao vencimento bruto continua a produzir uma rubrica (visível e editável), não desaparece");
+  assertIgual(baseAjustada?.valorComRedu ?? -1, 0, "...com o valor 0€ efetivamente aplicado");
+  assertIgual(baseAjustada?.origem ?? "", "projetado_ajustado", "...marcada como 'projetado_ajustado', para mostrar o botão de repor automático");
+
+  // Continua correto: SEM nenhum ajuste e sem nenhum mês real anterior
+  // (ultimaBase = 0 por omissão), a rubrica não deve aparecer — não há
+  // nada para projetar.
+  const { mesAMes: semDadosNenhuns } = projetarAno({ documentosReais: [], ajustesManuais: [], anoFiscal: 2026 });
+  const mesSemNada = semDadosNenhuns.find((m) => m.mes === 3);
+  const baseSemNada = mesSemNada.rubricas.find((r) => r.categoria === "A" && r.tipo === "abono");
+  assertIgual(baseSemNada ? 1 : 0, 0, "sem nenhum dado real nem ajuste, continua sem inventar uma rubrica de 0€");
+}
+
 console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
 // Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
 // 800/700/600€ por declaração. Em regime individual o teto é 400€; em

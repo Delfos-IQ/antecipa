@@ -165,14 +165,27 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
     // mantém-se por estabilidade de dados já gravados; só o texto mostrado
     // ao utilizador mudou.
     const compBase = "remuneracao_base";
-    const valorBase = ajustePorComponente.has(compBase) ? ajustePorComponente.get(compBase).valorAjustado : ultimaBase;
-    if (valorBase > 0) {
+    const temAjusteBase = ajustePorComponente.has(compBase);
+    const valorBase = temAjusteBase ? ajustePorComponente.get(compBase).valorAjustado : ultimaBase;
+    // CORRIGIDO 21/09/2026 (relatado pelo Dani: "las tarjetas proyectadas ya
+    // no estan expandidas"): a condição era `valorBase > 0`, o que fazia
+    // sentido enquanto só existia o valor automático (ultimaBase) — sem
+    // nenhum documento real ainda, não há nada para mostrar. Mas agora que
+    // o campo aceita 0,00€ como ajuste manual explícito (correção anterior,
+    // "al eliminar los valores... el total no se mueve"), um utilizador que
+    // apague o vencimento bruto de um mês (a dizer "não vou trabalhar esse
+    // mês") ficava com a rubrica toda omitida da app — incluindo o próprio
+    // campo editável e o botão "repor estimativa automática" — sem forma
+    // de voltar atrás pela interface. Agora, um ajuste manual explícito
+    // (mesmo que seja 0€) continua sempre a aparecer, só o valor automático
+    // (sem ajuste nenhum) é que precisa de ser positivo para aparecer.
+    if (valorBase > 0 || temAjusteBase) {
       rubricasProjetadas.push({
         categoria: "A",
         tipo: "abono",
         descricao: "Vencimento bruto (projetado)",
         valorComRedu: valorBase,
-        origem: ajustePorComponente.has(compBase) ? "projetado_ajustado" : "projetado",
+        origem: temAjusteBase ? "projetado_ajustado" : "projetado",
         origemDetalhe: `Repete o último valor conhecido: ${ultimaBase.toFixed(2)} €`,
       });
     }
