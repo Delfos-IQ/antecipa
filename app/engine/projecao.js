@@ -152,14 +152,25 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
 
     const rubricasProjetadas = [];
 
-    // Remuneração base — repete último valor conhecido.
+    // Vencimento bruto — repete o último valor real conhecido. A
+    // descrição diz "Vencimento bruto", não "Remuneração base" (21/09/2026,
+    // pergunta direta do Dani: "en la proyección sería 'remuneracion base'
+    // o 'vencimento bruto'?") — porque é EXATAMENTE isso que está a
+    // repetir: o bruto agregado de um mês real inteiro (ver
+    // ui/components/confirmacao.js, rubricasFinaisDoResumo, que é quem
+    // produz "Vencimento bruto" nos meses reais), não uma "remuneração
+    // base" no sentido estrito de excluir horas extra/prémios desse mês —
+    // essa distinção nem é modelada, o parser já agrega tudo num só valor.
+    // O nome do componente (`remuneracao_base`, usado por ajustesManuais)
+    // mantém-se por estabilidade de dados já gravados; só o texto mostrado
+    // ao utilizador mudou.
     const compBase = "remuneracao_base";
     const valorBase = ajustePorComponente.has(compBase) ? ajustePorComponente.get(compBase).valorAjustado : ultimaBase;
     if (valorBase > 0) {
       rubricasProjetadas.push({
         categoria: "A",
         tipo: "abono",
-        descricao: "Remuneração base (projetado)",
+        descricao: "Vencimento bruto (projetado)",
         valorComRedu: valorBase,
         origem: ajustePorComponente.has(compBase) ? "projetado_ajustado" : "projetado",
         origemDetalhe: `Repete o último valor conhecido: ${ultimaBase.toFixed(2)} €`,
@@ -196,7 +207,7 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
         descricao: `${mes === MESES_SUBSIDIO.ferias ? "Subsídio de férias" : "Subsídio de Natal"} (projetado)`,
         valorComRedu: valor,
         origem: ajustePorComponente.has(label) ? "projetado_ajustado" : "projetado",
-        origemDetalhe: `Igual à remuneração base conhecida: ${ultimaBase.toFixed(2)} €`,
+        origemDetalhe: `Igual ao vencimento bruto conhecido: ${ultimaBase.toFixed(2)} €`,
       });
     }
 

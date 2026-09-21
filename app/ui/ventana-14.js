@@ -421,7 +421,7 @@ export async function renderVentana14({ container, anoFiscal }) {
   }
 
   // Liga os inputs editáveis do painel "Ver detalhe mês a mês" (21/09/2026)
-  // — cada input representa um componente projetado (remuneração base ou
+  // — cada input representa um componente projetado (vencimento bruto ou
   // Categoria B) de um mês/pessoa. Gravar cria/atualiza um ajusteManual
   // (storage/db.js) e "Repor estimativa automática" apaga-o; os dois casos
   // acabam em recalcular(), que volta a correr projetarAno() com os
@@ -768,7 +768,9 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
   // informativa (subsídio de férias/Natal, só em agosto/dezembro, sempre
   // a seguir o último valor real conhecido, não editável aqui para não
   // duplicar a lógica de "última base conhecida" do motor).
-  const rubricaBase = rubricaPorDescricao(mes.rubricas, /remunera[cç][aã]o base/i, "A");
+  // Descrição "Vencimento bruto (projetado)", não "Remuneração base" —
+  // ver engine/projecao.js para o porquê (21/09/2026, pergunta do Dani).
+  const rubricaBase = rubricaPorDescricao(mes.rubricas, /vencimento\s*bruto/i, "A");
   const rubricaSubsidio = rubricaPorDescricao(mes.rubricas, /subs[íi]dio/i, "A");
   const rubricaCatB = rubricaPorDescricao(mes.rubricas, /recibo verde/i, "B");
   // Descontos de Categoria A projetados (IRS/SS/Sindicato/ADSE) — NOVO

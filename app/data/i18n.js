@@ -148,7 +148,9 @@ export const pt = {
     detalheMesTagReal: "Real",
     detalheMesTagProjetado: "Projetado",
     detalheMesTagProjetadoEditado: "Projetado — editado por si",
-    detalheCampoBase: "Remuneração base",
+    // "Vencimento bruto", não "Remuneração base" — tem de bater certo com
+    // o nome usado nos meses reais (ver engine/projecao.js, 21/09/2026).
+    detalheCampoBase: "Vencimento bruto",
     detalheCampoSubsidio: "Subsídio (segue o último valor real, não editável aqui)",
     detalheCampoCategoriaB: "Recibo verde (Categoria B)",
     detalheCampoVencimentoBrutoReal: "Vencimento bruto",
