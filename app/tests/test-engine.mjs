@@ -924,4 +924,31 @@ assertIgual(comDependenteDeficiente.deficiencia, 1342.83, "...e o extra de defic
 assertIgual(deducoesDe({ deducoesColeta: { trabalhoDomestico: 1000 } }).trabalhoDomestico, 50, "trabalho doméstico: 5% de 1.000€ = 50€ (dentro do teto)");
 assertIgual(deducoesDe({ deducoesColeta: { trabalhoDomestico: 10000 } }).trabalhoDomestico, 200, "trabalho doméstico: 5% de 10.000€ = 500€, mas o teto é 200€");
 
+// compararRegimes: deduções à coleta "household" (saúde/educação/etc, sem
+// NIF de quem pagou) não podem ser contadas em dobro quando se compara com
+// separada — regressão do bug encontrado a 21/09/2026 a partir da pergunta
+// do Dani "Por qué sale mejor hacer las declaraciones por separado?": cada
+// declaração separada via a totalidade das despesas do casal, não metade.
+// Rendimentos baixos de propósito (< 8.342€, 1º escalão) para que o teto
+// agregado do art.º 78º n.º 7/8 fique em Infinity e não interfira no teste.
+console.log("\n--- compararRegimes não duplica deduções partilhadas (saúde/educação) em separada ---");
+const rubricasBaixaA = [{ categoria: "A", tipo: "abono", descricao: "Vencimento bruto", valorComRedu: 500 * 12 }];
+const rubricasBaixaB = [{ categoria: "A", tipo: "abono", descricao: "Vencimento bruto", valorComRedu: 450 * 12 }];
+const compPartilha = compararRegimes(
+  { anoFiscal: 2026, deducoesColeta: { saude: 2000, educacao: 500 } },
+  { rubricas: rubricasBaixaA, dependentesAtribuidos: [] },
+  { rubricas: rubricasBaixaB, dependentesAtribuidos: [] },
+  []
+);
+assertIgual(compPartilha.conjunta.linhas[8].saude, 300, "conjunta: saúde plena (15% de 2.000€) — não é dividida");
+assertIgual(compPartilha.separada.A.linhas[8].saude, 150, "separada A: só metade da saúde do casal (15% de 1.000€)");
+assertIgual(compPartilha.separada.B.linhas[8].saude, 150, "separada B: só metade da saúde do casal (15% de 1.000€)");
+assertIgual(
+  compPartilha.separada.A.linhas[8].saude + compPartilha.separada.B.linhas[8].saude,
+  compPartilha.conjunta.linhas[8].saude,
+  "separada A + separada B em saúde soma exatamente o mesmo que a conjunta (sem duplicar)"
+);
+assertIgual(compPartilha.conjunta.linhas[8].educacao, 150, "conjunta: educação plena (30% de 500€)");
+assertIgual(compPartilha.separada.A.linhas[8].educacao + compPartilha.separada.B.linhas[8].educacao, 150, "separada A+B em educação soma o mesmo que a conjunta");
+
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

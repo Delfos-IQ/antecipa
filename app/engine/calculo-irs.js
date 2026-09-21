@@ -904,6 +904,55 @@ export function calcularDeclaracao(input) {
   };
 }
 
+// CORRIGIDO 21/09/2026 (pergunta do Dani: "Por qué sale mejor hacer las
+// declaraciones por separado en vez de juntos?"): `inputBase.deducoesColeta`
+// é um único formulário "household" (saúde, educação, PPR, habitação,
+// exigência de fatura, trabalho doméstico, donativos, dupla tributação) —
+// não temos, na app, o NIF de quem pagou cada despesa, por isso não
+// sabemos "de quem" é cada valor. Até esta correção, `compararRegimes`
+// passava esse MESMO objeto, com os MESMOS valores completos, às três
+// chamadas (conjunta, separadaA, separadaB) — o que significava que, em
+// modo separada, CADA titular via reconhecida a totalidade das despesas
+// do casal, como se cada um as tivesse pago duas vezes. Confirmado com um
+// caso real: saúde (450,70€), educação (800€) e exigência de fatura
+// (250€) apareciam INTEGRALMENTE tanto na declaração A como na B — o
+// dobro do que o casal realmente gastou — e ainda por cima cada metade
+// ficava sujeita ao teto do art.º 78º n.º 7/8 calculado sobre o
+// rendimento INDIVIDUAL de cada titular (mais baixo que o rendimento por
+// quociente da conjunta), o que ampliava ainda mais a vantagem artificial
+// da separada. A dedução por dependentes/ascendentes já não sofre disto
+// (é atribuída via `dependentesAtribuidos`/`ascendentesAtribuidos`, não
+// via `deducoesColeta`), nem despesasGerais (o teto already soma
+// "casal" = 2× "solteiro", por isso dividir por dois dá o mesmo total
+// capado). Para as restantes rubricas partilhadas, a divisão 50/50 abaixo
+// é a aproximação mais razoável sem sabermos o NIF de cada fatura — dá a
+// cada declaração separada metade do que o casal declarou, em vez do
+// total duplicado.
+function dividirDeducoesColetaPorDois(deducoesColeta = {}) {
+  const metade = (chave) => (deducoesColeta[chave] ? round2(deducoesColeta[chave] / 2) : deducoesColeta[chave]);
+  return {
+    ...deducoesColeta,
+    saude: metade("saude"),
+    saudeDependentes: metade("saudeDependentes"),
+    educacao: metade("educacao"),
+    educacaoDependentes: metade("educacaoDependentes"),
+    habitacao: metade("habitacao"),
+    ppr: metade("ppr"),
+    exigenciaFaturaRestauracao: metade("exigenciaFaturaRestauracao"),
+    exigenciaFaturaReparacaoAutomovel: metade("exigenciaFaturaReparacaoAutomovel"),
+    exigenciaFaturaOutras: metade("exigenciaFaturaOutras"),
+    exigenciaFaturaPassesMensais: metade("exigenciaFaturaPassesMensais"),
+    exigenciaFatura: metade("exigenciaFatura"),
+    trabalhoDomestico: metade("trabalhoDomestico"),
+    donativos: metade("donativos"),
+    duplaTributacao: metade("duplaTributacao"),
+    // despesasGerais e despesasGeraisDependentes ficam intactas de propósito:
+    // o teto já é limiteCasal (2×limiteSolteiro), por isso metade + metade,
+    // cada uma capada a limiteSolteiro, já reproduz o total correto sem
+    // dividir a base.
+  };
+}
+
 /**
  * Modo comparação automática: corre a cadeia duas vezes com os mesmos
  * dados de base — conjunta vs. separada A + separada B — e devolve os
@@ -931,8 +980,11 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes, t
     ascendentes: todosAscendentes,
   });
 
+  const deducoesColetaMetade = dividirDeducoesColetaPorDois(inputBase.deducoesColeta);
+
   const separadaA = calcularDeclaracao({
     ...inputBase,
+    deducoesColeta: deducoesColetaMetade,
     regime: "separada",
     rubricasPorPessoa: [pessoaA.rubricas],
     dependentes: pessoaA.dependentesAtribuidos ?? [],
@@ -942,6 +994,7 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes, t
 
   const separadaB = calcularDeclaracao({
     ...inputBase,
+    deducoesColeta: deducoesColetaMetade,
     regime: "separada",
     rubricasPorPessoa: [pessoaB.rubricas],
     dependentes: pessoaB.dependentesAtribuidos ?? [],
