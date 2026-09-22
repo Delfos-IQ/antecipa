@@ -121,6 +121,23 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
     // reconcilia se se usarem as contribuições reais de SS de cada
     // sujeito passivo (ambas acima do valor fixo da tabela desse ano),
     // não o valor fixo.
+    // NOTA (22/09/2026, auditoria legislativa contra o Comprovativo/
+    // Demonstração de Liquidação reais do Dani): este filtro procura
+    // `r.categoriaSubsistemaSaude`, que nenhum parser marca — o "ADSE"
+    // extraído dos talões mensais fica sempre com `categoriaADSE`. Cheguei
+    // a testar incluir `categoriaADSE` aqui também (por analogia com o
+    // texto do art.º 25º/1-a CIRS, que junta SS e "subsistemas legais de
+    // saúde"), mas isso deixou de bater certo com a Demonstração de
+    // Liquidação REAL do Dani (2025): sem incluir o ADSE, o Rendimento
+    // Coletável reproduzido bate exatamente com o real (97.929,52€);
+    // incluindo-o, fica 216€ a menos. Conclusão mais provável: o valor
+    // rotulado "ADSE" nos talões do Dani é um seguro de saúde privado
+    // (voluntário), não uma contribuição obrigatória para um subsistema
+    // legal — por isso conta antes para a dedução de despesas de saúde
+    // (art.º 78º-C, ver deducoesColeta.saude), não para aqui. Mantido como
+    // estava (só categoriaSS conta); `categoriaSubsistemaSaude` fica à
+    // espera de um caso real que precise dela (ex.: ADSE genuína de
+    // funcionário público).
     const contribuicoesObrigatoriasPessoa = rubricas
       .filter((r) => r.tipo === "desconto" && (r.categoriaSS || r.categoriaSubsistemaSaude))
       .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
