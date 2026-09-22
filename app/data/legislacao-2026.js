@@ -349,6 +349,30 @@ export const legislacaoFiscal = [
     taxaAutonomaMaisValiasFonte: "Herdado do bloco 2026 — art.º 72º/1 CIRS, taxa fixa inalterada.",
   },
   {
+    // ⚠️ PENDENTE (verificado 22/09/2026, a acompanhar): o Conselho de
+    // Ministros aprovou em 17/09/2026 uma nova descida do IRS para 2026 —
+    // entre -0,3 e -0,5 p.p. nos escalões 1º a 6º (7º-9º inalterados),
+    // com efeito retroativo a janeiro/2026, e novas tabelas de retenção
+    // na fonte a entrar em vigor em novembro/2026. À data desta nota
+    // ainda NÃO foi encontrado o Decreto-Lei/Portaria publicado no Diário
+    // da República com os valores finais — só simulações do Governo e
+    // imprensa (ver ex.: portugal.gov.pt/gc25/comunicacao/noticias/novas-
+    // taxas-de-irs-consulte-as-simulacoes-e-saiba-quanto-pode-poupar).
+    // Decisão do Dani (22/09/2026): NÃO atualizar os `escaloes` abaixo
+    // enquanto não sair a publicação oficial — os valores provisórios
+    // ainda podem mudar. Quando a lei sair: (1) atualizar só os campos
+    // `escaloes`/`taxaMarginal`/`parcelaAbater` deste bloco (o motor já
+    // usa uma única tabela anual para o cálculo final da Categoria A/B —
+    // não precisa de nenhuma lógica nova por mês, porque a Coleta oficial
+    // sempre se calcula sobre o rendimento coletável anual, não mês a
+    // mês); (2) a mudança nas tabelas de retenção na fonte (o que sai do
+    // talão em novembro/dezembro) NÃO exige alteração nenhuma aqui nem em
+    // engine/ — o Antecipa nunca calcula a retenção, só lê o que o talão
+    // real diz, por isso um talão de novembro com retenção mais baixa
+    // entra automaticamente; só a projeção (engine/projecao.js) pode
+    // sobrestimar a retenção de nov/dez por extrapolar de meses
+    // anteriores até o talão real chegar — comportamento já existente e
+    // autocorrigível, não um bug novo.
     anoFiscal: 2026,
     vigenciaDesde: "2026-01-01",
     confirmado: false,
@@ -359,7 +383,9 @@ export const legislacaoFiscal = [
       "(erro de transcrição propagado por vários blogs) — corrigida contra uma terceira fonte independente, PwC " +
       "Portugal (pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html), que bate certo com um recálculo por " +
       "continuidade matemática pura entre escalões. Ainda por confirmar contra o Diário da República antes de uso " +
-      "em produção — ver auditoria completa no doc do projeto para os restantes pontos revistos.",
+      "em produção — ver auditoria completa no doc do projeto para os restantes pontos revistos. NOTA (22/09/2026): " +
+      "estes valores ainda não refletem a nova descida de IRS aprovada em Conselho de Ministros a 17/09/2026 " +
+      "(-0,3 a -0,5 p.p. nos escalões 1º-6º) — ver comentário acima do bloco.",
 
     // Escalões de rendimento coletável (continente). Cada escalão define o
     // limite superior, a taxa marginal aplicável a esse escalão, e a

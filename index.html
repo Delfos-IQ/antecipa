@@ -183,10 +183,22 @@
           <div>
             <h2>Os seus dados não saem do telemóvel ou do computador</h2>
             <p>Sem contas, sem servidor, sem terceiros. Tudo o que carregar fica no seu dispositivo — só sai de lá se for você a exportar um PDF e a decidir partilhá-lo.</p>
-            <!-- Texto de fallback (sem JS) igual ao que o script no fundo da
-                 página injeta a partir de app/data/legislacao-2026.js — essa
-                 é a única fonte de verdade, só se atualiza lá. -->
-            <p class="privacidade__revisao" id="revisao-fiscal-texto">Dados fiscais revistos em setembro de 2026 · próxima revisão prevista: março de 2027.</p>
+          </div>
+        </div>
+
+        <!-- Selo de revisão fiscal — pedido do Dani (22/09/2026): tornar
+             visível e verificável quando os dados fiscais foram revistos,
+             não só uma linha pequena escondida dentro da secção de
+             privacidade. Texto injetado a partir de
+             app/data/legislacao-2026.js (revisaoFiscal) pelo script no
+             fundo da página — essa é a única fonte de verdade; o texto
+             abaixo é só o fallback sem JS. -->
+        <div class="revisao-fiscal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          <div>
+            <h3>Dados fiscais revistos, com data e fonte</h3>
+            <p id="revisao-fiscal-texto">Dados fiscais revistos em setembro de 2026 · próxima revisão prevista: março de 2027.</p>
+            <p class="revisao-fiscal__nota">Cada valor fiscal usado no motor de cálculo (escalões, deduções, IAS) tem uma fonte registada — lei publicada em Diário da República sempre que possível — e é revisto sempre que sai uma alteração relevante, como a descida de IRS anunciada para novembro de 2026.</p>
           </div>
         </div>
       </div>
@@ -199,6 +211,19 @@
         <div class="voz-grid">
           <p class="voz-card voz-card--devolver">"Com o que já sabemos, o Estado deve-lhe dinheiro."</p>
           <p class="voz-card voz-card--pagar">"Vai faltar pagar. Ainda tem tempo para se preparar."</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contacto">
+      <div class="wrap">
+        <div class="contacto">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 6 10-6"/></svg>
+          <div>
+            <h2>Tem uma dúvida ou encontrou um erro?</h2>
+            <p>Escreva-nos diretamente — é uma pessoa a responder, não uma equipa de apoio.</p>
+            <a href="mailto:pedicode.app@gmail.com?subject=Antecipa" class="btn btn-secondary contacto__btn">pedicode.app@gmail.com</a>
+          </div>
         </div>
       </div>
     </section>

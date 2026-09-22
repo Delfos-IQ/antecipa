@@ -288,8 +288,38 @@ a { color: inherit; text-decoration: none; }
 }
 .privacidade svg { flex: none; width: 30px; height: 30px; color: var(--brass); margin-top: 4px; }
 .privacidade h2 { font-size: 1.25rem; margin-bottom: var(--space-2); }
-.privacidade__revisao { margin-top: var(--space-3); font-size: 0.8rem; color: var(--muted); max-width: 56ch; }
 .privacidade p { color: var(--text); max-width: 56ch; }
+
+/* ---------- Selo de revisão fiscal ---------- */
+.revisao-fiscal {
+  margin-top: var(--space-5);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  padding: var(--space-6);
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+.revisao-fiscal svg { flex: none; width: 30px; height: 30px; color: var(--devolver); margin-top: 4px; }
+.revisao-fiscal h3 { font-size: 1.1rem; color: var(--navy-deep); margin-bottom: var(--space-2); }
+.revisao-fiscal p { color: var(--text); max-width: 60ch; }
+.revisao-fiscal p#revisao-fiscal-texto { font-weight: 600; color: var(--devolver); }
+.revisao-fiscal__nota { margin-top: var(--space-2); font-size: 0.86rem; color: var(--muted) !important; font-weight: 400 !important; }
+
+/* ---------- Contacto ---------- */
+.contacto {
+  background: var(--brass-soft);
+  border-radius: 18px;
+  padding: var(--space-6);
+  display: flex;
+  gap: var(--space-5);
+  align-items: flex-start;
+}
+.contacto svg { flex: none; width: 30px; height: 30px; color: var(--brass); margin-top: 4px; }
+.contacto h2 { font-size: 1.25rem; margin-bottom: var(--space-2); }
+.contacto p { color: var(--text); max-width: 56ch; margin-bottom: var(--space-4); }
+.contacto__btn { background: var(--card); }
 
 /* ---------- Voz da marca ---------- */
 .secao-visao {
