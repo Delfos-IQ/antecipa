@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.45";
+export const VERSAO_ATUAL = "2.46";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.46", resumo: "Correção: quotizações para ordens profissionais (ex.: Ordem dos Enfermeiros) passam a aumentar corretamente a dedução específica de quem ganha menos" },
   { versao: "2.45", resumo: "Novo: o subsídio de férias/Natal projetado passa a ser editável — útil para quem o recebe por duodécimos ou sai da empresa antes do pagamento" },
   { versao: "2.44", resumo: "Correção: pôr o vencimento bruto projetado a 0€ (\"não vou trabalhar este mês\") fazia esse mês desaparecer do detalhe, sem forma de o repor" },
   { versao: "2.43", resumo: "Correção: apagar por completo o valor de um recibo verde projetado, no detalhe mês a mês, não atualizava o resultado" },

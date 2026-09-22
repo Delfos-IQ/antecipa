@@ -10,12 +10,17 @@
 //
 // O que a app precisa de um talão, na prática, é um pequeno conjunto de
 // números agregados — bruto, IRS retido, Segurança Social, quotização
-// sindical, ADSE, líquido (ver ui/components/confirmacao.js e
-// engine/calculo-irs.js, que usam a quotização sindical para ativar a
-// dedução específica mais alta, e a ADSE como despesa de saúde nas
-// deduções à coleta — esta última ainda não confirmada linha a linha
-// contra fonte oficial, ver data/legislacao-2026.js). O parsing linha a
-// linha abaixo classifica cada desconto numa destas categorias e soma;
+// sindical, ADSE/Ordem profissional, líquido (ver ui/components/
+// confirmacao.js e engine/calculo-irs.js). A quotização sindical ativa a
+// majoração de 100% do art.º 25º/1-c CIRS; o bucket "adse" (categoriaADSE)
+// cobre tanto a ADSE genuína (subsistema legal de saúde) como quotizações
+// para ordens profissionais (ex.: Ordem dos Enfermeiros) — CONFIRMADO
+// (22/09/2026, caso real do Dani) que, pelo menos para quotizações de
+// ordem profissional, isto eleva o teto da dedução específica de
+// Categoria A até 9×IAS em vez de contar como contribuição obrigatória de
+// SS (ver o comentário completo em calcularDeducoesEspecificas(),
+// engine/calculo-irs.js). O parsing linha a linha abaixo classifica cada
+// desconto numa destas categorias e soma;
 // os totais impressos no documento ("Total Ilíquido/Descontos/Líquido")
 // têm prioridade sobre a soma quando existem, por serem uma leitura
 // direta em vez de somar dezenas de linhas.

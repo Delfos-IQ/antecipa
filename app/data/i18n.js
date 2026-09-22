@@ -100,7 +100,7 @@ export const pt = {
     taxaEfetiva: "Taxa de desconto efetiva",
     rendimentoIliquido: "Rendimento ilíquido acumulado",
     sindicato: "Quotização sindical",
-    adse: "ADSE",
+    adse: "ADSE / Ordem profissional",
     liquidoAcumulado: "Líquido acumulado",
     descontosTitulo: "Como se reparte o que foi descontado",
     porMesTitulo: "Rendimento líquido por mês",

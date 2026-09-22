@@ -121,27 +121,42 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
     // reconcilia se se usarem as contribuições reais de SS de cada
     // sujeito passivo (ambas acima do valor fixo da tabela desse ano),
     // não o valor fixo.
-    // NOTA (22/09/2026, auditoria legislativa contra o Comprovativo/
-    // Demonstração de Liquidação reais do Dani): este filtro procura
-    // `r.categoriaSubsistemaSaude`, que nenhum parser marca — o "ADSE"
-    // extraído dos talões mensais fica sempre com `categoriaADSE`. Cheguei
-    // a testar incluir `categoriaADSE` aqui também (por analogia com o
-    // texto do art.º 25º/1-a CIRS, que junta SS e "subsistemas legais de
-    // saúde"), mas isso deixou de bater certo com a Demonstração de
-    // Liquidação REAL do Dani (2025): sem incluir o ADSE, o Rendimento
-    // Coletável reproduzido bate exatamente com o real (97.929,52€);
-    // incluindo-o, fica 216€ a menos. Conclusão mais provável: o valor
-    // rotulado "ADSE" nos talões do Dani é um seguro de saúde privado
-    // (voluntário), não uma contribuição obrigatória para um subsistema
-    // legal — por isso conta antes para a dedução de despesas de saúde
-    // (art.º 78º-C, ver deducoesColeta.saude), não para aqui. Mantido como
-    // estava (só categoriaSS conta); `categoriaSubsistemaSaude` fica à
-    // espera de um caso real que precise dela (ex.: ADSE genuína de
-    // funcionário público).
     const contribuicoesObrigatoriasPessoa = rubricas
       .filter((r) => r.tipo === "desconto" && (r.categoriaSS || r.categoriaSubsistemaSaude))
       .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
-    const baseDeducaoA = Math.max(tabela.deducaoEspecificaCategoriaA.valorFixo, contribuicoesObrigatoriasPessoa);
+    const baseSemOrdemPessoa = Math.max(tabela.deducaoEspecificaCategoriaA.valorFixo, contribuicoesObrigatoriasPessoa);
+
+    // Quotização para ordem profissional (art.º 25º/4 CIRS) — mecanismo
+    // DISTINTO do anterior. NOTA (22/09/2026, auditoria legislativa contra
+    // o Comprovativo/Demonstração de Liquidação reais do Dani, revista a
+    // pedido dele): os 108€/108€ do quadro 4C (código 422) do Dani e da
+    // Vera, marcados `categoriaADSE` pelo parser, NÃO são ADSE (subsistema
+    // legal de saúde de funcionário público) — são a quotização à Ordem
+    // dos Enfermeiros, confirmado pelo próprio Dani. Cheguei a testar somar
+    // este valor a `contribuicoesObrigatoriasPessoa` acima (por analogia
+    // com "subsistemas legais de saúde"), mas isso NÃO reconciliava com a
+    // Demonstração de Liquidação real dele. A explicação correta está no
+    // texto oficial do art.º 25º/4 CIRS: quotizações para ordens
+    // profissionais NÃO se somam às contribuições obrigatórias de SS —
+    // elevam antes o teto da dedução de base (valorFixo/nº1-a) até um
+    // máximo de 75% de 12×IAS (9×IAS), e só quando esse teto ainda não foi
+    // atingido por outra via. No caso real do Dani e da Vera, a SS sozinha
+    // (7.916,82€ e 6.391,81€) já excede em muito esse teto elevado
+    // (4.702,50€ em 2025) — por isso a quotização da Ordem não muda nada
+    // no resultado deles, o que é exatamente o que a Demonstração de
+    // Liquidação real mostra. Mas para quem ganha menos (SS abaixo do
+    // teto elevado), esta quotização PASSA a aumentar a dedução — daí
+    // implementar a regra como está abaixo, em vez de a continuar a
+    // ignorar.
+    const quotizacaoOrdemProfissionalPessoa = rubricas
+      .filter((r) => r.tipo === "desconto" && r.categoriaADSE)
+      .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
+    const tetoElevadoOrdensProfissionais =
+      tabela.deducaoEspecificaCategoriaA.tetoElevadoOrdensProfissionais ?? tabela.deducaoEspecificaCategoriaA.valorFixo;
+    const baseDeducaoA =
+      baseSemOrdemPessoa >= tetoElevadoOrdensProfissionais
+        ? baseSemOrdemPessoa
+        : Math.min(baseSemOrdemPessoa + quotizacaoOrdemProfissionalPessoa, tetoElevadoOrdensProfissionais);
 
     deducaoA += baseDeducaoA + Math.max(0, deducaoSindical);
   }

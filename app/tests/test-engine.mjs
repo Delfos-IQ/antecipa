@@ -1034,4 +1034,44 @@ assertIgual(
 assertIgual(compPartilha.conjunta.linhas[8].educacao, 150, "conjunta: educação plena (30% de 500€)");
 assertIgual(compPartilha.separada.A.linhas[8].educacao + compPartilha.separada.B.linhas[8].educacao, 150, "separada A+B em educação soma o mesmo que a conjunta");
 
+// Quotização para ordem profissional (art.º 25º/4 CIRS) eleva o teto da
+// dedução específica de Categoria A até 9×IAS — regressão do caso real do
+// Dani (22/09/2026): "esos 108 euros es la contribucion que hacemos a la
+// orden de los enfermeros". Confirmado que este valor NÃO é ADSE
+// (subsistema legal de saúde) nem se soma à comparação com a SS — em vez
+// disso eleva o teto do valor fixo, e só quando a SS sozinha ainda não o
+// atingiu (ver comentário completo em calcularDeducoesEspecificas()).
+console.log("\n--- Quotização de ordem profissional eleva o teto da dedução específica de Cat. A (art.º 25º/4) ---");
+function deducaoEspecificaAComOrdem(ssAnual, ordemAnual) {
+  const rubricas = [
+    { categoria: "A", tipo: "abono", descricao: "Vencimento bruto", valorComRedu: 1200 * 14 },
+    { categoria: "A", tipo: "desconto", descricao: "Segurança Social", categoriaSS: true, valorComRedu: ssAnual },
+  ];
+  if (ordemAnual > 0) {
+    rubricas.push({ categoria: "A", tipo: "desconto", descricao: "ADSE / Ordem", categoriaADSE: true, valorComRedu: ordemAnual });
+  }
+  return calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricas],
+    dependentes: [],
+    deducoesColeta: {},
+  }).linhas[2].categoriaA;
+}
+
+// SS baixa (3.000€, abaixo do valorFixo 4.587,09€) — sem ordem, usa-se o
+// valor fixo tal e qual.
+assertIgual(deducaoEspecificaAComOrdem(3000, 0), 4587.09, "sem quotização de ordem: dedução = valorFixo (8,54×IAS), SS abaixo do fixo não conta");
+// Com 200€ de ordem, o valorFixo sobe para 4.587,09+200=4.787,09€ (ainda
+// abaixo do teto elevado de 4.834,17€).
+assertIgual(deducaoEspecificaAComOrdem(3000, 200), 4787.09, "com 200€ de ordem: dedução = valorFixo + ordem (ainda dentro do teto elevado)");
+// Com 500€ de ordem, valorFixo+ordem (5.087,09€) excede o teto elevado
+// (4.834,17€) — fica capado no teto.
+assertIgual(deducaoEspecificaAComOrdem(3000, 500), 4834.17, "com 500€ de ordem: dedução capada no teto elevado (9×IAS = 4.834,17€), não sobe mais");
+// Caso real do Dani: SS sozinha (7.916,82€) já excede o teto elevado —
+// quotização de ordem (108€) não muda nada, tal como confirma a
+// Demonstração de Liquidação real dele.
+assertIgual(deducaoEspecificaAComOrdem(7916.82, 0), 7916.82, "SS alta (caso real do Dani) sem ordem: dedução = SS total");
+assertIgual(deducaoEspecificaAComOrdem(7916.82, 108), 7916.82, "SS alta (caso real do Dani) com ordem: dedução inalterada — SS já excede o teto elevado sozinha");
+
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

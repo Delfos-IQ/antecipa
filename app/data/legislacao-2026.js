@@ -87,11 +87,24 @@ export const legislacaoFiscal = [
     // de referência") — por isso trazido com confiança alta para aqui.
     deducaoEspecificaCategoriaA: {
       valorFixo: 4462.15,
+      // Teto elevado do art.º 25º/4 CIRS: 75% de 12×IAS = 9×IAS. Só entra em
+      // jogo quando a diferença resulta de quotizações para ordens
+      // profissionais (ex.: Ordem dos Enfermeiros, Ordem dos Médicos, Ordem
+      // dos Engenheiros) suportadas pelo próprio sujeito passivo e
+      // indispensáveis ao exercício da atividade por conta de outrem — ver
+      // calcularDeducoesEspecificas() em engine/calculo-irs.js.
+      // 9 × 522,50 = 4.702,50€.
+      tetoElevadoOrdensProfissionais: 4702.5,
       confirmado: true,
       fonte:
-        "art.º 25º/1 CIRS. IAS 2025 = 522,50€ (occ.pt/sites/default/files/public/2024-12/ANALISE_OE2025.pdf). " +
+        "art.º 25º/1 e /4 CIRS (info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/" +
+        "Pages/irs25.aspx). IAS 2025 = 522,50€ (occ.pt/sites/default/files/public/2024-12/ANALISE_OE2025.pdf). " +
         "8,54 × 522,50 = 4.462,15€ — valor já confirmado por retrocálculo cruzado no ficheiro do ano fiscal 2026 " +
-        "desta mesma tabela (bate certo com uma Demonstração de Liquidação real usada nessa auditoria).",
+        "desta mesma tabela (bate certo com uma Demonstração de Liquidação real usada nessa auditoria). Teto " +
+        "elevado (9×IAS) confirmado por leitura direta do texto oficial do artigo (22/09/2026, a propósito de " +
+        "uma dúvida do Dani sobre a quotização à Ordem dos Enfermeiros — não chega a mudar o resultado do caso " +
+        "real dele, porque a sua contribuição obrigatória de SS já excede sozinha este teto, mas é a regra " +
+        "correta para quem ganha menos).",
     },
 
     majoracaoQuotizacaoSindical: {
@@ -388,15 +401,19 @@ export const legislacaoFiscal = [
     // não implementado nesta versão).
     deducaoEspecificaCategoriaA: {
       valorFixo: 4587.09, // 8.54 × 537.13 (IAS 2026) = 4587.0902 ≈ 4587.09
+      // Teto elevado do art.º 25º/4 CIRS (ver bloco 2025 acima para a
+      // explicação completa): 75% × 12×IAS = 9×IAS. 9 × 537,13 = 4.834,17€.
+      tetoElevadoOrdensProfissionais: 4834.17,
       confirmado: true,
       fonte:
-        "art.º 25º/1 CIRS. IAS 2026 = 537,13€ confirmado em apcmc.pt/legislacao/ias-para-2026-fixado-em-e-53713 " +
+        "art.º 25º/1 e /4 CIRS. IAS 2026 = 537,13€ confirmado em apcmc.pt/legislacao/ias-para-2026-fixado-em-e-53713 " +
         "e e-konomista.pt/indexante-dos-apoios-sociais (dois cálculos independentes); fórmula 8,54×IAS confirmada " +
         "por retrocálculo do valor 2025 (522,50€ × 8,54 = 4.462,15€, valor que bate certo com a 'Demonstração de " +
-        "Liquidação' real de referência usada nesta sessão).",
+        "Liquidação' real de referência usada nesta sessão). Teto elevado (9×IAS) recalculado com o IAS 2026 pela " +
+        "mesma fórmula do bloco 2025.",
     },
 
-    // Quotização sindical (quota paga a sindicato, art.º 25º/4 CIRS) — NÃO é
+    // Quotização sindical (quota paga a sindicato, art.º 25º/1-c) CIRS) — NÃO é
     // um valor fixo alternativo à dedução específica acima; é uma dedução
     // ADICIONAL igual ao valor pago majorado em 100% (i.e., o dobro do
     // valor pago), com o limite de 1% do rendimento bruto de Categoria A do
