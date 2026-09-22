@@ -36,7 +36,7 @@ const ROTULOS_CATEGORIA = {
   irs: "IRS",
   ss: "Segurança Social",
   sindicato: "Sindicato",
-  adse: "ADSE / Ordem",
+  adse: "ADSE",
   outros: "Outros",
 };
 

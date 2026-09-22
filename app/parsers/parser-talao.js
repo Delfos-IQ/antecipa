@@ -10,17 +10,22 @@
 //
 // O que a app precisa de um talão, na prática, é um pequeno conjunto de
 // números agregados — bruto, IRS retido, Segurança Social, quotização
-// sindical, ADSE/Ordem profissional, líquido (ver ui/components/
-// confirmacao.js e engine/calculo-irs.js). A quotização sindical ativa a
-// majoração de 100% do art.º 25º/1-c CIRS; o bucket "adse" (categoriaADSE)
-// cobre tanto a ADSE genuína (subsistema legal de saúde) como quotizações
-// para ordens profissionais (ex.: Ordem dos Enfermeiros) — CONFIRMADO
-// (22/09/2026, caso real do Dani) que, pelo menos para quotizações de
-// ordem profissional, isto eleva o teto da dedução específica de
-// Categoria A até 9×IAS em vez de contar como contribuição obrigatória de
-// SS (ver o comentário completo em calcularDeducoesEspecificas(),
-// engine/calculo-irs.js). O parsing linha a linha abaixo classifica cada
-// desconto numa destas categorias e soma;
+// sindical, ADSE, líquido (ver ui/components/confirmacao.js e
+// engine/calculo-irs.js). CONFIRMADO (22/09/2026, contra os 12 talões
+// reais de 2025 do Dani e a sua declaração/Demonstração de Liquidação
+// reais): "adse" (categoriaADSE) é mesmo ADSE a sério (contribuição
+// obrigatória para o subsistema legal de saúde, ~3,5% do bruto neste
+// caso) — soma-se à Segurança Social para a dedução específica de
+// Categoria A (art.º 25º/1-2 CIRS), exatamente como esta categoria
+// sempre pretendeu. A quotização a uma ORDEM PROFISSIONAL (ex.: Ordem
+// dos Enfermeiros) é uma coisa bem diferente — não aparece em nenhum
+// talão mensal (paga-se à parte) e por isso NÃO vem daqui: é um campo
+// manual em Perfil (`pessoas[i].quotizacaoOrdemProfissionalAnual`), que
+// eleva o teto da dedução específica até 9×IAS (art.º 25º/4 CIRS) — ver
+// o comentário completo em calcularDeducoesEspecificas(),
+// engine/calculo-irs.js. A quotização sindical ativa a majoração de
+// 100% do art.º 25º/1-c CIRS. O parsing linha a linha abaixo classifica
+// cada desconto numa destas categorias e soma;
 // os totais impressos no documento ("Total Ilíquido/Descontos/Líquido")
 // têm prioridade sobre a soma quando existem, por serem uma leitura
 // direta em vez de somar dezenas de linhas.

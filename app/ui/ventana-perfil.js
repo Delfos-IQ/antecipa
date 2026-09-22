@@ -162,6 +162,13 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
               </select>
               <p class="field-hint">${pt.perfil.atividadeCategoriaBAjuda}</p>
             </div>
+            <div class="field" style="margin-top:var(--space-2)">
+              <label for="quotizacao-ordem-${p.id}">${pt.perfil.quotizacaoOrdemLabel}</label>
+              <input type="number" min="0" step="0.01" inputmode="decimal" id="quotizacao-ordem-${p.id}"
+                data-pessoa-campo="quotizacaoOrdemProfissionalAnual" data-pessoa-id="${p.id}"
+                value="${p.quotizacaoOrdemProfissionalAnual || ""}" placeholder="0,00" />
+              <p class="field-hint">${pt.perfil.quotizacaoOrdemAjuda}</p>
+            </div>
           </div>`
           )
           .join("")}
@@ -453,7 +460,18 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       const atual = { ...pessoaOriginal };
       container.querySelectorAll(`[data-pessoa-id="${id}"]`).forEach((campoEl) => {
         const campo = campoEl.dataset.pessoaCampo;
-        atual[campo] = campoEl.type === "checkbox" ? campoEl.checked : campoEl.value;
+        if (campoEl.type === "checkbox") {
+          atual[campo] = campoEl.checked;
+        } else if (campoEl.type === "number") {
+          // quotizacaoOrdemProfissionalAnual (22/09/2026) — campo em €,
+          // igual ao padrão já usado em ventana-deducoes.js: vazio = 0, não
+          // uma string vazia (o motor faz contas diretamente com este
+          // valor, ver calcularDeducoesEspecificas em engine/calculo-irs.js).
+          const valor = campoEl.value === "" ? 0 : Number(campoEl.value);
+          atual[campo] = Number.isFinite(valor) ? valor : 0;
+        } else {
+          atual[campo] = campoEl.value;
+        }
       });
       // "incapacidade ≥90%" sem "deficiência" marcado não faz sentido —
       // limpa-o se a deficiência for desmarcada, em vez de deixar um valor
@@ -463,7 +481,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       if (reRenderizar) await montar();
     }
 
-    container.querySelectorAll('[data-pessoa-campo="nome"], [data-pessoa-campo="nif"]').forEach((el) => {
+    container.querySelectorAll('[data-pessoa-campo="nome"], [data-pessoa-campo="nif"], [data-pessoa-campo="quotizacaoOrdemProfissionalAnual"]').forEach((el) => {
       el.addEventListener("blur", () => gravarPessoa(el.dataset.pessoaId));
     });
     container.querySelectorAll('[data-pessoa-campo="deficiencia"], [data-pessoa-campo="incapacidadeIgualOuSuperior90"]').forEach((el) => {

@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.46";
+export const VERSAO_ATUAL = "2.47";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.47", resumo: "Correção: a ADSE do talão volta a somar-se à Segurança Social na dedução específica; novo campo em Perfil para a quotização da ordem profissional (ex.: Ordem dos Enfermeiros)" },
   { versao: "2.46", resumo: "Correção: quotizações para ordens profissionais (ex.: Ordem dos Enfermeiros) passam a aumentar corretamente a dedução específica de quem ganha menos" },
   { versao: "2.45", resumo: "Novo: o subsídio de férias/Natal projetado passa a ser editável — útil para quem o recebe por duodécimos ou sai da empresa antes do pagamento" },
   { versao: "2.44", resumo: "Correção: pôr o vencimento bruto projetado a 0€ (\"não vou trabalhar este mês\") fazia esse mês desaparecer do detalhe, sem forma de o repor" },

@@ -76,14 +76,21 @@ const CHAVE_COEFICIENTE_POR_ATIVIDADE = {
   propriedadeIntelectual: "outrosRendimentosCapitaisEPrediais",
 };
 
-function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabela, coeficienteB, atividadesCategoriaB = [] }) {
+function calcularDeducoesEspecificas({
+  rendimentoGlobal,
+  rubricasPorPessoa,
+  tabela,
+  coeficienteB,
+  atividadesCategoriaB = [],
+  quotizacoesOrdemProfissional = [],
+}) {
   let deducaoA = 0;
   const majoracao = tabela.majoracaoQuotizacaoSindical ?? { percentagem: 1, limitePercentagemRendimentoBruto: 0.01 };
-  for (const rubricas of rubricasPorPessoa) {
+  rubricasPorPessoa.forEach((rubricas, indicePessoa) => {
     const rendimentoBrutoCategoriaAPessoa = rubricas
       .filter((r) => r.tipo === "abono" && r.categoria === "A")
       .reduce((s, r) => s + (r.valorComRedu ?? r.valorSemRedu ?? 0), 0);
-    if (rendimentoBrutoCategoriaAPessoa <= 0) continue;
+    if (rendimentoBrutoCategoriaAPessoa <= 0) return;
 
     const quotaSindicalPaga = rubricas
       .filter((r) => r.tipo === "desconto" && r.categoriaSindicato)
@@ -121,36 +128,42 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
     // reconcilia se se usarem as contribuições reais de SS de cada
     // sujeito passivo (ambas acima do valor fixo da tabela desse ano),
     // não o valor fixo.
+    // CORRIGIDO 22/09/2026 (2ª volta, com os 12 talões reais de 2025 do
+    // Dani): `categoriaADSE` (a linha "Adse (inc.S.Férias e S.Natal) (3,5%)"
+    // de cada talão) ENTRA aqui, somada à SS — não fica de fora como uma
+    // versão anterior deste comentário concluiu. Prova: somei os 12 talões
+    // reais mês a mês — SS sozinha dá 6.559,41€, ADSE sozinha dá 1.357,41€,
+    // e a SOMA das duas (7.916,82€) bate EXATO com a coluna "Contribuições"
+    // do quadro 4A da declaração real do Dani. Ou seja, essa coluna oficial
+    // já é SS+ADSE combinadas — não é só SS. A tentativa anterior (excluir
+    // o ADSE) só "batia certo" porque o script de auditoria dessa sessão
+    // usava o valor da coluna "Contribuições" diretamente do documento
+    // (já com o ADSE lá dentro) e testava separadamente SOMAR o valor da
+    // Ordem profissional (108€, um valor bem mais pequeno, de outra
+    // origem) — daí a confusão entre os dois. Ver quotizacoesOrdemProfissional
+    // abaixo para a quotização de ordem profissional a sério.
     const contribuicoesObrigatoriasPessoa = rubricas
-      .filter((r) => r.tipo === "desconto" && (r.categoriaSS || r.categoriaSubsistemaSaude))
+      .filter((r) => r.tipo === "desconto" && (r.categoriaSS || r.categoriaADSE || r.categoriaSubsistemaSaude))
       .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
     const baseSemOrdemPessoa = Math.max(tabela.deducaoEspecificaCategoriaA.valorFixo, contribuicoesObrigatoriasPessoa);
 
     // Quotização para ordem profissional (art.º 25º/4 CIRS) — mecanismo
-    // DISTINTO do anterior. NOTA (22/09/2026, auditoria legislativa contra
-    // o Comprovativo/Demonstração de Liquidação reais do Dani, revista a
-    // pedido dele): os 108€/108€ do quadro 4C (código 422) do Dani e da
-    // Vera, marcados `categoriaADSE` pelo parser, NÃO são ADSE (subsistema
-    // legal de saúde de funcionário público) — são a quotização à Ordem
-    // dos Enfermeiros, confirmado pelo próprio Dani. Cheguei a testar somar
-    // este valor a `contribuicoesObrigatoriasPessoa` acima (por analogia
-    // com "subsistemas legais de saúde"), mas isso NÃO reconciliava com a
-    // Demonstração de Liquidação real dele. A explicação correta está no
-    // texto oficial do art.º 25º/4 CIRS: quotizações para ordens
-    // profissionais NÃO se somam às contribuições obrigatórias de SS —
-    // elevam antes o teto da dedução de base (valorFixo/nº1-a) até um
-    // máximo de 75% de 12×IAS (9×IAS), e só quando esse teto ainda não foi
-    // atingido por outra via. No caso real do Dani e da Vera, a SS sozinha
-    // (7.916,82€ e 6.391,81€) já excede em muito esse teto elevado
-    // (4.702,50€ em 2025) — por isso a quotização da Ordem não muda nada
-    // no resultado deles, o que é exatamente o que a Demonstração de
-    // Liquidação real mostra. Mas para quem ganha menos (SS abaixo do
-    // teto elevado), esta quotização PASSA a aumentar a dedução — daí
-    // implementar a regra como está abaixo, em vez de a continuar a
-    // ignorar.
-    const quotizacaoOrdemProfissionalPessoa = rubricas
-      .filter((r) => r.tipo === "desconto" && r.categoriaADSE)
-      .reduce((s, r) => s + (r.valorComRedu ?? 0), 0);
+    // DISTINTO do anterior, e com uma origem de dados DIFERENTE: os 108€/
+    // 108€ do quadro 4C (código 422) da declaração real do Dani e da Vera
+    // não aparecem em NENHUM dos 12 talões mensais de 2025 (confirmado
+    // linha a linha) — é um valor pago à parte (não por retenção em folha),
+    // por isso não pode vir do parser de talões como `categoriaADSE` (essa
+    // categoria é a ADSE a sério, ver acima). A pedido do Dani (22/09/2026:
+    // "la ordem profesional... tendrian que estar en el perfil. No todas
+    // las personas la tienen"), este valor passa a ser um campo manual por
+    // pessoa em Perfil (`pessoas[i].quotizacaoOrdemProfissionalAnual`, €/
+    // ano), não algo derivado de rubricas. Eleva o teto da dedução de base
+    // até um máximo de 75% de 12×IAS (9×IAS), e só quando esse teto ainda
+    // não foi atingido por outra via (ex.: SS+ADSE já acima dele sozinhas,
+    // como acontece no caso real do Dani e da Vera — a quotização da Ordem
+    // não muda nada no resultado deles, o que bate com a Demonstração de
+    // Liquidação real).
+    const quotizacaoOrdemProfissionalPessoa = quotizacoesOrdemProfissional[indicePessoa] || 0;
     const tetoElevadoOrdensProfissionais =
       tabela.deducaoEspecificaCategoriaA.tetoElevadoOrdensProfissionais ?? tabela.deducaoEspecificaCategoriaA.valorFixo;
     const baseDeducaoA =
@@ -159,7 +172,7 @@ function calcularDeducoesEspecificas({ rendimentoGlobal, rubricasPorPessoa, tabe
         : Math.min(baseSemOrdemPessoa + quotizacaoOrdemProfissionalPessoa, tetoElevadoOrdensProfissionais);
 
     deducaoA += baseDeducaoA + Math.max(0, deducaoSindical);
-  }
+  });
 
   // Categoria B: coeficiente aplicado PESSOA A PESSOA (04/09/2026, a pedido
   // do Dani) — antes desta alteração usava-se um único coeficiente (por
@@ -842,12 +855,18 @@ export function calcularDeclaracao(input) {
   // chamadores atuais (ver ui/ventana-14.js e compararRegimes) — usado aqui
   // só para ler `atividadeCategoriaB` de cada pessoa, índice a índice.
   const atividadesCategoriaB = pessoas.map((p) => p?.atividadeCategoriaB);
+  // Quotização anual à ordem profissional (art.º 25º/4 CIRS) — campo manual
+  // por pessoa em Perfil, não derivado de rubricas (ver comentário completo
+  // em calcularDeducoesEspecificas): não todas as pessoas pertencem a uma
+  // ordem profissional, por isso fica em branco/0 por omissão.
+  const quotizacoesOrdemProfissional = pessoas.map((p) => p?.quotizacaoOrdemProfissionalAnual ?? 0);
   const deducoesEspecificas = calcularDeducoesEspecificas({
     rendimentoGlobal,
     rubricasPorPessoa,
     tabela,
     coeficienteB,
     atividadesCategoriaB,
+    quotizacoesOrdemProfissional,
   });
   const rendimentoColetavelResult = calcularRendimentoColetavel({
     rendimentoGlobal,

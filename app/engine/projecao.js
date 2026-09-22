@@ -259,7 +259,7 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
         ["irs", "IRS retido (projetado)", "categoriaIRS"],
         ["ss", "Segurança Social (projetado)", "categoriaSS"],
         ["sindicato", "Sindicato (projetado)", "categoriaSindicato"],
-        ["adse", "ADSE / Ordem (projetado)", "categoriaADSE"],
+        ["adse", "ADSE (projetado)", "categoriaADSE"],
       ]) {
         const taxa = taxasEfetivasCategoriaA[chave];
         if (taxa <= 0) continue;

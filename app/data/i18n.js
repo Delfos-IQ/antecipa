@@ -100,7 +100,7 @@ export const pt = {
     taxaEfetiva: "Taxa de desconto efetiva",
     rendimentoIliquido: "Rendimento ilíquido acumulado",
     sindicato: "Quotização sindical",
-    adse: "ADSE / Ordem profissional",
+    adse: "ADSE",
     liquidoAcumulado: "Líquido acumulado",
     descontosTitulo: "Como se reparte o que foi descontado",
     porMesTitulo: "Rendimento líquido por mês",
@@ -285,6 +285,8 @@ export const pt = {
     incapacidade90Label: "Incapacidade ≥ 90% (despesa de acompanhamento)",
     atividadeCategoriaBLabel: "Atividade (recibos verdes / Categoria B)",
     atividadeCategoriaBAjuda: "Só relevante se tiver rendimentos de Categoria B (recibos verdes). Define o coeficiente do regime simplificado (art.º 31º CIRS) e a taxa de retenção na fonte (art.º 101º CIRS) usados na Simulação.",
+    quotizacaoOrdemLabel: "Quotização anual à ordem profissional (€)",
+    quotizacaoOrdemAjuda: "Só se pertencer a uma ordem profissional (ex.: Ordem dos Enfermeiros, Ordem dos Médicos, Ordem dos Engenheiros) e pagar essa quotização diretamente — não é a mesma coisa que a ADSE nem a quotização sindical, e normalmente não aparece no talão de vencimento. Eleva o teto da dedução específica de Categoria A (art.º 25º/4 CIRS). Deixe em branco se não se aplicar.",
     atividadeCategoriaBOpcoes: {
       servicosGeral: "Prestação de serviços (geral)",
       tabelaAnexa151: "Atividade da tabela do art.º 151º (ex.: medicina, enfermagem, engenharia, advocacia...)",
