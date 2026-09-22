@@ -259,6 +259,24 @@ a { color: inherit; text-decoration: none; }
 .passo h3 { font-size: 1.12rem; color: var(--navy-deep); margin-bottom: var(--space-2); }
 .passo p { color: var(--muted); font-size: 0.95rem; }
 
+/* ---------- Recursos ---------- */
+.recursos-grid {
+  display: grid;
+  gap: var(--space-5);
+}
+@media (min-width: 760px) {
+  .recursos-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-6); }
+}
+.recurso-card {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: var(--space-5);
+}
+.recurso-card__icon svg { width: 28px; height: 28px; color: var(--brass); margin-bottom: var(--space-3); }
+.recurso-card h3 { font-size: 1.05rem; color: var(--navy-deep); margin-bottom: var(--space-2); }
+.recurso-card p { color: var(--muted); font-size: 0.92rem; }
+
 /* ---------- Privacidade ---------- */
 .privacidade {
   background: var(--brass-soft);
