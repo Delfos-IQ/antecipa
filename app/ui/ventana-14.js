@@ -774,14 +774,19 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
     `;
   }
 
-  // Mês projetado — até duas linhas editáveis (base + Categoria B) e uma
-  // informativa (subsídio de férias/Natal, só em agosto/dezembro, sempre
-  // a seguir o último valor real conhecido, não editável aqui para não
-  // duplicar a lógica de "última base conhecida" do motor).
+  // Mês projetado — até três linhas editáveis (base, subsídio de
+  // férias/Natal quando aplicável, e Categoria B).
   // Descrição "Vencimento bruto (projetado)", não "Remuneração base" —
   // ver engine/projecao.js para o porquê (21/09/2026, pergunta do Dani).
   const rubricaBase = rubricaPorDescricao(mes.rubricas, /vencimento\s*bruto/i, "A");
   const rubricaSubsidio = rubricaPorDescricao(mes.rubricas, /subs[íi]dio/i, "A");
+  // Subsídio editável (22/09/2026, pedido do Dani): "hay personas que
+  // tienen los subsidios de vacaciones y navidad prorrateados" — nesse
+  // caso o valor certo é 0€ (já embutido no vencimento mensal). O
+  // componente muda consoante o mês (só existe em agosto/dezembro — ver
+  // MESES_SUBSIDIO em engine/projecao.js).
+  const componenteSubsidio = mes.mes === 8 ? "subsidio_ferias" : mes.mes === 12 ? "subsidio_natal" : null;
+  const labelSubsidio = mes.mes === 8 ? pt.ventana14.detalheCampoSubsidioFerias : pt.ventana14.detalheCampoSubsidioNatal;
   const rubricaCatB = rubricaPorDescricao(mes.rubricas, /recibo verde/i, "B");
   // Descontos de Categoria A projetados (IRS/SS/Sindicato/ADSE) — NOVO
   // (21/09/2026, reportado pelo Dani: "continuo sin saber si estimas las
@@ -791,7 +796,7 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
   // utilizador poder confirmar que ENTRAM no cálculo e não ficam a 0€.
   const descontosCatA = mes.rubricas.filter((r) => r.categoria === "A" && r.tipo === "desconto");
 
-  const algumEditado = [rubricaBase, rubricaCatB].some((r) => r?.origem === "projetado_ajustado");
+  const algumEditado = [rubricaBase, rubricaSubsidio, rubricaCatB].some((r) => r?.origem === "projetado_ajustado");
 
   return `
     <div class="detalhe-mes-row">
@@ -808,15 +813,19 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
         ajustesDaPessoa,
       })}
       ${
-        rubricaSubsidio
-          ? `<div class="detalhe-campo">
-               <span class="detalhe-campo__label">${pt.ventana14.detalheCampoSubsidio}</span>
-               <span class="detalhe-campo__valor num">${formatarMoeda(rubricaSubsidio.valorComRedu)}</span>
-             </div>`
+        componenteSubsidio
+          ? renderCampoEditavel({
+              label: labelSubsidio,
+              pessoaId,
+              mes: mes.mes,
+              componente: componenteSubsidio,
+              rubrica: rubricaSubsidio,
+              ajustesDaPessoa,
+            })
           : ""
       }
       ${
-        rubricaBase
+        rubricaBase || rubricaSubsidio
           ? descontosCatA.length
             ? descontosCatA
                 .map(

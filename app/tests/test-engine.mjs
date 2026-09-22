@@ -580,6 +580,55 @@ console.log("\n--- Ajuste manual de 0€ ao vencimento bruto continua a aparecer
   assertIgual(baseSemNada ? 1 : 0, 0, "sem nenhum dado real nem ajuste, continua sem inventar uma rubrica de 0€");
 }
 
+console.log("\n--- Subsídio de férias/Natal projetado passa a ser editável (pedido do Dani, 22/09/2026: 'los subsidios prorrateados... tendrian que tener la oportunidad de editarlos') ---");
+{
+  // Duas razões reais dadas pelo Dani: quem tem o subsídio pago por
+  // duodécimos (já embutido no vencimento mensal) precisa de o poder pôr
+  // a 0€; quem sai da empresa antes do pagamento precisa de ajustar o
+  // valor esperado. Antes desta correção, o subsídio era sempre
+  // `ultimaBase` fixo, sem nenhum ajustePorComponente ligado à interface
+  // (o motor já aceitava o ajuste, só a UI não o expunha).
+  const { projetarAno } = await import("../engine/projecao.js");
+  const docsReaisBase = [{ mes: 1, rubricas: [{ descricao: "Vencimento bruto", categoria: "A", tipo: "abono", valorComRedu: 2000 }] }];
+
+  // Sem ajuste: dezembro projetado usa ultimaBase (2.000€) para o subsídio de Natal.
+  const { mesAMes: semAjusteSubsidio } = projetarAno({ documentosReais: docsReaisBase, ajustesManuais: [], anoFiscal: 2026 });
+  const dezembroAuto = semAjusteSubsidio.find((m) => m.mes === 12);
+  const subsidioAuto = dezembroAuto.rubricas.find((r) => /subs[íi]dio/i.test(r.descricao));
+  assertIgual(subsidioAuto?.valorComRedu ?? -1, 2000, "sem ajuste, subsídio de Natal projetado = último vencimento bruto conhecido (2.000€)");
+
+  // Com ajuste a 0€ (ex.: subsídio pago por duodécimos, já embutido no
+  // vencimento mensal): a rubrica continua a aparecer, a 0€, em vez de
+  // desaparecer ou de continuar a usar o valor automático.
+  const { mesAMes: comAjusteZero } = projetarAno({
+    documentosReais: docsReaisBase,
+    ajustesManuais: [{ mes: 12, anoFiscal: 2026, componente: "subsidio_natal", valorAjustado: 0 }],
+    anoFiscal: 2026,
+  });
+  const dezembroAjustado = comAjusteZero.find((m) => m.mes === 12);
+  const subsidioAjustado = dezembroAjustado.rubricas.find((r) => /subs[íi]dio/i.test(r.descricao));
+  assertIgual(subsidioAjustado ? 1 : 0, 1, "com ajuste explícito de 0€, a rubrica do subsídio de Natal continua a aparecer (visível e editável)");
+  assertIgual(subsidioAjustado?.valorComRedu ?? -1, 0, "...com o valor 0€ efetivamente aplicado, não o automático (2.000€)");
+  assertIgual(subsidioAjustado?.origem ?? "", "projetado_ajustado", "...marcada como 'projetado_ajustado'");
+
+  // Verificação de fundo do pedido original do Dani: "com projeção", com
+  // TUDO editável a 0€ (base + subsídio + Cat. B), deve ficar equivalente
+  // a "só dados reais" (nenhuma rubrica extra nos meses projetados).
+  const { mesAMes: tudoZerado } = projetarAno({
+    documentosReais: docsReaisBase,
+    ajustesManuais: [
+      { mes: 12, anoFiscal: 2026, componente: "subsidio_natal", valorAjustado: 0 },
+      { mes: 12, anoFiscal: 2026, componente: "remuneracao_base", valorAjustado: 0 },
+    ],
+    anoFiscal: 2026,
+  });
+  const dezembroTudoZerado = tudoZerado.find((m) => m.mes === 12);
+  const totalAbonosDezembroZerado = dezembroTudoZerado.rubricas
+    .filter((r) => r.tipo === "abono")
+    .reduce((s, r) => s + r.valorComRedu, 0);
+  assertIgual(totalAbonosDezembroZerado, 0, "com base E subsídio ambos a 0€, dezembro projetado não contribui rendimento nenhum — agora sim equivalente a 'só dados reais'");
+}
+
 console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
 // Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
 // 800/700/600€ por declaração. Em regime individual o teto é 400€; em

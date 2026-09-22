@@ -151,7 +151,13 @@ export const pt = {
     // "Vencimento bruto", não "Remuneração base" — tem de bater certo com
     // o nome usado nos meses reais (ver engine/projecao.js, 21/09/2026).
     detalheCampoBase: "Vencimento bruto",
-    detalheCampoSubsidio: "Subsídio (segue o último valor real, não editável aqui)",
+    // Editável desde 22/09/2026 (pedido do Dani) — deixou de "seguir
+    // sempre o último valor real" sem alternativa: quem tem o subsídio
+    // pago por duodécimos (já embutido no vencimento mensal) precisa de
+    // poder pôr isto a 0€, e quem sai da empresa antes do pagamento
+    // precisa de poder ajustar o valor real esperado.
+    detalheCampoSubsidioFerias: "Subsídio de férias",
+    detalheCampoSubsidioNatal: "Subsídio de Natal",
     detalheCampoCategoriaB: "Recibo verde (Categoria B)",
     detalheCampoVencimentoBrutoReal: "Vencimento bruto",
     detalheReporAutomatico: "Repor estimativa automática",

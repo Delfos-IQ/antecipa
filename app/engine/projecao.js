@@ -210,18 +210,36 @@ export function projetarAno({ documentosReais, ajustesManuais, anoFiscal, ativid
     }
 
     // Subsídios de férias/Natal — calculados a partir da base conhecida,
-    // atribuídos apenas aos meses legais (não promediados pelos outros meses).
-    if ((mes === MESES_SUBSIDIO.ferias || mes === MESES_SUBSIDIO.natal) && ultimaBase > 0) {
+    // atribuídos apenas aos meses legais (não promediados pelos outros
+    // meses), MAS editáveis (22/09/2026, pedido do Dani depois de
+    // verificar que "com projeção, tudo a 0€" não batia certo com "só
+    // dados reais" — a diferença era exatamente este subsídio, que até
+    // aqui não tinha campo nenhum na interface). Duas razões reais para
+    // editar: (1) alguém que sai da empresa antes de agosto/dezembro pode
+    // não chegar a receber o subsídio inteiro (ou nenhum); (2) há
+    // entidades que pagam o subsídio "por duodécimos" — uma fração todos
+    // os meses, já embutida no vencimento bruto mensal — e nesse caso o
+    // valor certo AQUI é 0€, para não contar o subsídio a dobrar (a parte
+    // duodécima já está dentro do "Vencimento bruto" de cada mês real).
+    // Mesma lógica do vencimento bruto: um ajuste explícito (mesmo que
+    // seja 0€) continua sempre a aparecer; só o valor automático
+    // (ultimaBase, sem ajuste nenhum) precisa de ser positivo.
+    if (mes === MESES_SUBSIDIO.ferias || mes === MESES_SUBSIDIO.natal) {
       const label = mes === MESES_SUBSIDIO.ferias ? "subsidio_ferias" : "subsidio_natal";
-      const valor = ajustePorComponente.has(label) ? ajustePorComponente.get(label).valorAjustado : ultimaBase;
-      rubricasProjetadas.push({
-        categoria: "A",
-        tipo: "abono",
-        descricao: `${mes === MESES_SUBSIDIO.ferias ? "Subsídio de férias" : "Subsídio de Natal"} (projetado)`,
-        valorComRedu: valor,
-        origem: ajustePorComponente.has(label) ? "projetado_ajustado" : "projetado",
-        origemDetalhe: `Igual ao vencimento bruto conhecido: ${ultimaBase.toFixed(2)} €`,
-      });
+      const temAjusteSubsidio = ajustePorComponente.has(label);
+      const valor = temAjusteSubsidio ? ajustePorComponente.get(label).valorAjustado : ultimaBase;
+      if (valor > 0 || temAjusteSubsidio) {
+        rubricasProjetadas.push({
+          categoria: "A",
+          tipo: "abono",
+          descricao: `${mes === MESES_SUBSIDIO.ferias ? "Subsídio de férias" : "Subsídio de Natal"} (projetado)`,
+          valorComRedu: valor,
+          origem: temAjusteSubsidio ? "projetado_ajustado" : "projetado",
+          origemDetalhe: temAjusteSubsidio
+            ? "Editado manualmente (ex.: subsídio pago por duodécimos, já incluído no vencimento mensal, ou saída da empresa antes do pagamento)."
+            : `Igual ao vencimento bruto conhecido: ${ultimaBase.toFixed(2)} €`,
+        });
+      }
     }
 
     // Descontos de Categoria A (IRS retido, Segurança Social, Sindicato,
