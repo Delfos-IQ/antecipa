@@ -12,7 +12,7 @@
 import { pt } from "../data/i18n.js";
 import { revisaoFiscal, obterTabelaFiscal } from "../data/legislacao-2026.js";
 import { VERSAO_ATUAL, HISTORICO_VERSOES } from "../data/versao.js";
-import { valorDeducaoPorDependente, valorDeducaoAscendente } from "../engine/calculo-irs.js";
+import { valorDeducaoPorDependente, valorDeducaoAscendente, valorDeducaoLares } from "../engine/calculo-irs.js";
 import {
   getHousehold,
   getPessoas,
@@ -215,6 +215,18 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
               <p class="field-hint">${pt.perfil.quotizacaoOrdemAjuda}</p>
             </div>
             <div class="field" style="margin-top:var(--space-2)">
+              <label for="encargos-lar-${p.id}">${pt.perfil.encargosLarLabel}</label>
+              <input type="number" min="0" step="0.01" inputmode="decimal" id="encargos-lar-${p.id}"
+                data-pessoa-campo="encargosLarAnual" data-pessoa-id="${p.id}"
+                value="${p.encargosLarAnual || ""}" placeholder="0,00" />
+              <p class="field-hint">${pt.perfil.encargosLarAjuda}</p>
+              ${
+                p.encargosLarAnual
+                  ? `<p class="field-hint" style="margin-top:4px">${pt.perfil.deducaoLaresLabel}: ${formatarMoeda(valorDeducaoLares(p.encargosLarAnual, limitesDeducoes))}</p>`
+                  : ""
+              }
+            </div>
+            <div class="field" style="margin-top:var(--space-2)">
               <label style="display:flex;align-items:center;gap:4px;font-size:0.86rem;font-weight:500">
                 <input type="checkbox" data-pessoa-campo="irsJovemAtivo" data-pessoa-id="${p.id}" ${p.irsJovemAnoInicio ? "checked" : ""} />
                 ${pt.perfil.irsJovemLabel}
@@ -313,6 +325,13 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                     ${pt.perfil.deficienciaLabel}
                   </label>
                   <button class="btn btn-ghost" data-action="remover-ascendente" data-asc-id="${a.id}" style="color:var(--pagar)">${pt.perfil.removerAscendente}</button>
+                </div>
+                <div class="field" style="margin-top:var(--space-2)">
+                  <label for="asc-encargos-lar-${a.id}">${pt.perfil.encargosLarLabel}</label>
+                  <input type="number" min="0" step="0.01" inputmode="decimal" id="asc-encargos-lar-${a.id}"
+                    data-asc-campo="encargosLarAnual" data-asc-id="${a.id}"
+                    value="${a.encargosLarAnual || ""}" placeholder="0,00" />
+                  ${a.encargosLarAnual ? `<p class="field-hint">${pt.perfil.deducaoLaresLabel}: ${formatarMoeda(valorDeducaoLares(a.encargosLarAnual, limitesDeducoes))}</p>` : ""}
                 </div>
                 <p class="muted" style="margin-top:var(--space-2);font-size:0.8rem">
                   ${pt.perfil.deducaoAscendenteLabel}: ${formatarMoeda(valorDeducaoAscendente(a, ascendentes.length, limitesDeducoes))}
@@ -571,6 +590,9 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     container.querySelectorAll('[data-pessoa-campo="nome"], [data-pessoa-campo="nif"], [data-pessoa-campo="quotizacaoOrdemProfissionalAnual"]').forEach((el) => {
       el.addEventListener("blur", () => gravarPessoa(el.dataset.pessoaId));
     });
+    container.querySelectorAll('[data-pessoa-campo="encargosLarAnual"]').forEach((el) => {
+      el.addEventListener("blur", () => gravarPessoa(el.dataset.pessoaId, { reRenderizar: true }));
+    });
     container.querySelectorAll('[data-pessoa-campo="deficiencia"], [data-pessoa-campo="incapacidadeIgualOuSuperior90"], [data-pessoa-campo="irsJovemAtivo"]').forEach((el) => {
       el.addEventListener("change", () => gravarPessoa(el.dataset.pessoaId, { reRenderizar: true }));
     });
@@ -648,7 +670,15 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       const original = ascendentes.find((a) => a.id === id) ?? { id };
       const atual = { ...original };
       container.querySelectorAll(`[data-asc-id="${id}"]`).forEach((el) => {
-        atual[el.dataset.ascCampo] = el.type === "checkbox" ? el.checked : el.value;
+        if (el.type === "checkbox") {
+          atual[el.dataset.ascCampo] = el.checked;
+        } else if (el.type === "number") {
+          // encargosLarAnual (24/09/2026) — mesmo padrão de quotizacaoOrdemProfissionalAnual: vazio = 0.
+          const valor = el.value === "" ? 0 : Number(el.value);
+          atual[el.dataset.ascCampo] = Number.isFinite(valor) ? valor : 0;
+        } else {
+          atual[el.dataset.ascCampo] = el.value;
+        }
       });
       await saveAscendente(atual);
     }
@@ -658,6 +688,12 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     });
     container.querySelectorAll('[data-asc-campo="deficiencia"]').forEach((el) => {
       el.addEventListener("change", async () => {
+        await gravarAscendente(Number(el.dataset.ascId));
+        await montar();
+      });
+    });
+    container.querySelectorAll('[data-asc-campo="encargosLarAnual"]').forEach((el) => {
+      el.addEventListener("blur", async () => {
         await gravarAscendente(Number(el.dataset.ascId));
         await montar();
       });

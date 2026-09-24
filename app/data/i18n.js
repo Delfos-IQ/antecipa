@@ -288,6 +288,12 @@ export const pt = {
     quotizacaoOrdemLabel: "Quotização anual à ordem profissional (€)",
     quotizacaoOrdemAjuda: "Só se pertencer a uma ordem profissional (ex.: Ordem dos Enfermeiros, Ordem dos Médicos, Ordem dos Engenheiros) e pagar essa quotização diretamente — não é a mesma coisa que a ADSE nem a quotização sindical, e normalmente não aparece no talão de vencimento. Eleva o teto da dedução específica de Categoria A (art.º 25º/4 CIRS). Deixe em branco se não se aplicar.",
 
+    // Encargos com lares (art.º 84º CIRS) — NOVO (24/09/2026, pedido do
+    // Dani). Ver o texto legal completo citado em data/legislacao-2026.js.
+    encargosLarLabel: "Encargos anuais com lar/apoio domiciliário (€)",
+    encargosLarAjuda: "Apoio domiciliário, lar ou instituição de apoio à terceira idade — para esta pessoa. 25% do valor, até 403,75€ por pessoa (não por quem paga) — se mais do que um contribuinte pagar pela mesma pessoa, o teto de 403,75€ é partilhado entre eles, não duplicado. Deixe em branco se não se aplicar.",
+    deducaoLaresLabel: "Dedução (lares)",
+
     // IRS Jovem (art.º 12º-B CIRS) — NOVO (24/09/2026, pedido do Dani).
     // Ver o texto legal completo citado em data/legislacao-2026.js.
     irsJovemLabel: "Beneficia do regime IRS Jovem",

@@ -670,6 +670,7 @@ const CATEGORIAS_SEM_TETO_LINHA8 = [
   { chave: "porDependentes", label: "Dependentes" },
   { chave: "porAscendentes", label: "Ascendentes a cargo" },
   { chave: "deficiencia", label: "Deficiência" },
+  { chave: "lares", label: "Encargos com lares" },
   { chave: "duplaTributacao", label: "Dupla tributação internacional" },
 ];
 

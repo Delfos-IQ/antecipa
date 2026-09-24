@@ -72,8 +72,22 @@
        pdf.js deixou de publicar um build UMD a partir da v4 (só .mjs),
        por isso é carregado como módulo ES dentro de parsers/pdf-text.js
        (import() dinâmico), não aqui. jsPDF ainda publica UMD e continua
-       a carregar-se assim, expondo window.jspdf. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+       a carregar-se assim, expondo window.jspdf.
+       integrity: recomendado pela auditoria de 04/09/2026, adicionado
+       24/09/2026. O hash foi calculado a partir do pacote jspdf@2.5.1
+       descarregado do registo oficial do npm (integridade do próprio
+       .tgz confirmada contra o sha512 publicado pelo registo — não foi
+       possível descarregar diretamente de cdnjs.cloudflare.com nesta
+       sessão, a rede do sandbox bloqueou-o), assumindo que o cdnjs
+       espelha o ficheiro dist/ do npm sem modificações (comportamento
+       documentado do pipeline de atualização automática do cdnjs a
+       partir do npm). Se a exportação de PDF parar de funcionar depois
+       deste deploy, o mais provável é este hash — confirmar comparando
+       contra o que https://cdnjs.com/libraries/jspdf/2.5.1 mostra num
+       browser sem as restrições deste sandbox. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+    integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk"
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
   <script type="module" src="app.js"></script>
 </body>

@@ -571,6 +571,19 @@ export function valorDeducaoAscendente(ascendente, totalAscendentes, limites) {
   return round2(base + extraDeficiencia);
 }
 
+// Encargos com lares (art.º 84º CIRS) — NOVO (24/09/2026). 25% do valor
+// suportado, com um teto de 403,75€ POR BENEFICIÁRIO (a pessoa cujos
+// encargos são pagos — sujeito passivo, ascendente, etc.), não por quem
+// paga nem pelo agregado. `encargosLarAnual` vive no próprio objeto do
+// beneficiário (pessoa ou ascendente) — ver comentário em
+// legislacao-2026.js para o texto legal e a razão de não modelar
+// dependentes/colaterais nesta versão.
+export function valorDeducaoLares(encargosLarAnual, limites) {
+  const config = limites.lares;
+  if (!config || !encargosLarAnual) return 0;
+  return round2(Math.min(encargosLarAnual * config.percentagem, config.limitePorBeneficiario));
+}
+
 // Dedução por deficiência do(s) próprio(s) sujeito(s) passivo(s) (art.º
 // 87º CIRS) — NOVO (04/09/2026). `pessoas` aqui é só quem está incluído
 // NESTA declaração (1 pessoa em regime separada, 2 em conjunta) — quem
@@ -589,28 +602,38 @@ function somaDeficienciaSujeitosPassivos(pessoas, limites) {
   );
 }
 
-// Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8 CIRS) —
-// NOVO nesta auditoria (03/09/2026, 2ª ronda). Ver legislacao-2026.js,
-// limitesDeducoes.limiteAgregado, para a fonte e o nível de confiança.
-// Sem limite até ao 1º escalão de IRS; entre o 1º escalão e o último
-// escalão finito, decresce linearmente de 2.500€ para 1.000€; fixo em
-// 1.000€ acima disso. Majoração de 5% por dependente para agregados com 3+
-// dependentes.
+// Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8 CIRS).
+// CORRIGIDO 24/09/2026: a alínea b) do n.º 7 não decresce até ao último
+// escalão FINITO da tabela de IRS (art.º 68º) — decresce até ao limiar do
+// art.º 68º-A (taxa adicional de solidariedade), que é um valor FIXO de
+// 80.000€, distinto e mais baixo do que o topo da tabela normal de
+// escalões (83.696€ em 2025, por exemplo — já usado noutro sítio da app
+// como `tabela.taxaSolidariedade[0].desde`). A fórmula literal (alínea b),
+// confirmada por economiafinancas.com/2025/irs-regras-e-limitacoes-as-
+// deducoes-a-coleta-de-2025/, com os números a baterem exatamente contra
+// os já confirmados nesta app): "1000 + 1500 × (80.000 − rendimento
+// coletável)/(71.941)" — onde 71.941 = 80.000 − 8.059 (8.059€ é o 1º
+// escalão de 2025, já confirmado por fonte primária em `tabela.escaloes`).
+// Antes desta correção, o motor usava o topo da tabela de escalões em vez
+// de 80.000€, o que dava um limite ligeiramente mais alto do que a lei
+// permite para rendimentos entre 80.000€ e o topo da tabela de escalões.
+// Sem limite até ao 1º escalão de IRS; entre o 1º escalão e 80.000€,
+// decresce linearmente de 2.500€ para 1.000€; fixo em 1.000€ acima disso.
+// Majoração de 5% por dependente para agregados com 3+ dependentes.
 function calcularLimiteAgregadoDeducoes({ rendimentoPorQuociente, numDependentes, tabela }) {
   const config = tabela.limitesDeducoes?.limiteAgregado;
   if (!config) return Infinity;
 
-  const escaloes = tabela.escaloes;
-  const primeiroLimite = escaloes[0].limite;
-  const ultimoFinito = escaloes[escaloes.length - 2].limite; // penúltimo, já que o último é Infinity
+  const primeiroLimite = tabela.escaloes[0].limite; // 1º escalão, art.º 68º
+  const limiarSolidariedade = tabela.taxaSolidariedade?.[0]?.desde ?? Infinity; // 80.000€, art.º 68º-A
 
   let limite;
   if (rendimentoPorQuociente <= primeiroLimite) {
     limite = Infinity;
-  } else if (rendimentoPorQuociente >= ultimoFinito) {
+  } else if (rendimentoPorQuociente >= limiarSolidariedade) {
     limite = config.minimo;
   } else {
-    const fracao = (ultimoFinito - rendimentoPorQuociente) / (ultimoFinito - primeiroLimite);
+    const fracao = (limiarSolidariedade - rendimentoPorQuociente) / (limiarSolidariedade - primeiroLimite);
     limite = config.minimo + (config.maximo - config.minimo) * fracao;
   }
 
@@ -771,6 +794,14 @@ export function calcularDeducoesAColeta({
   const deficienciaDependentes = round2(sum(dependentes, (d) => valorDeficienciaDependente(d, limites)));
   const deficiencia = round2(deficienciaSujeitosPassivos + deficienciaDependentes);
 
+  // Encargos com lares (art.º 84º CIRS) — NOVO (24/09/2026). Artigo à
+  // parte do 78º, tal como deficiência/ascendentes: fica FORA do limite
+  // agregado. Soma-se o(s) beneficiário(s) já modelados: o(s) próprio(s)
+  // sujeito(s) passivo(s) desta declaração e os ascendentes a cargo.
+  const laresSujeitosPassivos = round2(sum(pessoas, (p) => valorDeducaoLares(p?.encargosLarAnual, limites)));
+  const laresAscendentes = round2(sum(ascendentes, (a) => valorDeducaoLares(a?.encargosLarAnual, limites)));
+  const lares = round2(laresSujeitosPassivos + laresAscendentes);
+
   const duplaTributacao = round2(deducoesColeta.duplaTributacao || 0);
 
   // Donativos (mecenato, art.º 63º EBF) — 25% do valor doado, até 15% da
@@ -819,11 +850,11 @@ export function calcularDeducoesAColeta({
   const limiteAgregadoAplicado = limiteAgregado !== Infinity && subtotalSujeitoALimite > limiteAgregado;
   const subtotalAposLimite = limiteAgregadoAplicado ? limiteAgregado : subtotalSujeitoALimite;
 
-  const total = round2(subtotalAposLimite + despesasGerais + porDependentes + porAscendentes + deficiencia + duplaTributacao + donativos);
+  const total = round2(subtotalAposLimite + despesasGerais + porDependentes + porAscendentes + deficiencia + lares + duplaTributacao + donativos);
 
   return {
     linhaOficial: 8,
-    referenciaLegal: "art.º 78º (n.º 1 a n.º 8) CIRS + art.º 63º EBF (donativos) + art.º 87º CIRS (deficiência)",
+    referenciaLegal: "art.º 78º (n.º 1 a n.º 8) CIRS + art.º 63º EBF (donativos) + art.º 87º CIRS (deficiência) + art.º 84º CIRS (lares)",
     saude,
     educacao,
     ppr,
@@ -841,6 +872,9 @@ export function calcularDeducoesAColeta({
     porDependentes: round2(porDependentes),
     porAscendentes,
     deficiencia,
+    lares,
+    laresSujeitosPassivos,
+    laresAscendentes,
     duplaTributacao,
     donativos,
     limiteAgregado: limiteAgregado === Infinity ? null : limiteAgregado,

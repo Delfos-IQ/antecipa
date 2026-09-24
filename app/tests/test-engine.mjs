@@ -762,6 +762,26 @@ if (semLimiteAgregado.linhas[8].limiteAgregadoAplicado !== true) {
   console.log("OK: limiteAgregadoAplicado = true quando a soma das deduções excede o limite");
 }
 
+// Regressão do bug corrigido 24/09/2026: a interpolação da alínea b) do
+// n.º7 termina em 80.000€ (limiar do art.º 68º-A), NÃO no topo da tabela
+// normal de escalões (86.634€ em 2026) — antes da correção, um rendimento
+// coletável entre esses dois valores caía ainda na zona "a decrescer",
+// dando um limite agregado ACIMA de 1.000€ (mais permissivo do que a lei
+// permite). 86.800€ de bruto dá ≈81.413€ de rendimento coletável — já
+// acima de 80.000€, logo o limite tem de ser exatamente 1.000€.
+const zonaLimiteAntesDoBug = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [[{ categoria: "A", tipo: "abono", descricao: "Vencimento bruto", valorComRedu: 86800 }]],
+  dependentes: [],
+  deducoesColeta: {},
+});
+assertIgual(
+  zonaLimiteAntesDoBug.linhas[8].limiteAgregado,
+  1000,
+  "rendimento coletável ≈81.413€ (acima dos 80.000€ do art.º 68º-A) já dá o limite mínimo de 1.000€ — antes da correção dava ≈1.100€, porque a interpolação ia até 86.634€ em vez de 80.000€"
+);
+
 // Rendimento dentro do 1º escalão: sem limite nenhum (mesmo com deduções
 // altas), o total tem de ser a soma cheia.
 const dentroPrimeiroEscalao = calcularDeclaracao({
@@ -1083,6 +1103,48 @@ assertIgual(comDependenteDeficiente.deficiencia, 1342.83, "...e o extra de defic
 // Trabalho doméstico (art.º 78º-H, novo desde 2025): 5% até 200€.
 assertIgual(deducoesDe({ deducoesColeta: { trabalhoDomestico: 1000 } }).trabalhoDomestico, 50, "trabalho doméstico: 5% de 1.000€ = 50€ (dentro do teto)");
 assertIgual(deducoesDe({ deducoesColeta: { trabalhoDomestico: 10000 } }).trabalhoDomestico, 200, "trabalho doméstico: 5% de 10.000€ = 500€, mas o teto é 200€");
+
+console.log("\n--- Encargos com lares (art.º 84º CIRS, 24/09/2026, a pedido do Dani) ---");
+// 25% do valor suportado, com teto de 403,75€ POR BENEFICIÁRIO (não por
+// quem paga nem pelo agregado) — ver texto legal citado em legislacao-2026.js.
+assertIgual(
+  deducoesDe({ pessoas: [{ id: "A", encargosLarAnual: 1000 }] }).lares,
+  250,
+  "sujeito passivo com 1.000€ de encargos: 25% = 250€ (dentro do teto de 403,75€)"
+);
+assertIgual(
+  deducoesDe({ pessoas: [{ id: "A", encargosLarAnual: 5000 }] }).lares,
+  403.75,
+  "sujeito passivo com 5.000€ de encargos: 25% seria 1.250€, mas o teto por beneficiário é 403,75€"
+);
+assertIgual(deducoesDe({ pessoas: [{ id: "A" }] }).lares, 0, "sem encargosLarAnual preenchido, a dedução de lares é 0€");
+// Dois beneficiários distintos (o próprio sujeito passivo E um ascendente)
+// somam-se — cada um com o SEU teto de 403,75€, não um teto único partilhado.
+// Ascendente: 25% de 1.200€ = 300€, dentro do teto (para testar a soma sem
+// ambos ficarem capados, o que esconderia um bug de dupla contagem).
+const laresDoisBeneficiarios = deducoesDe({
+  pessoas: [{ id: "A", encargosLarAnual: 5000 }],
+  ascendentes: [{ nome: "Mãe", encargosLarAnual: 1200 }],
+});
+assertIgual(
+  laresDoisBeneficiarios.lares,
+  403.75 + 300,
+  "sujeito passivo (403,75€, capado) + ascendente (25% de 1.200€ = 300€, dentro do teto) = 703,75€ — tetos independentes por beneficiário"
+);
+assertIgual(laresDoisBeneficiarios.laresSujeitosPassivos, 403.75, "detalhe: parte do(s) sujeito(s) passivo(s) isolada para a UI");
+assertIgual(laresDoisBeneficiarios.laresAscendentes, 300, "detalhe: parte dos ascendentes isolada para a UI");
+// Lares é artigo à parte do 78º (art.º 84º) — não deve entrar no limite
+// agregado do art.º 78º n.º7/8, tal como ascendentes/deficiência.
+const laresForaDoLimite = deducoesDe({
+  pessoas: [{ id: "A", encargosLarAnual: 5000 }],
+  deducoesColeta: { saude: 100000 }, // força o limite agregado a aplicar-se a saúde
+});
+if (laresForaDoLimite.lares !== 403.75) {
+  console.error("FALHOU: a dedução de lares não devia ser afetada pelo limite agregado do art.º 78º n.º7/8");
+  process.exitCode = 1;
+} else {
+  console.log("OK: encargos com lares ficam fora do limite agregado do art.º 78º n.º7/8 (artigo à parte, art.º 84º)");
+}
 
 // compararRegimes: deduções à coleta "household" (saúde/educação/etc, sem
 // NIF de quem pagou) não podem ser contadas em dobro quando se compara com

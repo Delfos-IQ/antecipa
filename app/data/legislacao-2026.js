@@ -260,6 +260,39 @@ export const legislacaoFiscal = [
           "art.º 78º-A, alínea b), n.º 1 CIRS — santander.pt/salto/ascendentes-irs-deducao-requisitos e folheto " +
           "oficial da AT (IRS_deducoes_2025.pdf, info.portaldasfinancas.gov.pt).",
       },
+      // Encargos com lares (art.º 84º CIRS) — NOVO (24/09/2026, a pedido do
+      // Dani, depois de o ter flagueado como gap na auditoria de 04/09 sem
+      // resposta durante semanas). Artigo totalmente à parte do 78º (fica
+      // FORA do limite agregado do art.º 78º n.º 7/8, tal como ascendentes/
+      // deficiência — ver calcularDeducoesAColeta), com um mecanismo
+      // "por beneficiário", não por sujeito passivo pagador: o teto de
+      // 403,75€ aplica-se a cada PESSOA cujos encargos são pagos (o próprio
+      // sujeito passivo, cada ascendente, cada dependente/colateral com
+      // deficiência), não ao agregado nem multiplicado por quem paga. Se
+      // vários contribuintes pagarem pela mesma pessoa (ex.: vários filhos
+      // pelo mesmo idoso), o teto de 403,75€ é PARTILHADO entre eles, não
+      // multiplicado — caso não modelado aqui (a app não tem como saber se
+      // outra pessoa fora do agregado também está a pagar pelo mesmo
+      // ascendente).
+      // Implementado nesta versão: encargos do(s) próprio(s) sujeito(s)
+      // passivo(s) e de ascendentes a cargo (já existem como lista própria
+      // em Perfil). NÃO implementado: dependentes/colaterais até 3º grau em
+      // lares/residências autónomas para pessoas com deficiência (art.º 84º
+      // n.º 2, 2ª parte) — caso mais raro, sem UI própria ainda.
+      lares: {
+        percentagem: 0.25,
+        limitePorBeneficiario: 403.75,
+        confirmado: true,
+        fonte:
+          "art.º 84º CIRS, n.º 1 e n.º 2, texto literal lido diretamente em info.portaldasfinancas.gov.pt/pt/" +
+          "informacao_fiscal/codigos_tributarios/cirs_rep/ra/Pages/irs84_ra202206.aspx (24/09/2026): \"À coleta " +
+          "do IRS devido pelos sujeitos passivos é dedutível um montante correspondente a 25% do valor suportado " +
+          "a título de encargos com lares, nos termos do presente artigo, com o limite global de (euro) 403,75\" " +
+          "— \"limite global\" por beneficiário confirmado por laresonline.pt/pt/blog/irs-2026-como-deduzir-" +
+          "despesas-com-lares-e-apoio-domiciliario/ (\"o limite máximo de dedução... é de 403,75€, por " +
+          "beneficiário... esse limite máximo é aplicado ao idoso, o que impede que haja duplicação de deduções " +
+          "entre diferentes contribuintes\").",
+      },
       // Deficiência (art.º 87º CIRS) — valores em múltiplos do IAS,
       // confirmados por 3 fontes convergentes (texto do próprio artigo em
       // info.portaldasfinancas.gov.pt/.../irs87.aspx, folheto oficial da AT,
@@ -326,7 +359,15 @@ export const legislacaoFiscal = [
           "Herdado do bloco 2026 (art.º 78º, n.º 7 e n.º 8 CIRS), mas a exclusão de despesasGerais/alínea b) " +
           "confirmada diretamente para 2025 via uma Demonstração de Liquidação real: o 'Total das Deduções " +
           "sujeitas a limite (art 78)' reportado pela AT corresponde exatamente à soma de saúde + educação + " +
-          "exigência de fatura + PPR, sem as despesas gerais familiares (que ficam fora desse subtotal).",
+          "exigência de fatura + PPR, sem as despesas gerais familiares (que ficam fora desse subtotal). " +
+          "ATUALIZADO 24/09/2026: os valores 2.500€/1.000€ e a fórmula de interpolação (alínea b) do n.º 7) " +
+          "confirmados via economiafinancas.com/2025/irs-regras-e-limitacoes-as-deducoes-a-coleta-de-2025/, que " +
+          "cita a fórmula literal \"1000 + 1500 × (80.000 − rendimento coletável)/(71.941)\" — os números batem " +
+          "exatamente com os já confirmados nesta app (71.941 = 80.000€, limiar do art.º 68º-A, já usado como " +
+          "`taxaSolidariedade[0].desde`, MENOS 8.059€, o 1º escalão de 2025 já confirmado por fonte primária em " +
+          "`escaloes[0].limite`). CORRIGIU um bug real no motor: `calcularLimiteAgregadoDeducoes` interpolava até " +
+          "ao topo da tabela normal de escalões (83.696€) em vez de até aos 80.000€ do art.º 68º-A — ver " +
+          "comentário completo em engine/calculo-irs.js.",
       },
     },
 
@@ -717,8 +758,25 @@ export const legislacaoFiscal = [
       ascendentes: {
         primeiro: 525,
         unicoAscendente: 635,
-        confirmado: false,
-        fonte: "Herdado do bloco 2025 (art.º 78º-A, alínea b), n.º 1 CIRS) — não re-confirmado especificamente para 2026 nesta sessão.",
+        confirmado: true,
+        fonte:
+          "art.º 78º-A, alínea b), n.º 1 CIRS — CONFIRMADO 24/09/2026 por leitura literal direta de " +
+          "info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs78a.aspx: " +
+          "\"Por cada ascendente... o montante fixo de 525€\" + \"110€ no caso de existir apenas um ascendente " +
+          "enquadrável\" (525+110=635€, bate exatamente com `unicoAscendente`). Sem indicação de revisão para " +
+          "2026 (valor nominal fixo, não indexado ao IAS).",
+      },
+      // Encargos com lares (art.º 84º CIRS) — mesmo mecanismo e valores do
+      // bloco 2025 (ver comentário completo lá): nenhuma fonte consultada
+      // indicou revisão do valor de 403,75€ para 2026 (ao contrário de
+      // outros valores desta tabela, este não é indexado ao IAS).
+      lares: {
+        percentagem: 0.25,
+        limitePorBeneficiario: 403.75,
+        confirmado: true,
+        fonte:
+          "art.º 84º CIRS, n.º 1 e n.º 2 — mesmo texto literal do bloco 2025 (info.portaldasfinancas.gov.pt, " +
+          "24/09/2026), sem indicação de revisão do valor para 2026.",
       },
       deficiencia: {
         // 4×537,13 = 2.148,52€; 2,5×537,13 = 1.342,825€ ≈ 1.342,83€.
@@ -738,8 +796,14 @@ export const legislacaoFiscal = [
       trabalhoDomestico: {
         percentagem: 0.05,
         limite: 200,
-        confirmado: false,
-        fonte: "Herdado do bloco 2025 (art.º 78º-H CIRS, Lei n.º 82/2023) — não re-confirmado especificamente para 2026 nesta sessão.",
+        confirmado: true,
+        fonte:
+          "art.º 78º-H CIRS, Lei n.º 82/2023 — CONFIRMADO 24/09/2026: eco.sapo.pt/2026/04/02/financas-corrigem-" +
+          "falha-no-irs-e-alargam-deducoes-a-despesas-com-trabalho-domestico/ noticia uma correção em abril de " +
+          "2026 a esta dedução, mas o problema era só de FORMULÁRIO — a Portaria de março de 2026 tinha " +
+          "esquecido de incluir o código 666 no Anexo H, impedindo alguns contribuintes de declarar estas " +
+          "despesas — sem qualquer menção a mudança na percentagem (5%) ou no teto (200€), que continuam sem " +
+          "indicação de revisão.",
       },
       // Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8
       // CIRS) — NOVO na auditoria de 03/09/2026 (2ª ronda), o gap de maior
@@ -782,7 +846,7 @@ export const legislacaoFiscal = [
         majoracaoPorDependentePercentagem: 0.05,
         numDependentesParaMajoracao: 3,
         aplicavelA: ["saude", "educacao", "habitacao", "ppr", "exigenciaFatura", "trabalhoDomestico"],
-        confirmado: false,
+        confirmado: true,
         fonte:
           "art.º 78º, n.º 7 e n.º 8 CIRS (NÃO '78º-A' como referenciado antes noutros blocos — esse artigo não " +
           "existe autonomamente) — info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/" +
@@ -790,14 +854,14 @@ export const legislacaoFiscal = [
           "n.º 1 não pode exceder...'. Lista de alíneas abrangidas (exclui despesasGerais/alínea b) e " +
           "dependentes/alínea a)) confirmada tanto pelo texto oficial como por uma Demonstração de Liquidação " +
           "real: 'Total das Deduções sujeitas a limite' = saúde+educação+exigência de fatura+PPR, sem despesas " +
-          "gerais. RE-CONFIRMADO PARCIALMENTE 24/09/2026: o piso de 1.000€ ('o montante de 1000 (euro)' para " +
-          "rendimento acima do limiar do art.º 68º-A) e a majoração de 5% por dependente/afilhado civil a partir " +
-          "de 3 dependentes (n.º 8: 'os limites previstos no número anterior são majorados em 5% por cada " +
-          "dependente ou afilhado civil') foram lidos literalmente na mesma página oficial — `minimo: 1000` e " +
-          "`majoracaoPorDependentePercentagem: 0.05`/`numDependentesParaMajoracao: 3` têm agora confiança ALTA. " +
-          "Continua `confirmado: false` só para o teto superior (`maximo: 2500`) e o limiar exato de rendimento " +
-          "(escalão) em que a redução decrescente começa — a fórmula dessa alínea não veio no excerto lido, só a " +
-          "referência a 'fórmula baseada no art.º 68º-A'; falta uma leitura dedicada dessa parte do artigo.",
+          "gerais. O piso de 1.000€ e a majoração de 5%/dependente (3+) foram lidos literalmente na mesma " +
+          "página oficial. CONFIRMADO 24/09/2026 (formula da alínea b), teto de 2.500€ e o limiar exato onde " +
+          "a redução decrescente termina): economiafinancas.com/2025/irs-regras-e-limitacoes-as-deducoes-a-" +
+          "coleta-de-2025/ cita a fórmula literal \"1000 + 1500 × (80.000 − rendimento coletável)/(71.941)\" — " +
+          "80.000€ é o limiar do art.º 68º-A (já usado nesta app como `taxaSolidariedade[0].desde`) e 71.941 = " +
+          "80.000 − 8.059 (1º escalão de 2025, confirmado por fonte primária). CORRIGIU um bug real no motor: " +
+          "`calcularLimiteAgregadoDeducoes` interpolava até ao topo da tabela normal de escalões (83.696€ em " +
+          "2025) em vez de até aos 80.000€ do art.º 68º-A — ver comentário completo em engine/calculo-irs.js.",
       },
     },
 
