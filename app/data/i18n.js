@@ -354,6 +354,11 @@ export const pt = {
       "Estimativa — o valor definitivo só fica confirmado na Simulação, onde já sabemos o escalão de IRS aplicável.",
     deducaoDonativosNota:
       "Dedução de 25%, até 15% da coleta total do ano — como ainda não sabemos a coleta, o valor exato só aparece na Simulação.",
+    // Campo PPR por titular (24/09/2026) — ver comentário em
+    // ui/ventana-deducoes.js: um input + barra por sujeito passivo, em vez
+    // de um único campo do agregado.
+    pprTitular1: "1º titular",
+    pprTitular2: "2º titular",
     deducoesGrupos: {
       saudeEducacao: {
         titulo: "Saúde, educação e PPR",
@@ -361,7 +366,7 @@ export const pt = {
         saudeDependentes: { label: "Despesas de saúde dos dependentes", hint: "Consultas, dentista, vacinas, farmácia — faturas emitidas com o NIF de um dependente também contam. Soma-se à mesma base e ao mesmo teto acima, não é um plafond à parte." },
         educacao: { label: "Despesas de educação", hint: "Propinas, livros, material escolar. Dedução de 30%, até 800€ (mais nas regiões do interior)." },
         educacaoDependentes: { label: "Despesas de educação dos dependentes", hint: "Propinas, material escolar, comparticipação de comedor escolar — faturas emitidas com o NIF de um dependente também contam. Soma-se à mesma base e ao mesmo teto acima, não é um plafond à parte." },
-        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma. Dedução de 20%, até 300-400€ por titular conforme a idade (em declaração conjunta, o limite do agregado soma o de cada titular)." },
+        ppr: { label: "Entregas para PPR", hint: "Valor entregue no ano para um Plano Poupança-Reforma, por titular. Dedução de 20%, até 300-400€ por titular conforme a idade — cada um tem o seu próprio teto, não é um valor partilhado do casal." },
         habitacao: { label: "Renda ou juros de crédito habitação", hint: "Renda de casa própria e permanente, ou juros de crédito à habitação contraído até 2011. Dedução de 15%." },
       },
       familia: {

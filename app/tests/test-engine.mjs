@@ -633,20 +633,70 @@ console.log("\n--- Subsídio de férias/Natal projetado passa a ser editável (p
 console.log("\n--- PPR: limite por titular, ×2 em regime conjunta (auditoria 03/09/2026, 2ª ronda) ---");
 // Corrigido: 400/350/300€ por sujeito passivo (art.º 21º EBF), não
 // 800/700/600€ por declaração. Em regime individual o teto é 400€; em
-// regime conjunta, 800€ (soma dos dois titulares possíveis).
+// regime conjunta, 800€ no AGREGADO — mas (CORRIGIDO 24/09/2026, pedido
+// real do Dani: "el PPR es por titular... somos dos sujetos pasivos, pero
+// solo un espacio para poner el PPR") já não é um plafond partilhado: são
+// dois tetos de 400€ independentes, um por titular, cada um só usado por
+// quem realmente entregou esse PPR (`deducoesColeta.pprPorPessoa`).
+const pessoasConjunta = [{ id: "pessoaA" }, { id: "pessoaB" }];
 const oportunidadePprConjunta = detectarOportunidadePPR({
   anoFiscal: 2026,
   regime: "conjunta",
   rubricasPorPessoa: [rubricasA, rubricasB],
   dependentes: [],
+  pessoas: pessoasConjunta,
   deducoesColeta: {},
 });
 if (!oportunidadePprConjunta) {
   console.error("FALHOU: devia detetar oportunidade de PPR em regime conjunta");
   process.exitCode = 1;
 } else {
-  assertIgual(oportunidadePprConjunta.tetoAnual, 800, "teto anual de dedução do PPR em regime conjunta (2 titulares) = 800€");
+  // A sugestão aponta ao 1º titular com espaço, ao SEU próprio teto — não
+  // ao teto do agregado (esse continua a ser 800€, mas só aparece somado
+  // no resultado da declaração, não numa única "oportunidade").
+  assertIgual(oportunidadePprConjunta.tetoAnual, 400, "teto anual sugerido é o de UM titular (400€), não o do agregado inteiro");
 }
+
+// Confirma o outro lado: cada titular só é limitado ao SEU próprio teto,
+// mesmo quando um deles entrega tudo e o outro nada — a dedução do
+// agregado é a SOMA de duas deduções independentemente capadas, não um
+// único valor combinado capado a 800€ (era exatamente este o erro
+// reportado: um único campo do agregado dava a mesma dedução quer as
+// entregas fossem feitas por um só titular, quer repartidas pelos dois).
+const declaracaoPprAssimetrico = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "conjunta",
+  rubricasPorPessoa: [rubricasA, rubricasB],
+  dependentes: [],
+  pessoas: pessoasConjunta,
+  // 3.120€ entregues só pela pessoaA (mesmo caso real do Dani) — a 20% dava
+  // 624€, mas o teto de UM titular é 400€, não os 800€ do agregado.
+  deducoesColeta: { pprPorPessoa: { pessoaA: 3120, pessoaB: 0 } },
+});
+assertIgual(
+  declaracaoPprAssimetrico.linhas[8].ppr,
+  400,
+  "PPR de 3.120€ entregue só por um titular fica capado ao SEU teto (400€), não ao do agregado (800€)"
+);
+
+const declaracaoPprRepartido = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "conjunta",
+  rubricasPorPessoa: [rubricasA, rubricasB],
+  dependentes: [],
+  pessoas: pessoasConjunta,
+  // As mesmas entregas totais (3.120€), mas metade para cada titular —
+  // cada metade (1.560€×20%=312€) fica dentro do teto individual de
+  // 400€, por isso a dedução do agregado sobe para 624€ (312+312) —
+  // exatamente o valor que o cálculo antigo (errado) dava sempre, mesmo
+  // quando as entregas não estavam repartidas assim.
+  deducoesColeta: { pprPorPessoa: { pessoaA: 1560, pessoaB: 1560 } },
+});
+assertIgual(
+  declaracaoPprRepartido.linhas[8].ppr,
+  624,
+  "as mesmas 3.120€ entregues a meias pelos dois titulares deduzem 624€ (312€ cada, dentro do teto de cada um)"
+);
 
 console.log("\n--- Limite agregado às deduções à coleta (art.º 78º, n.º 7/8 CIRS — novo, 03/09/2026 2ª ronda) ---");
 // Rendimento alto o suficiente para cair no último escalão finito (>86.634€
@@ -1117,6 +1167,22 @@ console.log("\n--- calcularDeducoesAColeta exportada com contexto parcial (barra
   assertIgual(parcial.limites.despesasGerais, 500, "barra despesas gerais: teto de casal devolvido corretamente (500€, regime conjunta)");
   assertIgual(parcial.trabalhoDomestico, 200, "barra trabalho doméstico: 5.000€×5%=250€ capado no teto (200€)");
   assertIgual(parcial.limiteAgregado, null, "sem rendimentoPorQuociente conhecido, limite agregado fica por aplicar (null = Infinity) — evita um aviso falso no ecrã de Deduções");
+
+  // PPR por titular (24/09/2026) — mesmo teste de contexto parcial, agora
+  // com `pessoas` (2 titulares) e `pprPorPessoa` em vez do campo legado
+  // `ppr`, tal como ui/ventana-deducoes.js passa depois da migração.
+  const pessoasBarras = [{ id: "p1" }, { id: "p2" }];
+  const parcialPprPorTitular = calcularDeducoesAColeta({
+    deducoesColeta: { pprPorPessoa: { p1: 3120, p2: 500 } },
+    pessoas: pessoasBarras,
+    tabela: tabela2026,
+    regime: "conjunta",
+    anoFiscal: 2026,
+  });
+  assertIgual(parcialPprPorTitular.pprDetalhePorPessoa.p1.deducao, 400, "barra PPR do 1º titular: 3.120€×20%=624€, capado ao SEU teto (400€)");
+  assertIgual(parcialPprPorTitular.pprDetalhePorPessoa.p2.deducao, 100, "barra PPR do 2º titular: 500€×20%=100€, dentro do seu próprio teto (400€)");
+  assertIgual(parcialPprPorTitular.ppr, 500, "PPR total do agregado = soma das duas deduções por titular (400€+100€)");
+  assertIgual(parcialPprPorTitular.limites.ppr, 800, "teto do agregado devolvido continua a ser a soma dos dois tetos (800€), para a linha 8 do desglose");
 }
 // Contexto completo (via calcularDeclaracao, como a Simulação faz) — a
 // mesma função tem de devolver os mesmos `limites` para alimentar o

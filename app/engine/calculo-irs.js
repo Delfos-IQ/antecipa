@@ -576,13 +576,46 @@ export function calcularDeducoesAColeta({
 
   // PPR: o limite legal é POR SUJEITO PASSIVO (art.º 21º EBF — ver
   // legislacao-2026.js para o histórico do erro 800/700/600€ vs.
-  // 400/350/300€). Em regime conjunta há dois titulares possíveis, por
-  // isso o teto do agregado é ×2. Ainda simplificado: usa-se sempre o
-  // teto mais alto (menor idade) por não termos a data de nascimento de
-  // cada titular disponível neste ponto — refinar em v1.1.
+  // 400/350/300€), não um plafond partilhado do agregado. CORRIGIDO
+  // (24/09/2026, pedido do Dani a partir do ecrã real: "el PPR es por
+  // titular, pero aqui solo hay espaço para um titular... este campo
+  // tendria que estar vinculado com os sujeitos pasivos definidos"). Até
+  // aqui `deducoesColeta.ppr` era um único número do agregado, capado ao
+  // teto ×2 em conjunta — o que dava a mesma dedução quer as entregas
+  // fossem feitas 50/50 por cada titular, quer um só titular tivesse
+  // feito tudo (caso em que a lei só permite deduzir até ao SEU próprio
+  // teto, não o do agregado inteiro). Confirmado que o teto do agregado é
+  // mesmo a soma de dois tetos independentes via uma Demonstração de
+  // Liquidação real (ver nota em legislacao-2026.js, bloco 2025: 610€
+  // deduzidos, sem clamping, em declaração conjunta). Agora calcula-se a
+  // dedução de cada titular (`deducoesColeta.pprPorPessoa`, mapa
+  // pessoaId → valor entregue) independentemente, cada uma capada ao seu
+  // próprio teto, e soma-se — `pessoas` já vem correctamente âmbito por
+  // quem chama esta função (compararRegimes passa só o titular relevante
+  // em cada declaração separada; o ecrã de Simulação/Deduções passa os
+  // dois em conjunta). Ainda simplificado: usa-se sempre o teto mais alto
+  // (menor idade) por titular, por não termos a data de nascimento de
+  // cada um disponível neste ponto — refinar em v1.1.
   const pprTetoPorTitular = limites.ppr.limiteAte35Anos;
-  const pprTeto = regime === "conjunta" ? round2(pprTetoPorTitular * 2) : pprTetoPorTitular;
-  const ppr = clamp((deducoesColeta.ppr || 0) * limites.ppr.percentagem, pprTeto);
+  const pprPorPessoaMapa = deducoesColeta.pprPorPessoa || {};
+  // Legado: se ainda não há nenhum valor no novo mapa por titular mas
+  // existe o antigo campo único `ppr` (dados gravados antes desta
+  // correção), atribui-se por omissão ao 1º titular — não há forma de
+  // saber retroativamente como as entregas se repartiram entre os dois.
+  // ui/ventana-deducoes.js já migra isto para o mapa novo assim que o
+  // ecrã de Deduções é aberto (e zera o campo antigo), por isso este
+  // fallback só serve quem chama o motor diretamente sem passar por lá.
+  const usaValorLegadoPpr = Object.keys(pprPorPessoaMapa).length === 0 && (deducoesColeta.ppr || 0) > 0;
+  const titularesPpr = pessoas.length ? pessoas : [{ id: "household" }];
+  const pprDetalhePorPessoa = {};
+  let ppr = 0;
+  titularesPpr.forEach((titular, indice) => {
+    const contributo = usaValorLegadoPpr && indice === 0 ? deducoesColeta.ppr || 0 : pprPorPessoaMapa[titular.id] || 0;
+    const deducaoTitular = clamp(contributo * limites.ppr.percentagem, pprTetoPorTitular);
+    pprDetalhePorPessoa[titular.id] = { contributo: round2(contributo), deducao: deducaoTitular, teto: pprTetoPorTitular };
+    ppr = round2(ppr + deducaoTitular);
+  });
+  const pprTeto = round2(pprTetoPorTitular * titularesPpr.length);
 
   // Limite de rendas de habitação: mais alto (limitePrimeiroEscalao) para
   // quem tem rendimento (por quociente) dentro do 1º escalão de IRS — o
@@ -703,6 +736,13 @@ export function calcularDeducoesAColeta({
     saude,
     educacao,
     ppr,
+    // Dedução de PPR de cada titular (24/09/2026) — { contributo, dedução,
+    // teto } por pessoaId, para ui/ventana-deducoes.js desenhar uma barra
+    // de progresso por titular em vez de uma só barra do agregado (`ppr`/
+    // `limites.ppr` acima continuam a ser o total do agregado, usados na
+    // linha 8 do desglose em ui/ventana-14.js, que mostra o valor oficial
+    // agregado tal como a Demonstração de Liquidação).
+    pprDetalhePorPessoa,
     habitacao,
     exigenciaFatura,
     despesasGerais,
@@ -1021,6 +1061,13 @@ function dividirDeducoesColetaPorDois(deducoesColeta = {}) {
     educacao: metade("educacao"),
     educacaoDependentes: metade("educacaoDependentes"),
     habitacao: metade("habitacao"),
+    // ppr (24/09/2026): já NÃO se divide — `pprPorPessoa` (spalhado acima
+    // via ...deducoesColeta) já traz o valor de cada titular à parte, e
+    // calcularDeducoesAColeta lê só a entrada do titular relevante para
+    // cada declaração separada (ver `pessoas` passado em cada chamada
+    // abaixo). O campo antigo `ppr` (metade abaixo) só serve de fallback
+    // para dados legados ainda não migrados para pprPorPessoa — ver
+    // comentário em calcularDeducoesAColeta.
     ppr: metade("ppr"),
     exigenciaFaturaRestauracao: metade("exigenciaFaturaRestauracao"),
     exigenciaFaturaReparacaoAutomovel: metade("exigenciaFaturaReparacaoAutomovel"),
@@ -1124,35 +1171,59 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes, t
  * @returns {null|{tipo:"ppr", entregaNecessaria:number, poupancaEstimada:number, tetoAnual:number}}
  */
 export function detectarOportunidadePPR(input, resultadoAtual) {
-  const { anoFiscal, regime, deducoesColeta = {}, dataReferencia } = input;
+  const { anoFiscal, deducoesColeta = {}, pessoas = [], dataReferencia } = input;
   const tabela = obterTabelaFiscal(anoFiscal, dataReferencia);
   const limitesPpr = tabela.limitesDeducoes.ppr;
   if (!limitesPpr) return null;
 
-  const pprAtual = deducoesColeta.ppr || 0;
   // Mesma simplificação v1 já usada em calcularDeducoesAColeta: usa-se o
   // teto mais alto (menor idade) por não termos ainda a data de nascimento
-  // do(s) sujeito(s) passivo(s) disponível neste ponto. O limite é por
-  // titular (art.º 21º EBF) — em regime conjunta há dois titulares
-  // possíveis, por isso ×2. Ver nota em calcularDeducoesAColeta.
+  // do(s) sujeito(s) passivo(s) disponível neste ponto.
   const tetoPorTitular = limitesPpr.limiteAte35Anos;
-  const teto = regime === "conjunta" ? round2(tetoPorTitular * 2) : tetoPorTitular;
-  const deducaoAtual = Math.min(pprAtual * limitesPpr.percentagem, teto);
-  if (deducaoAtual >= teto) return null; // já no limite — nada a sugerir
 
-  const entregaNecessaria = round2(teto / limitesPpr.percentagem - pprAtual);
+  // CORRIGIDO (24/09/2026, mesma correção de calcularDeducoesAColeta): o
+  // teto é por titular, não do agregado — por isso, em vez de um único
+  // "quanto falta entregar" para um plafond combinado, sugere-se a
+  // entrega ao 1º titular que ainda não esgotou o SEU próprio teto (v1 —
+  // não distribui a sugestão entre os dois, só aponta a próxima entrega
+  // que ainda traz poupança). Se ambos já estiverem no limite, não há
+  // nada a sugerir.
+  const pprPorPessoaMapa = deducoesColeta.pprPorPessoa || {};
+  const usaValorLegadoPpr = Object.keys(pprPorPessoaMapa).length === 0 && (deducoesColeta.ppr || 0) > 0;
+  const titulares = pessoas.length ? pessoas : [{ id: "household" }];
+  const titularComEspaco = titulares.find((titular, indice) => {
+    const contributo = usaValorLegadoPpr && indice === 0 ? deducoesColeta.ppr || 0 : pprPorPessoaMapa[titular.id] || 0;
+    return contributo * limitesPpr.percentagem < tetoPorTitular;
+  });
+  if (!titularComEspaco) return null; // todos os titulares já no seu limite
+
+  const pprAtualTitular =
+    usaValorLegadoPpr && titulares[0]?.id === titularComEspaco.id
+      ? deducoesColeta.ppr || 0
+      : pprPorPessoaMapa[titularComEspaco.id] || 0;
+  const entregaNecessaria = round2(tetoPorTitular / limitesPpr.percentagem - pprAtualTitular);
 
   const declaracaoAtual = resultadoAtual ?? calcularDeclaracao(input);
   const declaracaoComPPR = calcularDeclaracao({
     ...input,
-    deducoesColeta: { ...deducoesColeta, ppr: pprAtual + entregaNecessaria },
+    deducoesColeta: {
+      ...deducoesColeta,
+      pprPorPessoa: { ...pprPorPessoaMapa, [titularComEspaco.id]: pprAtualTitular + entregaNecessaria },
+    },
   });
 
   const sinal = (r) => (r.tipo === "a_devolver" ? r.valor : -r.valor);
   const poupancaEstimada = round2(sinal(declaracaoComPPR.resultado) - sinal(declaracaoAtual.resultado));
   if (poupancaEstimada <= 0) return null; // sem coleta suficiente para beneficiar
 
-  return { tipo: "ppr", entregaNecessaria, poupancaEstimada, tetoAnual: teto, pprAtual };
+  return {
+    tipo: "ppr",
+    entregaNecessaria,
+    poupancaEstimada,
+    tetoAnual: tetoPorTitular,
+    pprAtual: pprAtualTitular,
+    titularNome: titulares.length > 1 ? titularComEspaco.nome : null,
+  };
 }
 
 /**

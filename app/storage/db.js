@@ -241,7 +241,16 @@ export async function getDeducoesColeta(anoFiscal, pessoaId = "household") {
     saudeDependentes: 0,
     educacao: 0,
     educacaoDependentes: 0,
+    // ppr (legado): campo único do agregado, substituído por pprPorPessoa
+    // abaixo (24/09/2026 — o teto legal é por titular, não do agregado).
+    // Mantido só para dados antigos ainda por migrar — ver comentário em
+    // ui/ventana-deducoes.js (migração automática ao abrir o ecrã) e em
+    // engine/calculo-irs.js:calcularDeducoesAColeta (fallback).
     ppr: 0,
+    // pprPorPessoa: mapa pessoaId → valor anual entregue para PPR por esse
+    // titular (art.º 21º EBF, teto por sujeito passivo). Um titular →
+    // uma entrada; em declaração conjunta, cada um tem a sua.
+    pprPorPessoa: {},
     habitacao: 0,
     // Exigência de fatura (IVAucher) desdobrada por categoria do e-Fatura,
     // para que o utilizador introduza o que já vê lá diretamente — o motor

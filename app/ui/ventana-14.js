@@ -616,7 +616,7 @@ function renderOportunidadePPR(oportunidade) {
     <div class="oportunidade-item">
       <p class="oportunidade-item__titulo">${titulo}</p>
       <p class="field-hint">
-        ${temPprRegistado ? `Já entregou ${formatarMoeda(oportunidade.pprAtual)}. ` : ""}${corpo}
+        ${oportunidade.titularNome ? `${oportunidade.titularNome}: ` : ""}${temPprRegistado ? `Já entregou ${formatarMoeda(oportunidade.pprAtual)}. ` : ""}${corpo}
         <strong class="num">${formatarMoeda(oportunidade.entregaNecessaria)}</strong>
         ${pt.ventana14.oportunidadePprLigacao}
         <strong class="num">${formatarMoeda(oportunidade.poupancaEstimada)}</strong>.
