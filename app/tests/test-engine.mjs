@@ -1199,4 +1199,131 @@ console.log("\n--- calcularDeducoesAColeta exportada com contexto parcial (barra
   assertIgual(comContexto.saude, 180, "detalhe linha 8 (Simulação): 1.200€×15%=180€, dentro do teto de 1.000€");
 }
 
+console.log("\n--- IRS Jovem (art.º 12º-B CIRS) — isenção com progressividade (24/09/2026) ---");
+// Texto legal citado em data/legislacao-2026.js. `pessoas`/`rubricasPorPessoa`
+// já vêm alinhados por índice em todos os chamadores existentes.
+{
+  const rubricasJovem20mil = [
+    { categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 20000 },
+  ];
+  // 1º ano do regime (100% isento): a isenção (20.000€, bem abaixo do teto
+  // de 29.542,15€) excede o próprio rendimento líquido depois da dedução
+  // específica — imposto tem de ficar a 0€, seja qual for o valor exato
+  // da dedução específica.
+  const ano1 = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricasJovem20mil],
+    dependentes: [],
+    pessoas: [{ id: "jovem", dataNascimento: "2000-06-15", irsJovemAnoInicio: 2026 }],
+    deducoesColeta: {},
+  });
+  assertIgual(ano1.linhas["5B"].total, 20000, "IRS Jovem, 1º ano: isenção = 100% de 20.000€ (sem clamping, abaixo do teto)");
+  assertIgual(ano1.linhas[6].total, 0, "IRS Jovem, 1º ano: importância apurada = 0€ (isenção excede o rendimento líquido)");
+}
+
+{
+  // Mecanismo "isenção com progressividade" (art.º 12º-B n.º 4 + art.º 22º
+  // n.º 4 CIRS): corre-se a MESMA declaração com e sem o benefício, e
+  // deriva-se o valor esperado a partir da própria taxa média que o motor
+  // já calculou no cenário SEM benefício — sem repetir aqui a lógica de
+  // procura do escalão, só a fórmula da isenção em si. Rendimento alto de
+  // propósito (30.000€) para cair num escalão intermédio, onde a
+  // diferença entre "taxa média sobre o rendimento total" e "taxa
+  // marginal sobre a parte tributável" é claramente visível se a fórmula
+  // estiver errada.
+  const rubricas30mil = [{ categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 30000 }];
+  const semBeneficio = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricas30mil],
+    dependentes: [],
+    pessoas: [{ id: "jovem" }],
+    deducoesColeta: {},
+  });
+  const rendimentoParaTaxa = semBeneficio.linhas[3].total; // sem ajuste de anos anteriores neste caso
+  const taxaMedia = rendimentoParaTaxa > 0 ? semBeneficio.linhas[6].total / rendimentoParaTaxa : 0;
+
+  // 2º ano do regime (75%): irsJovemAnoInicio = 2025 → anoDoRegime = 2026-2025+1 = 2.
+  const comBeneficioAno2 = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricas30mil],
+    dependentes: [],
+    pessoas: [{ id: "jovem", dataNascimento: "1998-01-01", irsJovemAnoInicio: 2025 }],
+    deducoesColeta: {},
+  });
+  const isencaoEsperada = 0.75 * 30000; // 22.500€, abaixo do teto de 29.542,15€
+  const rendimentoTributavelEsperado = Math.max(0, rendimentoParaTaxa - isencaoEsperada);
+  const importanciaEsperada = Math.round(taxaMedia * rendimentoTributavelEsperado * 100) / 100;
+
+  assertIgual(comBeneficioAno2.linhas["5B"].total, isencaoEsperada, "IRS Jovem, 2º ano (75%): isenção = 75% de 30.000€ = 22.500€");
+  assertIgual(
+    comBeneficioAno2.linhas[6].total,
+    importanciaEsperada,
+    "IRS Jovem, 2º ano: importância apurada = taxa média do rendimento TOTAL (sem benefício) aplicada à base já reduzida pela isenção"
+  );
+  // A isenção nunca pode reduzir o imposto para MENOS do que zero, nem
+  // pode "poupar" mais do que o imposto total sem benefício.
+  if (comBeneficioAno2.linhas[6].total >= semBeneficio.linhas[6].total) {
+    console.error("FALHOU: o benefício do IRS Jovem devia reduzir o imposto face ao cenário sem benefício");
+    process.exitCode = 1;
+  } else {
+    console.log("OK: IRS Jovem reduz o imposto face ao mesmo rendimento sem o benefício");
+  }
+}
+
+{
+  // Elegibilidade: fora da idade (>35 a 31/dez do ano fiscal) não tem
+  // direito a isenção nenhuma, mesmo com irsJovemAnoInicio preenchido.
+  const rubricas25mil = [{ categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 25000 }];
+  const foraDaIdade = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricas25mil],
+    dependentes: [],
+    pessoas: [{ id: "maisVelho", dataNascimento: "1988-01-01", irsJovemAnoInicio: 2020 }], // 38 anos em 2026
+    deducoesColeta: {},
+  });
+  assertIgual(foraDaIdade.linhas["5B"].total, 0, "IRS Jovem: sem isenção para quem já passou dos 35 anos, mesmo com ano de início preenchido");
+
+  // Regime esgotado (11º ano de rendimentos) — já não há isenção.
+  const regimeEsgotado = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricas25mil],
+    dependentes: [],
+    pessoas: [{ id: "esgotado", dataNascimento: "2000-01-01", irsJovemAnoInicio: 2015 }], // ano do regime = 12
+    deducoesColeta: {},
+  });
+  assertIgual(regimeEsgotado.linhas["5B"].total, 0, "IRS Jovem: sem isenção depois de esgotados os 10 anos do regime");
+
+  // Quem não ativou o regime (sem irsJovemAnoInicio) não é afetado, mesmo
+  // sendo jovem — mesmo comportamento de sempre (regressão).
+  const semRegimeAtivo = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricas25mil],
+    dependentes: [],
+    pessoas: [{ id: "naoAtivou", dataNascimento: "2000-01-01" }],
+    deducoesColeta: {},
+  });
+  assertIgual(semRegimeAtivo.linhas["5B"].total, 0, "IRS Jovem: quem não ativou o regime em Perfil não recebe isenção nenhuma");
+}
+
+{
+  // Teto de 55×IAS: rendimento alto o suficiente para a isenção calculada
+  // exceder o teto — tem de ficar capada, não anulada.
+  const rubricasAlto = [{ categoria: "A", tipo: "abono", descricao: "Remuneração base", valorComRedu: 50000 }];
+  const comTeto = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricasAlto],
+    dependentes: [],
+    pessoas: [{ id: "altoRendimento", dataNascimento: "2000-01-01", irsJovemAnoInicio: 2026 }], // 1º ano, 100%
+    deducoesColeta: {},
+  });
+  assertIgual(comTeto.linhas["5B"].total, 29542.15, "IRS Jovem: isenção capada a 55×IAS (29.542,15€) quando 100% do rendimento excederia o teto");
+}
+
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

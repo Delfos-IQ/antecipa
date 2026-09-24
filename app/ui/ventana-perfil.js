@@ -84,6 +84,12 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
   // campos vazios — perdendo o "dia" já escrito antes de chegar a "mês".
   // Bug apanhado no teste automático desta sessão (03/09/2026).
   const dataNascPendente = new Map();
+  // Mesmo padrão acima, agora para a data de nascimento do(s) sujeito(s)
+  // passivo(s) (24/09/2026, NOVO campo — pedido do Dani: suporte ao IRS
+  // Jovem, que precisa da idade de cada titular, e que também resolve o
+  // teto do PPR por idade que ainda usava sempre o valor mais alto por
+  // falta desta data — ver engine/calculo-irs.js).
+  const pessoaDataNascPendente = new Map();
 
   await montar();
 
@@ -102,7 +108,9 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     // Mesmos limites usados pelo motor (engine/calculo-irs.js) — reutiliza
     // valorDeducaoPorDependente diretamente em vez de duplicar a fórmula
     // aqui, para nunca divergir do valor que a Simulação acaba por mostrar.
-    const limitesDeducoes = obterTabelaFiscal(anoAtivo).limitesDeducoes;
+    const tabelaFiscalAtiva = obterTabelaFiscal(anoAtivo);
+    const limitesDeducoes = tabelaFiscalAtiva.limitesDeducoes;
+    const configIrsJovem = tabelaFiscalAtiva.irsJovem;
 
     container.innerHTML = `
       <h2>${pt.perfil.titulo}</h2>
@@ -130,13 +138,50 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
             : ""
         }
         ${pessoas
-          .map(
-            (p, i) => `
+          .map((p, i) => {
+            // Data de nascimento do titular (24/09/2026, NOVO) — mesmo
+            // padrão dia/mês/ano dos dependentes acima, com o mesmo motivo
+            // (preservar o que já foi escrito entre re-renders a cada
+            // blur). Usada para a idade em calcularIsencaoIrsJovem e para o
+            // teto do PPR por idade (engine/calculo-irs.js).
+            const [anoNascSalvo = "", mesNascSalvo = "", diaNascSalvo = ""] = (p.dataNascimento || "").split("-");
+            const pendenteNasc = pessoaDataNascPendente.get(p.id) ?? {};
+            const diaNasc = pendenteNasc.dia ?? diaNascSalvo;
+            const mesNasc = pendenteNasc.mes ?? mesNascSalvo;
+            const anoNasc = pendenteNasc.ano ?? anoNascSalvo;
+            const idadePessoa = idadeNoAno(p.dataNascimento, anoAtivo);
+
+            // IRS Jovem (24/09/2026, NOVO — ver texto legal completo em
+            // data/legislacao-2026.js). "Ano do regime" derivado a partir
+            // do ano em que a pessoa começou a usá-lo (simplificação v1:
+            // assume-se que não houve anos sem rendimento A/B pelo meio —
+            // ver nota junto a calcularIsencaoIrsJovem). Resumo aqui é só
+            // informativo; o valor real da isenção é calculado no motor.
+            const anoDoRegime = p.irsJovemAnoInicio ? anoAtivo - p.irsJovemAnoInicio + 1 : null;
+            const tierAtual =
+              configIrsJovem && anoDoRegime ? configIrsJovem.tiers.find((t) => anoDoRegime >= t.desde && anoDoRegime <= t.ate) : null;
+            const dentroDaIdade = configIrsJovem && idadePessoa !== null ? idadePessoa <= configIrsJovem.idadeMaxima : null;
+            let resumoIrsJovem = "";
+            if (p.irsJovemAnoInicio) {
+              if (idadePessoa === null) resumoIrsJovem = pt.perfil.irsJovemFaltaDataNascimento;
+              else if (dentroDaIdade === false) resumoIrsJovem = pt.perfil.irsJovemForaDaIdade;
+              else if (!anoDoRegime || anoDoRegime < 1) resumoIrsJovem = pt.perfil.irsJovemAnoInicioFuturo;
+              else if (anoDoRegime > (configIrsJovem?.anosRegime ?? 10)) resumoIrsJovem = pt.perfil.irsJovemRegimeEsgotado;
+              else if (tierAtual) resumoIrsJovem = `${pt.perfil.irsJovemAnoDoRegime} ${anoDoRegime}.º — ${Math.round(tierAtual.percentagem * 100)}% ${pt.perfil.irsJovemIsento}`;
+            }
+            return `
           <div class="doc-card" style="margin-top:var(--space-2)">
             <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
               <input type="text" data-pessoa-campo="nome" data-pessoa-id="${p.id}" value="${p.nome ?? ""}" placeholder="${pt.perfil.agregadoNomePlaceholder}" style="flex:1 1 140px" />
               <input type="text" data-pessoa-campo="nif" data-pessoa-id="${p.id}" value="${p.nif ?? ""}" placeholder="${pt.perfil.agregadoNifPlaceholder}" inputmode="numeric" maxlength="9" style="flex:1 1 110px" />
               ${i > 0 ? `<button class="btn btn-ghost" data-action="remover-pessoa" data-pessoa-id="${p.id}" style="color:var(--pagar)">${pt.perfil.removerPessoa}</button>` : ""}
+            </div>
+            <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-top:var(--space-2)">
+              <span class="field-hint" style="white-space:nowrap">${pt.perfil.dataNascimentoLabel}</span>
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" data-pessoa-data-campo="dia" data-pessoa-id="${p.id}" value="${diaNasc}" style="width:52px;text-align:center;flex:none" />
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" data-pessoa-data-campo="mes" data-pessoa-id="${p.id}" value="${mesNasc}" style="width:52px;text-align:center;flex:none" />
+              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" data-pessoa-data-campo="ano" data-pessoa-id="${p.id}" value="${anoNasc}" style="width:72px;text-align:center;flex:none" />
+              <span class="field-hint">${idadePessoa !== null ? `${pt.perfil.idadeEm} ${anoAtivo}: ${idadePessoa} ${pt.perfil.anos}` : ""}</span>
             </div>
             <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center;margin-top:var(--space-2)">
               <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem">
@@ -169,8 +214,26 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                 value="${p.quotizacaoOrdemProfissionalAnual || ""}" placeholder="0,00" />
               <p class="field-hint">${pt.perfil.quotizacaoOrdemAjuda}</p>
             </div>
-          </div>`
-          )
+            <div class="field" style="margin-top:var(--space-2)">
+              <label style="display:flex;align-items:center;gap:4px;font-size:0.86rem;font-weight:500">
+                <input type="checkbox" data-pessoa-campo="irsJovemAtivo" data-pessoa-id="${p.id}" ${p.irsJovemAnoInicio ? "checked" : ""} />
+                ${pt.perfil.irsJovemLabel}
+              </label>
+              <p class="field-hint">${pt.perfil.irsJovemAjuda}</p>
+              ${
+                p.irsJovemAnoInicio
+                  ? `<div class="row" style="gap:var(--space-2);align-items:center;margin-top:var(--space-2);flex-wrap:wrap">
+                      <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA"
+                        data-pessoa-campo="irsJovemAnoInicio" data-pessoa-id="${p.id}"
+                        value="${p.irsJovemAnoInicio}" style="width:80px;text-align:center;flex:none" />
+                      <span class="field-hint">${pt.perfil.irsJovemAnoInicioLabel}</span>
+                    </div>
+                    ${resumoIrsJovem ? `<p class="field-hint" style="margin-top:4px">${resumoIrsJovem}</p>` : ""}`
+                  : ""
+              }
+            </div>
+          </div>`;
+          })
           .join("")}
         ${
           pessoas.length < 2
@@ -460,6 +523,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       const atual = { ...pessoaOriginal };
       container.querySelectorAll(`[data-pessoa-id="${id}"]`).forEach((campoEl) => {
         const campo = campoEl.dataset.pessoaCampo;
+        if (!campo) return; // data-pessoa-data-campo (dia/mes/ano) tratado à parte, abaixo
         if (campoEl.type === "checkbox") {
           atual[campo] = campoEl.checked;
         } else if (campoEl.type === "number") {
@@ -469,6 +533,20 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
           // valor, ver calcularDeducoesEspecificas em engine/calculo-irs.js).
           const valor = campoEl.value === "" ? 0 : Number(campoEl.value);
           atual[campo] = Number.isFinite(valor) ? valor : 0;
+        } else if (campo === "irsJovemAnoInicio") {
+          // Texto (não number, mesmo motivo dos campos dia/mês/ano acima —
+          // evitar o spinner nativo) — guardado como número para o motor
+          // (engine/calculo-irs.js faz aritmética direta com este valor).
+          const valor = Number(campoEl.value);
+          atual.irsJovemAnoInicio = campoEl.value && Number.isFinite(valor) ? valor : atual.irsJovemAnoInicio || null;
+        } else if (campo === "irsJovemAtivo") {
+          // Checkbox transitório — NÃO se grava a si próprio (só existe
+          // para mostrar/esconder o campo "ano de início"); a presença de
+          // `irsJovemAnoInicio` é que decide a participação no regime para
+          // o motor (ver calcularIsencaoIrsJovem). Ligar = assume o ano
+          // fiscal ativo como ano de início por omissão (editável a
+          // seguir); desligar = limpa o ano de início.
+          atual.irsJovemAnoInicio = campoEl.checked ? atual.irsJovemAnoInicio || anoAtivo : null;
         } else {
           atual[campo] = campoEl.value;
         }
@@ -477,6 +555,15 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       // limpa-o se a deficiência for desmarcada, em vez de deixar um valor
       // órfão na base de dados que o motor ignoraria de qualquer forma.
       if (!atual.deficiencia) atual.incapacidadeIgualOuSuperior90 = false;
+      // Data de nascimento (dia/mês/ano separados, ver
+      // data-pessoa-data-campo abaixo) — só sobrescreve se os 3 campos já
+      // estiverem preenchidos, para não apagar um valor já gravado por
+      // causa de uma edição a meio (mesmo motivo do dataNascPendente dos
+      // dependentes).
+      const pendenteNasc = pessoaDataNascPendente.get(id);
+      if (pendenteNasc?.ano && pendenteNasc?.mes && pendenteNasc?.dia) {
+        atual.dataNascimento = `${pendenteNasc.ano}-${pendenteNasc.mes}-${pendenteNasc.dia}`;
+      }
       await savePessoa(atual);
       if (reRenderizar) await montar();
     }
@@ -484,11 +571,39 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     container.querySelectorAll('[data-pessoa-campo="nome"], [data-pessoa-campo="nif"], [data-pessoa-campo="quotizacaoOrdemProfissionalAnual"]').forEach((el) => {
       el.addEventListener("blur", () => gravarPessoa(el.dataset.pessoaId));
     });
-    container.querySelectorAll('[data-pessoa-campo="deficiencia"], [data-pessoa-campo="incapacidadeIgualOuSuperior90"]').forEach((el) => {
+    container.querySelectorAll('[data-pessoa-campo="deficiencia"], [data-pessoa-campo="incapacidadeIgualOuSuperior90"], [data-pessoa-campo="irsJovemAtivo"]').forEach((el) => {
       el.addEventListener("change", () => gravarPessoa(el.dataset.pessoaId, { reRenderizar: true }));
     });
     container.querySelectorAll('[data-pessoa-campo="atividadeCategoriaB"]').forEach((el) => {
       el.addEventListener("change", () => gravarPessoa(el.dataset.pessoaId));
+    });
+    container.querySelectorAll('[data-pessoa-campo="irsJovemAnoInicio"]').forEach((el) => {
+      el.addEventListener("input", () => {
+        el.value = el.value.replace(/\D/g, "");
+      });
+      el.addEventListener("blur", () => gravarPessoa(el.dataset.pessoaId, { reRenderizar: true }));
+    });
+
+    // Data de nascimento do titular — mesmo padrão dia/mês/ano dos
+    // dependentes (ver data-dep-data-campo acima): campos de texto (não
+    // number, para não cortar dígitos com o spinner nativo). O valor
+    // pendente fica em pessoaDataNascPendente (sobrevive a re-renders
+    // enquanto os 3 campos não estão todos preenchidos) e gravarPessoa()
+    // acima lê-o e junta-o aos restantes campos dessa pessoa, para não
+    // perder nenhuma edição concorrente. reRenderizar=true porque a idade
+    // recém-calculada afeta o resumo do IRS Jovem mostrado por baixo.
+    container.querySelectorAll("[data-pessoa-data-campo]").forEach((el) => {
+      el.addEventListener("input", () => {
+        el.value = el.value.replace(/\D/g, "");
+      });
+      el.addEventListener("blur", () => {
+        const id = el.dataset.pessoaId;
+        const pendente = pessoaDataNascPendente.get(id) ?? {};
+        const campo = el.dataset.pessoaDataCampo;
+        pendente[campo] = el.value ? String(el.value).padStart(campo === "ano" ? 4 : 2, "0") : "";
+        pessoaDataNascPendente.set(id, pendente);
+        gravarPessoa(id, { reRenderizar: true });
+      });
     });
 
     container.querySelector('[data-action="adicionar-pessoa"]')?.addEventListener("click", async () => {

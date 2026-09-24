@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.50";
+export const VERSAO_ATUAL = "2.51";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.51", resumo: "Novo: suporte ao regime IRS Jovem (até 35 anos) — data de nascimento e ano de início em Perfil, por titular" },
   { versao: "2.50", resumo: "Novo: ícones em cada categoria de deduções, na mesma linha visual da marca" },
   { versao: "2.49", resumo: "Correção importante: o PPR era um único campo do casal — agora cada titular tem o seu próprio campo e o seu próprio teto de dedução, como manda a lei" },
   { versao: "2.48", resumo: "Novo: barras de \"dedução correspondente\" em Deduções e na Simulação, tal como no Portal das Finanças — mostra logo quanto cada despesa vale em dedução e quão perto está do teto" },

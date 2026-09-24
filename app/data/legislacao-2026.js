@@ -347,6 +347,32 @@ export const legislacaoFiscal = [
 
     taxaAutonomaMaisValias: 0.28,
     taxaAutonomaMaisValiasFonte: "Herdado do bloco 2026 — art.º 72º/1 CIRS, taxa fixa inalterada.",
+
+    // IRS Jovem (art.º 12º-B CIRS) — NOVO (24/09/2026, pedido do Dani).
+    // Isenção parcial dos rendimentos das categorias A e B para sujeitos
+    // passivos até 35 anos, nos primeiros 10 anos de obtenção de
+    // rendimentos. Ver o bloco 2026 abaixo para a citação completa do
+    // texto legal (herdado tal e qual — só muda o teto, indexado ao IAS
+    // de cada ano).
+    irsJovem: {
+      idadeMaxima: 35,
+      anosRegime: 10,
+      tetoAnual: 28737.5, // 55 × IAS 2025 (522,50€)
+      tiers: [
+        { desde: 1, ate: 1, percentagem: 1.0 },
+        { desde: 2, ate: 4, percentagem: 0.75 },
+        { desde: 5, ate: 7, percentagem: 0.5 },
+        { desde: 8, ate: 10, percentagem: 0.25 },
+      ],
+      categoriasElegiveis: ["A", "B"],
+      confirmado: true,
+      fonte:
+        "art.º 12º-B CIRS, texto literal lido diretamente em info.portaldasfinancas.gov.pt/pt/informacao_fiscal/" +
+        "codigos_tributarios/cirs_rep/Pages/irs12b.aspx (fonte primária, 24/09/2026). Teto de 2025 = 55×IAS " +
+        "(522,50€) = 28.737,50€, mesmo mecanismo do bloco 2026 (só o valor do IAS muda entre os dois anos, " +
+        "confirmado por PwC OE2026 — a estrutura do regime, revista pela Lei 45-A/2024, é a mesma para 2025 e " +
+        "2026).",
+    },
   },
   {
     // ⚠️ PENDENTE (verificado 22/09/2026, a acompanhar): o Conselho de
@@ -822,6 +848,90 @@ export const legislacaoFiscal = [
     taxaAutonomaMaisValiasFonte:
       "art.º 72º/1 CIRS — confirmado por fonte primária (Demonstração de Liquidação de IRS real, linha 17, " +
       "\"Discriminação da linha 17\": 28,00% sobre rendimentos de capitais e mais-valias não englobados).",
+
+    // IRS Jovem (art.º 12º-B CIRS) — NOVO (24/09/2026, pedido do Dani:
+    // "Podriamos trabajar la app para soportar el IRS joven?", depois de
+    // ter sido identificado como hueco em README.md/auditoria de
+    // 04/09/2026: "Si se abre a cualquier persona sin restricción de
+    // edad: ≈75%, porque cualquier usuario de hasta 35 años se llevaría
+    // un resultado sobreestimado por la falta del régimen IRS Jovem").
+    //
+    // Texto literal lido DIRETAMENTE do Portal das Finanças (fonte
+    // primária, não um agregador — 24/09/2026):
+    //
+    // N.º 1: "Os rendimentos das categorias A e B, auferidos por sujeito
+    // passivo que tenha até 35 anos de idade, que não seja considerado
+    // dependente, ficam parcialmente isentos do IRS, nos 10 primeiros
+    // anos de obtenção de rendimentos, mediante opção na declaração de
+    // rendimentos a que se refere o artigo 57.º."
+    //
+    // N.º 3: "a) Aplica-se no primeiro ano em que seja exercida a opção
+    // referida no n.º 1 e nos nove anos de obtenção de rendimentos
+    // subsequentes em que seja exercida essa opção, sem ultrapassar a
+    // idade máxima referida no n.º 1; b) Não se aplica nos anos em que
+    // não sejam auferidos rendimentos das categorias A e B, retomando a
+    // sua aplicação pelo número de anos de obtenção de rendimentos
+    // remanescente, até perfazer um total de 10 anos de gozo da isenção,
+    // sem ultrapassar a idade máxima referida no n.º 1." — ou seja, anos
+    // sem rendimento A/B PAUSAM a contagem em vez de a consumir. NÃO
+    // MODELADO no motor v1 (ver calcularIsencaoIrsJovem em
+    // engine/calculo-irs.js) — assume-se que o utilizador indica
+    // diretamente o "ano de início" do regime, sem anos em branco pelo
+    // meio; quem teve um ano de pausa pode compensar ajustando esse ano
+    // de início manualmente em Perfil.
+    //
+    // N.º 4: "O disposto no n.º 1 determina o englobamento dos
+    // rendimentos isentos, para efeitos do disposto no n.º 4 do artigo
+    // 22.º" — e o art.º 22º n.º 4 CIRS (também lido diretamente do Portal
+    // das Finanças): "Ainda que não englobados para efeito da sua
+    // tributação, são sempre incluídos para efeito de determinação da
+    // taxa a aplicar aos restantes rendimentos, os rendimentos isentos,
+    // quando a lei imponha o respetivo englobamento." Isto é "isenção com
+    // progressividade": o rendimento isento NÃO desaparece do cálculo do
+    // escalão/taxa aplicável — só a fatia isenta fica de fora do imposto
+    // final. Implementado em calcularImportanciaApurada: a taxa média é
+    // sempre calculada sobre o rendimento TOTAL (com a parte isenta
+    // incluída), e só depois aplicada à base já reduzida pela isenção —
+    // não é equivalente a simplesmente subtrair a isenção ao rendimento
+    // coletável antes de encontrar o escalão (isso subestimaria o
+    // imposto de quem tem outro rendimento a somar-se).
+    //
+    // N.º 5: "A isenção a que se refere o n.º 1, com o limite de 55 vezes
+    // o valor do IAS, é de: a) 100% no primeiro ano...; b) 75% do segundo
+    // ao quarto ano...; c) 50% do quinto ao sétimo ano...; d) 25% do
+    // oitavo ao décimo ano..." — o teto de 55×IAS aplica-se ao VALOR
+    // ISENTO calculado (não ao rendimento bruto elegível): mesmo quem
+    // ganha acima do teto só perde a parte da isenção que excederia esse
+    // valor, o resto do rendimento continua a entrar normalmente na base
+    // tributável (nunca "tudo ou nada").
+    //
+    // N.º 9: exclui quem já beneficia de residente não habitual, dos
+    // incentivos fiscais à investigação científica (art.º 58º-A EBF), ou
+    // optou pela tributação do art.º 12º-A — casos raros, NÃO modelados
+    // (v1 assume que ninguém no agregado está nestas situações).
+    //
+    // Idade: contada a 31 de dezembro do próprio ano fiscal (reutiliza a
+    // mesma função idadeNoAno já usada para dependentes/PPR).
+    irsJovem: {
+      idadeMaxima: 35,
+      anosRegime: 10,
+      tetoAnual: 29542.15, // 55 × IAS 2026 (537,13€)
+      tiers: [
+        { desde: 1, ate: 1, percentagem: 1.0 },
+        { desde: 2, ate: 4, percentagem: 0.75 },
+        { desde: 5, ate: 7, percentagem: 0.5 },
+        { desde: 8, ate: 10, percentagem: 0.25 },
+      ],
+      categoriasElegiveis: ["A", "B"],
+      confirmado: true,
+      fonte:
+        "art.º 12º-B CIRS (n.os 1, 3, 4, 5 e 9) e art.º 22º n.º 4 CIRS, texto literal lido diretamente em " +
+        "info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/cirs_rep/Pages/irs12b.aspx e " +
+        "irs22.aspx (fonte primária, 24/09/2026 — não um agregador de terceiros). Teto de 55×IAS: IAS 2026 = " +
+        "537,13€ (Portaria n.º 480-A/2025/1, confirmado via apcmc.pt) → 29.542,15€. Estrutura do regime (10 anos, " +
+        "100/75/50/25%) revista pela Lei 45-A/2024 (substituiu o regime anterior de 5 anos ligado a nível de " +
+        "qualificação/primeiro emprego), confirmada por PwC Guia Fiscal 2026 e pelo guia prático da OCC (fev/2025).",
+    },
   },
 ];
 

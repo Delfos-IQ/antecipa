@@ -45,11 +45,11 @@ Publicado em produção via GitHub Pages, a partir da raiz do repositório: http
    - Categoria E/G (rendimentos de capitais, mais-valias) não tem parser/importação automática — o utilizador introduz o total manualmente.
    - Dupla tributação internacional é um valor manual, sem cálculo automático do crédito limitado pela AT.
    - Regime fiscal claramente mais favorável (35%, jurisdições na lista negra) não é distinguido do regime normal de mais-valias (28%) — baixa materialidade, mas simplificação real.
-   - IRS Jovem (art.º 12º-B CIRS) ainda não implementado.
+   - IRS Jovem (art.º 12º-B CIRS) implementado (v2.51), com uma simplificação conhecida: anos sem rendimento A/B "pausam" o contador de 10 anos por lei (art.º 12º-B n.º 3-b), mas o motor assume que o utilizador indica diretamente o ano de início sem anos em branco pelo meio — quem teve uma pausa real pode compensar ajustando esse ano manualmente em Perfil.
 
 ## Fora do âmbito atual
 
-Parsing universal por IA, monetização/paywall, notificações, IRS Jovem — a arquitetura já está pensada para não exigir refactor grande quando estas entrarem.
+Parsing universal por IA, monetização/paywall, notificações — a arquitetura já está pensada para não exigir refactor grande quando estas entrarem.
 
 ## Estrutura
 

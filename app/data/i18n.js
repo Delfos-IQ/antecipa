@@ -287,6 +287,18 @@ export const pt = {
     atividadeCategoriaBAjuda: "Só relevante se tiver rendimentos de Categoria B (recibos verdes). Define o coeficiente do regime simplificado (art.º 31º CIRS) e a taxa de retenção na fonte (art.º 101º CIRS) usados na Simulação.",
     quotizacaoOrdemLabel: "Quotização anual à ordem profissional (€)",
     quotizacaoOrdemAjuda: "Só se pertencer a uma ordem profissional (ex.: Ordem dos Enfermeiros, Ordem dos Médicos, Ordem dos Engenheiros) e pagar essa quotização diretamente — não é a mesma coisa que a ADSE nem a quotização sindical, e normalmente não aparece no talão de vencimento. Eleva o teto da dedução específica de Categoria A (art.º 25º/4 CIRS). Deixe em branco se não se aplicar.",
+
+    // IRS Jovem (art.º 12º-B CIRS) — NOVO (24/09/2026, pedido do Dani).
+    // Ver o texto legal completo citado em data/legislacao-2026.js.
+    irsJovemLabel: "Beneficia do regime IRS Jovem",
+    irsJovemAjuda: "Isenção parcial de IRS para quem tem até 35 anos, nos primeiros 10 anos com rendimentos das categorias A (trabalho por conta de outrem) ou B (recibos verdes). Precisa de a ter assinalado na própria declaração de IRS (Modelo 3) para valer perante a AT — isto é só a simulação.",
+    irsJovemAnoInicioLabel: "ano em que começou a usar o regime (1º ano com rendimentos)",
+    irsJovemAnoDoRegime: "Ano do regime:",
+    irsJovemIsento: "isento",
+    irsJovemFaltaDataNascimento: "Falta a data de nascimento para confirmar a idade.",
+    irsJovemForaDaIdade: "Já não é elegível — o limite legal é até aos 35 anos, à data de 31 de dezembro do ano fiscal.",
+    irsJovemAnoInicioFuturo: "O ano de início ainda não chegou para o ano fiscal em simulação.",
+    irsJovemRegimeEsgotado: "Os 10 anos do regime já foram usados para este ano fiscal.",
     atividadeCategoriaBOpcoes: {
       servicosGeral: "Prestação de serviços (geral)",
       tabelaAnexa151: "Atividade da tabela do art.º 151º (ex.: medicina, enfermagem, engenharia, advocacia...)",

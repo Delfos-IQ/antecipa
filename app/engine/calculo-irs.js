@@ -312,11 +312,87 @@ function calcularQuocienteFamiliar({ regime, dependentes, tabela }) {
 }
 
 /**
+ * 5-bis. Isenção IRS Jovem (art.º 12º-B CIRS) — ver data/legislacao-2026.js
+ * para o texto legal completo (n.os 1, 3, 4, 5, 9) citado a partir do
+ * Portal das Finanças. NOVO (24/09/2026, pedido do Dani).
+ *
+ * Calculada por TITULAR, não do agregado — idade e "ano do regime" são
+ * factos individuais (o teto de 55×IAS é por sujeito passivo). `pessoas`/
+ * `rubricasPorPessoa` já vêm alinhados por índice (mesmo padrão de
+ * calcularDeducoesEspecificas), por isso funciona automaticamente para
+ * cada declaração separada em compararRegimes (só o titular incluído
+ * nessa declaração entra na conta), sem precisar de nenhuma divisão.
+ *
+ * "Ano do regime" (v1, simplificado — ver comentário em
+ * data/legislacao-2026.js sobre a pausa do n.º 3-b não modelada):
+ * anoFiscal − pessoa.irsJovemAnoInicio + 1. Uma pessoa sem
+ * `irsJovemAnoInicio` definido não participa (campo em branco por
+ * omissão — nem todos os titulares usam o regime).
+ *
+ * O valor isento é calculado sobre o rendimento BRUTO de categorias A+B
+ * (antes da dedução específica) — o teto de 55×IAS aplica-se ao VALOR
+ * ISENTO já calculado (percentagem × rendimento), não ao rendimento
+ * elegível em si (n.º 5: "a isenção... com o limite de 55 vezes o valor
+ * do IAS").
+ */
+function calcularIsencaoIrsJovem({ pessoas = [], rubricasPorPessoa = [], tabela, anoFiscal }) {
+  const config = tabela.irsJovem;
+  const detalhePorPessoa = {};
+  let total = 0;
+  if (!config) {
+    return { referenciaLegal: "art.º 12º-B CIRS", detalhePorPessoa, total: 0 };
+  }
+
+  pessoas.forEach((pessoa, indice) => {
+    if (!pessoa?.id || !pessoa.irsJovemAnoInicio) return;
+    const idade = idadeNoAno(pessoa.dataNascimento, anoFiscal);
+    const anoDoRegime = anoFiscal - pessoa.irsJovemAnoInicio + 1;
+    const elegivel =
+      idade !== null && idade <= config.idadeMaxima && anoDoRegime >= 1 && anoDoRegime <= config.anosRegime;
+    if (!elegivel) {
+      detalhePorPessoa[pessoa.id] = { elegivel: false, anoDoRegime, idade, percentagem: 0, rendimentoBrutoElegivel: 0, parteIsenta: 0 };
+      return;
+    }
+    const tier = config.tiers.find((t) => anoDoRegime >= t.desde && anoDoRegime <= t.ate);
+    const percentagem = tier?.percentagem ?? 0;
+    const rubricas = rubricasPorPessoa[indice] ?? [];
+    const rendimentoBrutoElegivel = sum(rubricas, (r) =>
+      r.tipo === "abono" && config.categoriasElegiveis.includes(r.categoria) ? r.valorComRedu ?? r.valorSemRedu ?? 0 : 0
+    );
+    const parteIsenta = round2(Math.min(percentagem * rendimentoBrutoElegivel, config.tetoAnual));
+    detalhePorPessoa[pessoa.id] = {
+      elegivel: true,
+      anoDoRegime,
+      idade,
+      percentagem,
+      rendimentoBrutoElegivel: round2(rendimentoBrutoElegivel),
+      parteIsenta,
+    };
+    total = round2(total + parteIsenta);
+  });
+
+  return { referenciaLegal: "art.º 12º-B CIRS", detalhePorPessoa, total };
+}
+
+/**
  * 6. Importância Apurada
  * (Rendimento Coletável ÷ Quociente) × Taxa marginal − Parcela a Abater,
  * depois × Quociente.
+ *
+ * IRS Jovem (`isencaoIrsJovem`, 24/09/2026 — ver calcularIsencaoIrsJovem e
+ * o texto legal citado em data/legislacao-2026.js): "isenção com
+ * progressividade" (art.º 12º-B n.º 4 + art.º 22º n.º 4 CIRS). O
+ * rendimento isento NÃO se tira do cálculo do escalão/taxa — o escalão
+ * continua a ser encontrado com o rendimento TOTAL (isenção incluída), só
+ * a parte não isenta é efetivamente tributada, à taxa MÉDIA (não
+ * marginal) que resulta desse rendimento total. Por isso `taxaMedia`
+ * abaixo usa sempre `importanciaApuradaSemIsencao`/`rendimentoParaTaxa`
+ * (o efeito de todas as parcelas a abater dos escalões anteriores já vem
+ * embutido nessa razão) — nunca se recalcula um novo escalão só para a
+ * parte tributável, isso subestimaria a taxa de quem tem mais rendimento
+ * a somar-se para além da parte isenta.
  */
-function calcularImportanciaApurada({ rendimentoParaTaxa, quociente, tabela }) {
+function calcularImportanciaApurada({ rendimentoParaTaxa, quociente, tabela, isencaoIrsJovem = 0 }) {
   const rendimentoPorQuociente = quociente.total > 0 ? rendimentoParaTaxa / quociente.total : 0;
 
   const escalao =
@@ -326,11 +402,15 @@ function calcularImportanciaApurada({ rendimentoParaTaxa, quociente, tabela }) {
     rendimentoPorQuociente * escalao.taxaMarginal - escalao.parcelaAbater,
     0
   );
-  const importanciaApurada = coletaPorQuociente * quociente.total;
+  const importanciaApuradaSemIsencao = coletaPorQuociente * quociente.total;
+
+  const taxaMedia = rendimentoParaTaxa > 0 ? importanciaApuradaSemIsencao / rendimentoParaTaxa : 0;
+  const rendimentoTributavel = Math.max(0, rendimentoParaTaxa - isencaoIrsJovem);
+  const importanciaApurada = isencaoIrsJovem > 0 ? round2(taxaMedia * rendimentoTributavel) : round2(importanciaApuradaSemIsencao);
 
   return {
     linhaOficial: 6,
-    referenciaLegal: "art.º 68º CIRS",
+    referenciaLegal: "art.º 68º CIRS" + (isencaoIrsJovem > 0 ? " + art.º 12º-B CIRS (isenção IRS Jovem, com progressividade)" : ""),
     rendimentoPorQuociente: round2(rendimentoPorQuociente),
     escalaoAplicado: {
       limite: escalao.limite,
@@ -338,7 +418,8 @@ function calcularImportanciaApurada({ rendimentoParaTaxa, quociente, tabela }) {
       parcelaAbater: escalao.parcelaAbater,
     },
     coletaPorQuociente: round2(coletaPorQuociente),
-    total: round2(importanciaApurada),
+    isencaoIrsJovem: round2(isencaoIrsJovem),
+    total: importanciaApurada,
   };
 }
 
@@ -415,9 +496,16 @@ function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoe
 // pode faltar (dependentes criados antes desta funcionalidade existir, ou
 // sem data preenchida) — nesse caso assume-se idade "adulta" (sem
 // majoração), a opção mais conservadora (não infla a dedução por engano).
-function idadeDoDependenteNoAno(dependente, anoFiscal) {
-  if (!dependente?.dataNascimento) return null;
-  const nascimento = new Date(dependente.dataNascimento);
+// Idade a 31 de dezembro do ano fiscal, a partir de uma data de nascimento
+// ISO ("AAAA-MM-DD"). Generalizada (24/09/2026) a partir da versão que só
+// servia dependentes — agora também usada para a idade do(s) sujeito(s)
+// passivo(s) (`pessoas[i].dataNascimento`), necessária para o teto do PPR
+// por idade (ainda simplificado, ver calcularDeducoesAColeta) e para a
+// elegibilidade do IRS Jovem (art.º 12º-B CIRS, até 35 anos — ver
+// calcularIsencaoIrsJovem).
+function idadeNoAno(dataNascimento, anoFiscal) {
+  if (!dataNascimento) return null;
+  const nascimento = new Date(dataNascimento);
   if (Number.isNaN(nascimento.getTime())) return null;
   const referencia = new Date(`${anoFiscal}-12-31`);
   let idade = referencia.getFullYear() - nascimento.getFullYear();
@@ -426,6 +514,9 @@ function idadeDoDependenteNoAno(dependente, anoFiscal) {
     (referencia.getMonth() === nascimento.getMonth() && referencia.getDate() < nascimento.getDate());
   if (aindaNaoFezAnos) idade -= 1;
   return idade;
+}
+function idadeDoDependenteNoAno(dependente, anoFiscal) {
+  return idadeNoAno(dependente?.dataNascimento, anoFiscal);
 }
 
 // Dedução por dependente (art.º 78º-A CIRS) — modelo real de 3 escalões,
@@ -962,10 +1053,12 @@ export function calcularDeclaracao(input) {
   // (linha 8 da Demonstração) ainda não têm campo próprio no motor (caso
   // raro, sem UI) — tratados como 0.
   const rendimentoParaTaxa = Math.max(0, rendimentoColetavelResult.total - ajusteAnosAnteriores.quociente);
+  const isencaoIrsJovem = calcularIsencaoIrsJovem({ pessoas, rubricasPorPessoa, tabela, anoFiscal });
   const importanciaApurada = calcularImportanciaApurada({
     rendimentoParaTaxa,
     quociente,
     tabela,
+    isencaoIrsJovem: isencaoIrsJovem.total,
   });
   const taxaSolidariedade = calcularTaxaSolidariedade({ rendimentoParaTaxa, quociente, tabela });
   // Mais-valias e rendimentos de capitais não englobados (art.º 72º/1
@@ -1016,6 +1109,7 @@ export function calcularDeclaracao(input) {
       3: rendimentoColetavelResult,
       4: ajusteAnosAnteriores,
       5: quociente,
+      "5B": isencaoIrsJovem,
       6: importanciaApurada,
       "6A": taxaSolidariedade,
       7: coletaTotal,
