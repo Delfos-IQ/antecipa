@@ -344,6 +344,16 @@ export const pt = {
     deducoesCorpo:
       "Valores anuais do agregado que aproximam a simulação da Demonstração de Liquidação real. Pode deixar em branco o que não se aplicar — não é preciso preencher tudo.",
     deducoesGuardar: "Os valores ficam gravados automaticamente ao sair de cada campo.",
+    // Barra de progresso "dedução correspondente" por categoria
+    // (22/09/2026) — mesma ideia do Portal das Finanças/e-Fatura, mas
+    // calculada aqui a partir das mesmas regras do motor (ver
+    // calcularDeducoesAColeta em engine/calculo-irs.js), atualizada em
+    // tempo real enquanto se escreve.
+    deducaoBarraLabel: "Dedução correspondente",
+    deducaoBarraSemContexto:
+      "Estimativa — o valor definitivo só fica confirmado na Simulação, onde já sabemos o escalão de IRS aplicável.",
+    deducaoDonativosNota:
+      "Dedução de 25%, até 15% da coleta total do ano — como ainda não sabemos a coleta, o valor exato só aparece na Simulação.",
     deducoesGrupos: {
       saudeEducacao: {
         titulo: "Saúde, educação e PPR",

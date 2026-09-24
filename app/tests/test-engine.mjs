@@ -10,6 +10,7 @@ import {
   detectarOportunidadePPR,
   detectarOportunidadeMaisValias,
   detectarSugestoesPagamento,
+  calcularDeducoesAColeta,
 } from "../engine/calculo-irs.js";
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
 
@@ -1096,5 +1097,40 @@ assertIgual(deducaoEspecificaAComOrdemPerfil(3000, 500), 4834.17, "com 500€ de
 // Liquidação real dele.
 assertIgual(deducaoEspecificaAComOrdemPerfil(7916.82, 0), 7916.82, "SS alta (caso real do Dani) sem ordem: dedução = SS total");
 assertIgual(deducaoEspecificaAComOrdemPerfil(7916.82, 108), 7916.82, "SS alta (caso real do Dani) com ordem: dedução inalterada — SS já excede o teto elevado sozinha");
+
+console.log("\n--- calcularDeducoesAColeta exportada com contexto parcial (barras de progresso, ui/ventana-deducoes.js) ---");
+// Contexto parcial (sem regime/escalão/coletaTotal) — as categorias com
+// teto fixo (saúde, educação, exigência de fatura, trabalho doméstico)
+// têm de ficar exatas mesmo assim; regime ainda define corretamente o
+// teto de despesasGerais e PPR mesmo sem o resto do contexto.
+{
+  const tabela2026 = obterTabelaFiscal(2026);
+  const parcial = calcularDeducoesAColeta({
+    deducoesColeta: { saude: 1000, educacao: 2000, despesasGerais: 10000, exigenciaFaturaOutras: 300, trabalhoDomestico: 5000, ppr: 2000 },
+    tabela: tabela2026,
+    regime: "conjunta",
+    anoFiscal: 2026,
+  });
+  assertIgual(parcial.saude, 150, "barra saúde: 1.000€ × 15% = 150€ (teto 1.000€ não atingido)");
+  assertIgual(parcial.limites.saude, 1000, "barra saúde: teto devolvido corretamente (1.000€)");
+  assertIgual(parcial.despesasGerais, 500, "barra despesas gerais: 10.000€×35% capado no teto de casal (500€)");
+  assertIgual(parcial.limites.despesasGerais, 500, "barra despesas gerais: teto de casal devolvido corretamente (500€, regime conjunta)");
+  assertIgual(parcial.trabalhoDomestico, 200, "barra trabalho doméstico: 5.000€×5%=250€ capado no teto (200€)");
+  assertIgual(parcial.limiteAgregado, null, "sem rendimentoPorQuociente conhecido, limite agregado fica por aplicar (null = Infinity) — evita um aviso falso no ecrã de Deduções");
+}
+// Contexto completo (via calcularDeclaracao, como a Simulação faz) — a
+// mesma função tem de devolver os mesmos `limites` para alimentar o
+// detalhe da linha 8 em ui/ventana-14.js.
+{
+  const comContexto = calcularDeclaracao({
+    anoFiscal: 2026,
+    regime: "individual",
+    rubricasPorPessoa: [rubricasA],
+    dependentes: [],
+    deducoesColeta: { saude: 1200, educacao: 500 },
+  }).linhas[8];
+  assertIgual(comContexto.limites.saude, 1000, "detalhe linha 8 (Simulação): teto de saúde presente no resultado completo");
+  assertIgual(comContexto.saude, 180, "detalhe linha 8 (Simulação): 1.200€×15%=180€, dentro do teto de 1.000€");
+}
 
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));

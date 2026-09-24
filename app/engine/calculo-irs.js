@@ -530,9 +530,26 @@ function calcularLimiteAgregadoDeducoes({ rendimentoPorQuociente, numDependentes
   return limite === Infinity ? Infinity : round2(limite);
 }
 
-function calcularDeducoesAColeta({
+// Exportada (22/09/2026, pedido do Dani: "podemos replicar as barras de
+// progresso do Portal das Finanças?") para poder ser chamada com um
+// contexto parcial a partir de ui/ventana-deducoes.js — uma pré-visualização
+// em tempo real de "dedução correspondente" por categoria, enquanto o
+// utilizador ainda está a preencher os valores, sem esperar pela
+// declaração completa (que só existe depois de haver rendimento
+// carregado). Os parâmetros de contexto que dependem do rendimento total
+// (escalaoAplicado, rendimentoPorQuociente, coletaTotal) têm todos
+// omissões seguras — ver comentário junto a cada um abaixo — por isso
+// esta função corre com deducoesColeta sozinho, já dando os valores
+// corretos para as categorias com teto fixo (saúde, educação, exigência
+// de fatura, trabalho doméstico) e para despesasGerais/PPR quando se
+// sabe pelo menos o regime (household.regime). Habitação, donativos e o
+// limite agregado só ficam definitivos quando chamada com o contexto
+// completo (ui/ventana-14.js, a partir de calcularDeclaracao) — por isso
+// o ecrã de Deduções mostra esses três com uma nota "confirmado na
+// Simulação" em vez de uma barra.
+export function calcularDeducoesAColeta({
   deducoesColeta,
-  dependentes,
+  dependentes = [],
   pessoas = [],
   ascendentes = [],
   tabela,
@@ -698,6 +715,22 @@ function calcularDeducoesAColeta({
     limiteAgregado: limiteAgregado === Infinity ? null : limiteAgregado,
     limiteAgregadoAplicado,
     total,
+    // Tetos por categoria (22/09/2026) — devolvidos ao lado de cada
+    // dedução já calculada só para quem for construir uma barra de
+    // progresso "dedução correspondente / teto" (ver ui/ventana-deducoes.js
+    // e o desglose da linha 8 em ui/ventana-14.js), sem duplicar aqui a
+    // lógica de qual teto se aplica a cada categoria — vêm exatamente dos
+    // mesmos valores já usados acima em cada `clamp`.
+    limites: {
+      saude: limites.saude.limite,
+      educacao: limites.educacao.limite,
+      ppr: pprTeto,
+      habitacao: limiteHabitacao,
+      exigenciaFatura: limites.exigenciaFatura.limite,
+      despesasGerais: regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro,
+      trabalhoDomestico: limites.trabalhoDomestico?.limite ?? null,
+      donativos: limites.donativos ? limiteDonativos : null,
+    },
   };
 }
 

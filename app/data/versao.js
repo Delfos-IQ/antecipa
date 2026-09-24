@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.47";
+export const VERSAO_ATUAL = "2.48";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.48", resumo: "Novo: barras de \"dedução correspondente\" em Deduções e na Simulação, tal como no Portal das Finanças — mostra logo quanto cada despesa vale em dedução e quão perto está do teto" },
   { versao: "2.47", resumo: "Correção: a ADSE do talão volta a somar-se à Segurança Social na dedução específica; novo campo em Perfil para a quotização da ordem profissional (ex.: Ordem dos Enfermeiros)" },
   { versao: "2.46", resumo: "Correção: quotizações para ordens profissionais (ex.: Ordem dos Enfermeiros) passam a aumentar corretamente a dedução específica de quem ganha menos" },
   { versao: "2.45", resumo: "Novo: o subsídio de férias/Natal projetado passa a ser editável — útil para quem o recebe por duodécimos ou sai da empresa antes do pagamento" },

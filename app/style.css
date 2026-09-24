@@ -154,6 +154,44 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .section-title { font-weight: 600; }
 .doc-card__data { color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
 
+/* ---------- Barra de progresso "dedução correspondente" ----------
+   Ventana Deduções (22/09/2026, pedido do Dani: replicar a barra do
+   Portal das Finanças/e-Fatura) e o desglose da linha 8 em Ventana 14.
+   Atualizada via JS (largura de .dedu-barra__fill, texto dos spans
+   data-barra-*) a cada "input" nos campos relacionados — ver
+   atualizarBarras() em ui/ventana-deducoes.js — para dar feedback
+   imediato sem re-renderizar o ecrã inteiro (perderia o foco/cursor). */
+.dedu-barra { margin-top: var(--space-2); }
+.dedu-barra__linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.dedu-barra__linha strong { color: var(--devolver); font-weight: 600; }
+.dedu-barra__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--hairline);
+  overflow: hidden;
+}
+.dedu-barra__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brass);
+  transition: width 0.2s ease;
+}
+.dedu-barra__fill[data-cheio="true"] { background: var(--devolver); }
+.dedu-barra__legenda { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+.dedu-nota-simulacao {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: var(--space-2);
+  font-style: italic;
+}
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex;
@@ -655,6 +693,12 @@ input:focus, select:focus { border-color: var(--brass); }
 .desglose-linha__desc { }
 .desglose-linha__legal { font-size: 0.76rem; color: var(--muted); }
 .desglose-linha__valor { font-family: var(--font-mono); font-weight: 600; }
+.desglose-detalhe {
+  background: var(--paper);
+  border-radius: var(--radius-sm);
+  margin: 0 var(--space-3) var(--space-3);
+  padding: var(--space-3);
+}
 
 .disclaimer {
   font-size: 0.82rem;

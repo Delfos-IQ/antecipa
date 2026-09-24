@@ -649,6 +649,71 @@ const ORDEM_LINHAS = [1, 2, 3, 4, 5, 6, "6A", 7, 8, 9, 10, 11];
 // Linhas cujo valor não é uma cifra monetária (quociente é um rácio).
 const LINHAS_NAO_MONETARIAS = new Set([5]);
 
+// Detalhe por categoria da linha 8 (22/09/2026, pedido do Dani: replicar
+// as barras de "dedução correspondente" do Portal das Finanças/e-Fatura,
+// desta vez com os valores DEFINITIVOS — ao contrário da pré-visualização
+// em ui/ventana-deducoes.js, aqui já corre depois de calcularDeclaracao,
+// por isso o regime, o escalão e a coleta total já são reais, não
+// estimativas). `linha.limites` vem pronto de calcularDeducoesAColeta em
+// engine/calculo-irs.js — não se recalcula nada aqui, só se apresenta.
+const CATEGORIAS_COM_TETO_LINHA8 = [
+  { chave: "despesasGerais", label: "Despesas gerais familiares" },
+  { chave: "saude", label: "Saúde" },
+  { chave: "educacao", label: "Educação" },
+  { chave: "habitacao", label: "Habitação" },
+  { chave: "ppr", label: "PPR" },
+  { chave: "exigenciaFatura", label: "Exigência de fatura" },
+  { chave: "trabalhoDomestico", label: "Trabalho doméstico" },
+  { chave: "donativos", label: "Donativos" },
+];
+const CATEGORIAS_SEM_TETO_LINHA8 = [
+  { chave: "porDependentes", label: "Dependentes" },
+  { chave: "porAscendentes", label: "Ascendentes a cargo" },
+  { chave: "deficiencia", label: "Deficiência" },
+  { chave: "duplaTributacao", label: "Dupla tributação internacional" },
+];
+
+function renderDetalheLinha8(linha) {
+  const barras = CATEGORIAS_COM_TETO_LINHA8.filter(({ chave }) => (linha[chave] ?? 0) > 0 || (linha.limites?.[chave] ?? 0) > 0)
+    .map(({ chave, label }) => {
+      const valor = linha[chave] ?? 0;
+      const limite = linha.limites?.[chave];
+      const pct = limite ? Math.max(0, Math.min(100, Math.round((valor / limite) * 100))) : null;
+      return `
+        <div class="dedu-barra" style="margin-top:var(--space-3)">
+          <div class="dedu-barra__linha">
+            <span>${label}</span>
+            <strong class="num">${formatarMoeda(valor)}</strong>
+          </div>
+          ${
+            limite
+              ? `<div class="dedu-barra__track"><div class="dedu-barra__fill" data-cheio="${pct >= 100}" style="width:${pct}%"></div></div>
+                 <p class="dedu-barra__legenda">${pct}% do teto de ${formatarMoeda(limite)}</p>`
+              : ""
+          }
+        </div>`;
+    })
+    .join("");
+
+  const linhasSemTeto = CATEGORIAS_SEM_TETO_LINHA8.filter(({ chave }) => (linha[chave] ?? 0) > 0)
+    .map(
+      ({ chave, label }) => `
+        <div class="desglose-linha" style="padding-left:var(--space-4)">
+          <span></span>
+          <span>${label}</span>
+          <span class="desglose-linha__valor num">${formatarMoeda(linha[chave])}</span>
+        </div>`
+    )
+    .join("");
+
+  const notaLimiteAgregado = linha.limiteAgregadoAplicado
+    ? `<p class="dedu-nota-simulacao">O limite agregado do art.º 78º n.º 7/8 CIRS (saúde + educação + habitação + PPR + exigência de fatura + trabalho doméstico) foi atingido: ${formatarMoeda(linha.limiteAgregado)}.</p>`
+    : "";
+
+  if (!barras && !linhasSemTeto && !notaLimiteAgregado) return "";
+  return `<div class="desglose-detalhe">${barras}${linhasSemTeto}${notaLimiteAgregado}</div>`;
+}
+
 // Aceita uma lista de { titulo, declaracao } — normalmente 1 elemento
 // (individual/conjunta), ou 2 quando o regime "separada" é o mais
 // vantajoso (ver nota em render(), 21/09/2026) e é preciso mostrar as
@@ -681,7 +746,8 @@ function renderDesglose(declaracoes) {
                 <span class="desglose-linha__legal">${linha.referenciaLegal ?? ""}</span>
               </span>
               <span class="desglose-linha__valor num">${valorFormatado}</span>
-            </div>`;
+            </div>
+            ${num === 8 ? renderDetalheLinha8(linha) : ""}`;
         })
         .join("");
       return `${cabecalho}<div class="desglose card" style="padding:var(--space-2)">${html}</div>`;
