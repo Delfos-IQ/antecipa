@@ -6,6 +6,15 @@
   <title>Antecipa — o seu IRS, um ano antes da hora</title>
   <meta name="description" content="Antecipa: simulação de IRS alinhada com a fórmula oficial, mês a mês, um ano antes da campanha de entrega." />
   <meta name="theme-color" content="#0B1D3A" />
+  <!-- Content-Security-Policy: reforço recomendado pela auditoria de
+       segurança de 04/09/2026 (v2.32 já corrigiu o XSS real encontrado
+       nessa auditoria; esta política é defesa em profundidade extra,
+       caso alguma sanitização futura falhe). cdnjs.cloudflare.com está
+       na lista branca só porque é de onde vêm jsPDF (script clássico) e
+       pdf.js (import dinâmico + worker) — ver app/parsers/pdf-text.js e
+       o <script> de jsPDF mais abaixo. Sem 'unsafe-inline' em nenhuma
+       diretiva: todo o JS/CSS da app vive em ficheiros próprios. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdnjs.cloudflare.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="../icons/icon-192.png" />
   <link rel="apple-touch-icon" href="../icons/icon-192.png" />

@@ -335,11 +335,13 @@ export const legislacaoFiscal = [
       // 10.972,50€, inferior a 12.180€ — prevalece o valor fixo, igual ao
       // usado em 2026 (o mesmo cálculo lá também resulta no valor fixo).
       valorAnual: 12180,
-      confirmado: false,
+      confirmado: true,
       fonte:
         "art.º 70º CIRS — MAX(12.180€, 1,5×14×IAS). IAS 2025 = 522,50€ → 1,5×14×522,50 = 10.972,50€ < 12.180€ → " +
-        "usa-se o valor fixo. Herdado do mecanismo do bloco 2026, `confirmado: false` pela mesma razão (fórmula " +
-        "com confiança alta, valor fixo de 12.180€ não confirmado letra a letra contra o Diário da República).",
+        "usa-se o valor fixo. CONFIRMADO 24/09/2026 por leitura direta do texto oficial da AT " +
+        "(info.portaldasfinancas.gov.pt/.../irs70ra_202512.aspx): \"O valor de referência do mínimo de " +
+        "existência é igual ao maior valor entre 12 180 € e 1,5 × 14 × IAS\" — fórmula e valor fixo confirmados " +
+        "letra a letra.",
     },
 
     beneficioMunicipalMaximo: 0.05,
@@ -788,8 +790,14 @@ export const legislacaoFiscal = [
           "n.º 1 não pode exceder...'. Lista de alíneas abrangidas (exclui despesasGerais/alínea b) e " +
           "dependentes/alínea a)) confirmada tanto pelo texto oficial como por uma Demonstração de Liquidação " +
           "real: 'Total das Deduções sujeitas a limite' = saúde+educação+exigência de fatura+PPR, sem despesas " +
-          "gerais. Valores exatos dos limiares (2.500€/1.000€/escalões) continuam confiança MÉDIA — não " +
-          "testados por este caso real (não chegou a atingir o limite).",
+          "gerais. RE-CONFIRMADO PARCIALMENTE 24/09/2026: o piso de 1.000€ ('o montante de 1000 (euro)' para " +
+          "rendimento acima do limiar do art.º 68º-A) e a majoração de 5% por dependente/afilhado civil a partir " +
+          "de 3 dependentes (n.º 8: 'os limites previstos no número anterior são majorados em 5% por cada " +
+          "dependente ou afilhado civil') foram lidos literalmente na mesma página oficial — `minimo: 1000` e " +
+          "`majoracaoPorDependentePercentagem: 0.05`/`numDependentesParaMajoracao: 3` têm agora confiança ALTA. " +
+          "Continua `confirmado: false` só para o teto superior (`maximo: 2500`) e o limiar exato de rendimento " +
+          "(escalão) em que a redução decrescente começa — a fórmula dessa alínea não veio no excerto lido, só a " +
+          "referência a 'fórmula baseada no art.º 68º-A'; falta uma leitura dedicada dessa parte do artigo.",
       },
     },
 
@@ -808,13 +816,14 @@ export const legislacaoFiscal = [
     // cálculo linha a linha.
     minimoExistencia: {
       valorAnual: 12180,
-      confirmado: false,
+      confirmado: true,
       fonte:
         "art.º 70º CIRS (texto do artigo: info.portaldasfinancas.gov.pt/pt/informacao_fiscal/codigos_tributarios/" +
         "cirs_rep/ra/Pages/irs70ra_202512.aspx) — valor de referência = MAX(12.180€, 1,5×14×IAS). IAS 2026 = " +
         "537,13€ (jornaldenegocios.pt, citando publicação em Diário da República) → 1,5×14×537,13 = 11.279,73€ < " +
-        "12.180€ → usa-se 12.180€. `confirmado: false` porque não foi possível ler o texto do DRE diretamente " +
-        "para confirmar que 12.180€ já é o valor 2026 (a fórmula em si tem confiança alta).",
+        "12.180€ → usa-se 12.180€. CONFIRMADO 24/09/2026 por leitura direta do texto oficial da AT nessa mesma " +
+        "página: \"O valor de referência do mínimo de existência é igual ao maior valor entre 12 180 € e 1,5 × " +
+        "14 × IAS\" — fórmula e valor fixo confirmados letra a letra.",
     },
 
     // Benefício municipal — participação variável de IRS que alguns

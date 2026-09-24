@@ -426,6 +426,32 @@ const declaracaoComOverride = calcularDeclaracao({
 });
 assertIgual(declaracaoComOverride.linhas[2].coeficienteBAplicado, 0.15, "override explícito `coeficienteB` continua a ganhar à atividade escolhida em Perfil");
 
+console.log("\n--- Mínimo garantido de 15% em Categoria B (art.º 31º/1 CIRS, regressão do fix 21/09/2026) ---");
+// Regressão para o commit eb4d8f3: a dedução específica de Categoria B em
+// regime simplificado nunca pode ser inferior a 15% do rendimento bruto,
+// mesmo que o coeficiente da atividade dê uma dedução menor. "propriedade
+// intelectual" tem coeficiente 0,95 → dedução normal de só 5% (500€ sobre
+// 10.000€), abaixo do mínimo de 15% (1.500€) — o motor deve aplicar o maior
+// dos dois.
+const declaracaoMinimoGarantido = calcularDeclaracao({
+  anoFiscal: 2026,
+  regime: "individual",
+  rubricasPorPessoa: [rubricasCategoriaB],
+  dependentes: [],
+  pessoas: [{ id: "A", atividadeCategoriaB: "propriedadeIntelectual" }],
+  deducoesColeta: {},
+});
+assertIgual(
+  declaracaoMinimoGarantido.linhas[2].categoriaB,
+  1500,
+  "coeficiente 0,95 daria só 500€ de dedução — o mínimo garantido de 15% (1.500€) prevalece por ser maior"
+);
+assertIgual(
+  declaracaoMinimoGarantido.linhas[3].total,
+  8500,
+  "matéria coletável de Categoria B = 10.000€ − 1.500€ (mínimo garantido), não 10.000€ − 500€ (coeficiente 0,95)"
+);
+
 console.log("\n--- Retenção na fonte projetada para Categoria B (art.º 101º/101º-B CIRS, 04/09/2026) ---");
 {
   const { projetarAno } = await import("../engine/projecao.js");

@@ -6,6 +6,11 @@
   <title>Antecipa — o seu IRS, um ano antes da hora</title>
   <meta name="description" content="Carregue os seus talões e recibos verdes mês a mês. O Antecipa replica a fórmula oficial de IRS e diz-lhe, hoje, se vai pagar ou receber." />
   <meta name="theme-color" content="#0B1D3A" />
+  <!-- Content-Security-Policy: mesmo reforço da app (ver app/index.html).
+       Os dois <script> que esta página tinha inline foram extraídos para
+       assets/landing-*.js e os style="" para classes utilitárias em
+       landing.css, precisamente para não precisar de 'unsafe-inline'. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
   <meta name="msvalidate.01" content="DE574AEB3467FC78656ED85BC346D64D" />
   <link rel="icon" href="icons/favicon-32.png" sizes="32x32" />
   <link rel="icon" href="icons/icon-192.png" sizes="192x192" />
@@ -30,7 +35,7 @@
   <header class="site-header">
     <div class="wrap site-header__row">
       <a href="./" class="lockup" aria-label="Antecipa">
-        <img src="assets/mark.png" alt="" width="40" height="41" style="object-fit:contain;" />
+        <img src="assets/mark.png" alt="" width="40" height="41" class="u-contain" />
         <span class="lockup__word">antecipa</span>
       </a>
       <a href="app/" class="btn btn-secondary">Abrir o Antecipa</a>
@@ -131,7 +136,7 @@
 
     <section class="section" id="como-funciona">
       <div class="wrap">
-        <h2 style="margin-bottom: var(--space-6);">Três passos, mês a mês</h2>
+        <h2 class="u-mb-6">Três passos, mês a mês</h2>
         <div class="passos">
           <div class="passo">
             <p class="passo__numero">1</p>
@@ -154,8 +159,8 @@
 
     <section class="section" id="recursos">
       <div class="wrap">
-        <h2 style="margin-bottom: var(--space-3);">Feito para a sua vida fiscal real</h2>
-        <p class="section__corpo" style="margin-bottom: var(--space-6);">
+        <h2 class="u-mb-3">Feito para a sua vida fiscal real</h2>
+        <p class="section__corpo u-mb-6">
           Não é só um cálculo de Categoria A. O Antecipa cobre as situações
           que costumam ficar de fora das calculadoras simples.
         </p>
@@ -215,7 +220,7 @@
     <section class="section">
       <div class="wrap">
         <p class="secao-visao">Queremos que confirmar o IRS seja tão normal como ver o saldo do banco — todos os meses, não uma vez por ano em abril.</p>
-        <h2 style="margin-bottom: var(--space-6);">Dois cenários. Uma resposta simples.</h2>
+        <h2 class="u-mb-6">Dois cenários. Uma resposta simples.</h2>
         <div class="voz-grid">
           <p class="voz-card voz-card--devolver">"Com o que já sabemos, o Estado deve-lhe dinheiro."</p>
           <p class="voz-card voz-card--pagar">"Vai faltar pagar. Ainda tem tempo para se preparar."</p>
@@ -257,17 +262,7 @@
        de revisão fiscal) — não carrega mais nada da app, e falha em
        silêncio (mantendo o texto estático já no HTML) se o módulo não
        carregar por algum motivo. -->
-  <script type="module">
-    import { revisaoFiscal } from "./app/data/legislacao-2026.js";
-    const elRevisao = document.getElementById("revisao-fiscal-texto");
-    if (elRevisao) {
-      elRevisao.textContent =
-        `Dados fiscais revistos em ${revisaoFiscal.dataRevisao} · próxima revisão prevista: ${revisaoFiscal.proximaRevisaoPrevista}.`;
-    }
-  </script>
-  <script>
-    const elAno = document.getElementById("ano-copyright");
-    if (elAno) elAno.textContent = new Date().getFullYear();
-  </script>
+  <script type="module" src="assets/landing-revisao.js"></script>
+  <script src="assets/landing-copyright.js"></script>
 </body>
 </html>
