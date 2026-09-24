@@ -77,6 +77,39 @@ const GRUPOS_DEDUCOES = [
   { chave: "pagamentos", campos: ["pagamentosPorConta"] },
 ];
 
+// Ícones por categoria (24/09/2026, pedido do Dani depois de ver as barras
+// coloridas do e-Fatura: "podemos incluir imagenes SVG monocromáticas...
+// en línea con la paleta de colores de antecipa"). Ao contrário do e-Fatura
+// (um ícone a cores diferente por categoria), a identidade do Antecipa usa
+// um único acento de marca — o azul `--brass`/`--navy-mid` — para qualquer
+// ícone que não seja o símbolo em si (ver BRAND.md §2 e o mesmo padrão já
+// usado nos cartões da landing, `.recurso-card__icon`). Por isso todos os
+// ícones abaixo partilham a mesma cor via CSS (`.dedu-grupo__icone`), só
+// muda o traçado — não são decorativos aleatórios, cada um ilustra o tema
+// do cartão (coração=saúde, pessoas=despesas familiares, recibo=exigência
+// de fatura, gráfico=mais-valias, presente=donativos/outras, cartão=
+// pagamentos por conta). Mesmo estilo (stroke, 24×24, sem fill) já usado
+// em ui/onboarding.js e ui/ventana-14.js — não se introduz uma segunda
+// linguagem de ícones.
+const ICONES_GRUPO = {
+  saudeEducacao:
+    '<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
+  familia:
+    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  exigenciaFatura:
+    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  capital: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  outras:
+    '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+  pagamentos: '<rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
+};
+
+function renderIconeGrupo(chave) {
+  const path = ICONES_GRUPO[chave];
+  if (!path) return "";
+  return `<span class="dedu-grupo__icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`;
+}
+
 function renderBarra(categoria) {
   return `
     <div class="dedu-barra" data-barra-categoria="${categoria}">
@@ -128,7 +161,7 @@ function renderGrupoDeducao(grupo, valores, pessoas) {
   const campoEspecialApos = grupo.campoEspecialApos ?? {};
   return `
     <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
-      <p class="section-title">${defsGrupo.titulo}</p>
+      <p class="section-title dedu-grupo__titulo">${renderIconeGrupo(grupo.chave)}${defsGrupo.titulo}</p>
       ${defsGrupo.corpoHint ? `<p class="field-hint" style="margin-bottom:var(--space-3)">${defsGrupo.corpoHint}</p>` : ""}
       <div class="stack" style="gap:var(--space-3)">
         ${grupo.campos
