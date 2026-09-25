@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.59";
+export const VERSAO_ATUAL = "2.60";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.60", resumo: "O cartão de Perfil e Deduções ficou bem mais largo em monitores grandes — menos margens brancas, mais espaço para o conteúdo" },
   { versao: "2.59", resumo: "O cartão único de Perfil e Deduções ficou mais largo — mais espaço à volta do texto, mais fácil de ler" },
   { versao: "2.58", resumo: "Perfil e Deduções voltam a uma única coluna (pedido do Dani — as tentativas de 2/3 colunas cortavam demasiado o texto); o resto da app continua a aproveitar o ecrã largo" },
   { versao: "2.57", resumo: "Correção importante: os gráficos de barras do Dashboard (rendimento por mês, IRS acumulado) ficavam invisíveis em Safari, mesmo com dados reais — bug de CSS específico do Safari, agora corrigido" },

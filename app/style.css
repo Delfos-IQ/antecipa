@@ -160,11 +160,18 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    inicial (--max-content, 640px) era pensado para campos de formulário
    curtos do onboarding, não para cartões com parágrafos de texto de
    ajuda. Subido para 880px, fixo (já não --max-content, para não afetar
-   o onboarding): bem mais respiração para o texto, mas ainda claramente
-   uma coluna de leitura confortável, longe do 1400px que causou a
-   queixa original de "demasiado espalhado". */
+   o onboarding).
+   25/09/2026 (3ª volta, mesmo dia): no monitor externo largo do Dani,
+   880px ainda deixava margens brancas enormes dos dois lados ("necesito
+   más espacio", com capturas reais a confirmar). Subido bastante mais,
+   para 1200px — ainda uma coluna única e legível (nenhum campo de
+   formulário estica até lá, o conteúdo interno continua com a sua
+   própria largura confortável), mas usa muito mais do ecrã largo; fica
+   perto do teto geral da app (--max-content-wide, 1400px) porque desta
+   vez o pedido explícito era mesmo esse — menos margem branca, não
+   apenas "mais respiração para o texto". */
 .cartoes-grid {
-  max-width: 880px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
