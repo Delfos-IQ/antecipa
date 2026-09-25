@@ -44,14 +44,24 @@
   --space-5: 24px;
   --space-6: 32px;
   --space-7: 48px;
-  /* --card-pad-lista (25/09/2026): padding horizontal/vertical dos
-     cartões empilhados de Perfil/Deduções (ver .cartoes-grid mais
-     abaixo). Variável, não um valor fixo em cada cartão, para poder
-     manter o padding menor no telemóvel (onde o ecrã é o fator
-     limitante, não sobra espaço para "respiração extra") e maior só em
-     ecrãs largos, onde o Dani pediu explicitamente mais margem à volta
-     do texto depois de alargar os cartões. Ver media query mais abaixo. */
-  --card-pad-lista: var(--space-6);
+  /* --card-pad (25/09/2026, renomeada de --card-pad-lista): padding
+     interno PADRÃO de qualquer cartão principal de conteúdo em toda a
+     app — Perfil, Deduções, o cartão de detalhe da Simulação, as
+     "Sugestões para pagar menos", os cartões de comparação de regime.
+     Pedido do Dani: unificar as margens internas da app inteira, em
+     vez de cada ecrã escolher o seu próprio valor (--space-4 aqui,
+     --space-6 ali) como acontecia até agora. Um único sítio para mudar
+     o padding de "um cartão" na app toda.
+     NÃO se aplica a: cartões de item dentro de uma lista já com o seu
+     próprio padding (.doc-card, .metric-tile, os cartões repetidos do
+     onboarding em onboarding.js) — esses são deliberadamente mais
+     compactos por serem elementos pequenos/repetidos dentro de outro
+     contentor com padding próprio, não "o cartão principal do ecrã";
+     tratá-los todos por igual ficaria pior, não mais homogéneo.
+     Menor no telemóvel (--space-4, 16px — um ecrã estreito não tem
+     espaço para "respiração extra") e maior em ecrãs normais/largos
+     (--space-6, 32px) — ver media query mais abaixo. */
+  --card-pad: var(--space-6);
   --max-content: 640px;
   /* 25/09/2026 — 1040px (resposta ao Dani, "está muito comprimido"/"pouco
      apelativa"): num monitor externo grande (confirmado pelo Dani — as
@@ -184,9 +194,13 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    removido o teto próprio (max-width) — agora .cartoes-grid ocupa a
    mesma largura que qualquer outro ecrã dentro do .app-main, por isso
    as bordas alinham sempre, seja qual for o ecrã; e subido o padding
-   interno de cada .card (em ventana-perfil.js e ventana-deducoes.js) de
-   --space-4 (16px) para --space-6 (32px), margem visível à volta do
-   texto mesmo num cartão largo. */
+   interno de cada .card.
+   25/09/2026 (5ª volta, mesmo dia): pedido do Dani — unificar as
+   margens internas de toda a app, em vez de cada ecrã escolher o seu
+   próprio padding. Ver --card-pad em :root e o padding agora definido
+   diretamente em .card (mais abaixo) — os style="padding:..." inline
+   que existiam aqui e em ventana-perfil.js/ventana-14.js foram
+   removidos, porque já não fazem falta. */
 .cartoes-grid {
   margin: 0 auto;
 }
@@ -386,11 +400,22 @@ input:focus, select:focus { border-color: var(--brass); }
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
+  /* padding PADRÃO (25/09/2026) — antes cada ecrã repetia o seu próprio
+     style="padding:var(--space-4)" (ou --space-6, ou --space-3...)
+     inline em cada cartão; agora vive um única vez aqui, em --card-pad.
+     Um cartão aninhado dentro de outro (ex.: .desglose dentro de um
+     .card já com padding) continua a poder pedir menos com a classe
+     .card--compacto, abaixo. */
+  padding: var(--card-pad);
 }
+.card--compacto { padding: var(--space-2); }
 
 /* ---------- Oportunidades de poupança fiscal (Ventana 14) ---------- */
 .oportunidades {
-  padding: var(--space-4);
+  /* padding próprio removido (25/09/2026, unificação de margens) —
+     este elemento já leva a classe .card no HTML (ver
+     "oportunidades card" em ventana-14.js), por isso herda o padding
+     padrão de .card (--card-pad) em vez de um valor próprio. */
   border-left: 3px solid var(--brass-light);
 }
 .oportunidade-item + .oportunidade-item {
@@ -572,11 +597,10 @@ input:focus, select:focus { border-color: var(--brass); }
   .glass-clock__data { font-size: 0.68rem; }
 }
 @media (max-width: 480px) {
-  /* --card-pad-lista volta ao padding original (16px) no telemóvel —
-     32px tiraria espaço a mais a um ecrã já estreito; a "respiração
-     extra" só fazia sentido depois de alargar os cartões em monitores
-     grandes. */
-  :root { --card-pad-lista: var(--space-4); }
+  /* --card-pad volta ao padding original (16px) no telemóvel — 32px
+     tiraria espaço a mais a um ecrã já estreito; a "respiração extra"
+     só faz sentido em ecrãs normais/largos. */
+  :root { --card-pad: var(--space-4); }
 }
 
 .metrics-grid {
@@ -697,7 +721,12 @@ input:focus, select:focus { border-color: var(--brass); }
 .comparacao-card {
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
-  padding: var(--space-4);
+  /* padding unificado (25/09/2026) — usa o mesmo --card-pad de
+     qualquer outro cartão principal de conteúdo na app, em vez do seu
+     próprio valor fixo (--space-4). Não leva a classe .card porque é
+     um <button>, não um <div>, mas visualmente é um cartão como os
+     outros e deve respirar da mesma forma. */
+  padding: var(--card-pad);
   background: var(--card);
   /* Os cartões passaram a <button> clicáveis (21/09/2026, ver
      ventana-14.js/renderComparacao) — repõe o reset de <button> para

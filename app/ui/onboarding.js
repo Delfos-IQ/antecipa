@@ -189,7 +189,7 @@ export function criarOnboarding({ container, onConcluido }) {
           .map((d, i) => {
             const [ano = "", mes = "", dia = ""] = (d.dataNascimento || "").split("-");
             return `
-          <div class="card" style="padding:var(--space-3)">
+          <div class="card card--compacto">
             <div class="field">
               <label for="dep-nome-${i}">Nome</label>
               <input type="text" id="dep-nome-${i}" data-dep-onb-campo="nome" data-dep-onb-i="${i}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" />
@@ -210,7 +210,7 @@ export function criarOnboarding({ container, onConcluido }) {
 
   function renderCampoPessoa(p, i) {
     return `
-      <div class="card" style="padding:var(--space-4)">
+      <div class="card">
         <p class="row-between"><strong>Pessoa ${p.id}</strong>${i === 1 ? `<button class="btn btn-ghost" data-action="remover-pessoa" data-id="${p.id}">Remover</button>` : ""}</p>
         <div class="field">
           <label for="nome-${p.id}">${pt.onboarding.sujeitosPassivos.nome}</label>

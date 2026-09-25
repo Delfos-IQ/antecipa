@@ -751,7 +751,7 @@ function renderDesglose(declaracoes) {
             ${num === 8 ? renderDetalheLinha8(linha) : ""}`;
         })
         .join("");
-      return `${cabecalho}<div class="desglose card" style="padding:var(--space-2)">${html}</div>`;
+      return `${cabecalho}<div class="desglose card card--compacto">${html}</div>`;
     })
     .join("");
 }
@@ -788,7 +788,7 @@ function ajusteExistente(ajustes, pessoaId, mes, componente) {
 function renderDetalheProjecaoWrap(estado) {
   const { pessoas, rubricasPorPessoa, ajustes } = estado;
   return `
-    <div class="card" style="padding:var(--space-4)">
+    <div class="card">
       <p class="field-hint" style="margin-top:0">${pt.ventana14.detalheProjecaoIntro}</p>
       <div class="detalhe-projecao">
         ${pessoas
