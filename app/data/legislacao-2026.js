@@ -694,8 +694,23 @@ export const legislacaoFiscal = [
           "art.º 78º-E CIRS — percentagem (15%) confirmada. Limite geral (900€) CONFIRMADO por fonte oficial: " +
           "comunicado do Conselho de Ministros, portugal.gov.pt/pt/gc25/governo/comunicados-do-conselho-de-ministros/719 " +
           "(\"aumento progressivo do limite de dedução dos encargos com rendas... para 900 euros em 2026 e 1.000 " +
-          "euros a partir de 2027\"). limitePrimeiroEscalao (1.100€) por 3 fontes convergentes mas não oficiais " +
-          "(deco.proteste.pt, montepio.org, idealista.pt) — confirmar contra o diploma antes de uso em produção.",
+          "euros a partir de 2027\"). limitePrimeiroEscalao (1.100€) AINDA NÃO CONFIRMADO (tentativa 25/09/2026): " +
+          "as 3 fontes originais (deco.proteste.pt, montepio.org, idealista.pt) convergem em 1.100€, mas a " +
+          "investigação desta sessão encontrou sinais contraditórios que impedem confirmação segura: (a) o Guia " +
+          "Fiscal 2026 da PwC (pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html) indica um limite majorado de " +
+          "1.000€ (não 1.100€) e um limite geral de 750€ (que não bate certo com os 900€ já confirmados oficialmente " +
+          "para 2026 — sugere que o guia da PwC possa referir-se a valores de outro ano de rendimentos, não a 2026); " +
+          "(b) o folheto oficial info.portaldasfinancas.gov.pt/.../IRS_deducoes_2025.pdf descreve um \"limite majorado\" " +
+          "de 1.000€ para o art.º 78º-E, mas este é um mecanismo DIFERENTE — aplica-se a quem mudou residência para " +
+          "território do Interior (Portaria n.º 208/2017), não ao critério de rendimento coletável até ao 1º escalão " +
+          "que é o que este campo (limitePrimeiroEscalao) pretende representar; há portanto pelo menos duas " +
+          "majorações distintas no mesmo artigo e risco de as confundir. Existe ainda uma norma transitória (Lei " +
+          "36/2024) com aplicação progressiva do aumento (50% em 2025, 75% em 2026, 100% em 2027) cujo efeito exato " +
+          "sobre o valor aplicável a rendimentos de 2026 não foi possível apurar com confiança via pesquisa web " +
+          "nesta sessão. RECOMENDAÇÃO: confirmar com contabilista ou lendo o texto integral da Lei 36/2024 / " +
+          "Decreto-Lei 97/2026 diretamente em diariodarepublica.pt antes de assumir 1.100€ como correto — o valor " +
+          "certo pode ser 1.000€ para 2026. Valor mantido em 1100 nesta versão (inalterado) por precaução, mas " +
+          "confirmado permanece false.",
       },
       // Dedução por exigência de fatura (art.º 78º-F CIRS, "IVAucher"-like)
       // — 15% do IVA suportado em setores como restauração, reparação de
