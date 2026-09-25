@@ -8,7 +8,7 @@
 // Bump da constante CACHE_NAME sempre que style.css/index.html ou
 // qualquer módulo mudar, para limpar caches antigas na ativação.
 
-const CACHE_NAME = "antecipa-v2.58";
+const CACHE_NAME = "antecipa-v2.59";
 
 const ASSETS_ESTATICOS = [
   "./",

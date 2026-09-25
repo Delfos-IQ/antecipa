@@ -152,11 +152,19 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    tudo isto (v2.53). Diferente da largura geral da app (.app-main,
    --max-content-wide, resolvida em v2.56 e essa sim mantida) — aqui o
    problema não era espaço a menos, era espaço a mais por cartão: uma
-   coluna só, mas com um teto de largura próprio (--max-content, 640px,
-   igual ao dos formulários do onboarding) para não esticar cada campo
-   por um ecrã de 1400px de largura. */
+   coluna só, mas com um teto de largura próprio para não esticar cada
+   campo por um ecrã de 1400px de largura.
+   25/09/2026 (2ª volta, mesmo dia): com a coluna única confirmada boa
+   pelo Dani, pediu mais largura ainda — "quiero que la tarjeta blanca
+   sea más ancha, para darle un poco más de margen a las letras". O teto
+   inicial (--max-content, 640px) era pensado para campos de formulário
+   curtos do onboarding, não para cartões com parágrafos de texto de
+   ajuda. Subido para 880px, fixo (já não --max-content, para não afetar
+   o onboarding): bem mais respiração para o texto, mas ainda claramente
+   uma coluna de leitura confortável, longe do 1400px que causou a
+   queixa original de "demasiado espalhado". */
 .cartoes-grid {
-  max-width: var(--max-content);
+  max-width: 880px;
   margin: 0 auto;
 }
 
