@@ -361,9 +361,19 @@ input[type="text"], input[type="number"], input[type="date"], input[type="email"
   border: 1px solid var(--hairline);
   border-radius: var(--radius-sm);
   background: var(--card);
-  padding: 11px 12px;
+  /* Encolhidos (25/09/2026, pedido do Dani depois do caso da Sofia:
+     "hazlo con todos los rectángulos, los encogemos a la mitad") — o
+     padding vertical de 11px + min-height:44px vinha do alvo de toque
+     recomendado (Apple/Google pedem ≥44px), pensado sobretudo para
+     botões e não para uma lista longa de campos de texto pequenos.
+     Reduzido para algo visivelmente mais compacto, mas SEM baixar o
+     font-size abaixo de 16px (1rem, mantido no font-size partilhado
+     de input/select/textarea mais abaixo) — no Safari do iPhone, um
+     campo com font-size < 16px faz o ecrã dar zoom automático ao
+     focar, o que seria pior do que o problema que estamos a resolver. */
+  padding: 7px 10px;
   color: var(--text);
-  min-height: 44px;
+  min-height: 36px;
 }
 input:focus, select:focus { border-color: var(--brass); }
 .choice-group { display: grid; gap: var(--space-2); }

@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.65";
+export const VERSAO_ATUAL = "2.66";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.66", resumo: "Todos os campos de texto/número/data/select da app ficaram mais compactos — menos altura e menos espaço interno, mantendo o texto legível e sem provocar zoom automático no iPhone" },
   { versao: "2.65", resumo: "Correção urgente: os 3 campos de data de nascimento (v2.64) apareciam empilhados a ecrã inteiro em vez de lado a lado — voltam a caber numa linha só, compactos" },
   { versao: "2.64", resumo: "Revisão de design: data de nascimento com rótulo próprio e espaçamento consistente (Perfil, Onboarding), logótipo do cabeçalho sem sublinhado, e a landing pública menos \"vazia\" no telemóvel" },
   { versao: "2.63", resumo: "Mais espaço entre os cartões empilhados de Perfil e Deduções" },
