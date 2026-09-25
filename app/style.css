@@ -134,7 +134,7 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
-/* Grelha genérica para ecrãs feitos de uma lista de .card empilhados
+/* Layout genérico para ecrãs feitos de uma lista de .card empilhados
    (Perfil, Deduções) — 25/09/2026, resposta ao Dani ("está muito
    comprimido"): o .app-main já estava corretamente limitado a
    max-content-wide (1040px) e centrado, mas dentro dessa faixa os
@@ -142,18 +142,27 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    duas margens enormes de cada lado E um formulário estreito ao centro,
    o que lido visualmente parece "comprimido" mesmo sem nenhum bug de
    CSS (confirmado: max-width/centragem mediam certo via
-   getBoundingClientRect antes desta alteração). A partir de 1024px os
-   cartões passam a fluir em 2 colunas, usando a largura já disponível;
-   em ecrãs mais estreitos mantém-se a coluna única de sempre.
-   align-items:start impede que uma coluna "puxe" a altura da vizinha. */
-.cartoes-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-4);
-}
-.cartoes-grid > .card { margin-bottom: 0; }
+   getBoundingClientRect antes desta alteração).
+   1ª tentativa (v2.54) usava CSS grid a 2 colunas — mas os cartões têm
+   alturas muito diferentes (ex.: "Exigência de fatura", com 4 campos,
+   ao lado de "Ganhos de capital", com 1 campo só) e o grid emparelha
+   sempre o cartão N com o N+1 pela ordem, deixando um vazio enorme por
+   baixo do cartão mais curto quando o vizinho é bem mais alto — o Dani
+   viu esse vazio e reportou que "isto não está bem" (capturas reais,
+   25/09/2026). CSS multi-column (`column-count`) resolve isto: cada
+   coluna enche-se pela altura real do conteúdo (como um mosaico/jornal
+   a 2 colunas), sem pares fixos nem vazios — `break-inside: avoid` só
+   impede que um cartão seja cortado a meio entre as duas colunas. */
+.cartoes-grid { display: block; }
 @media (min-width: 1024px) {
-  .cartoes-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+  .cartoes-grid {
+    column-count: 2;
+    column-gap: var(--space-4);
+  }
+  .cartoes-grid > .card {
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+  }
 }
 
 /* ---------- Banner legal (sempre visível, exceto durante o onboarding —
