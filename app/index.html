@@ -66,6 +66,19 @@
         Perfil
       </button>
     </nav>
+
+    <!-- Aviso de nova versão (25/09/2026, pedido do Dani depois de ver
+         bugs já corrigidos mas ainda por aparecer no seu Safari — ver
+         registarServiceWorker() em app.js): escondido por omissão,
+         mostrado via JS só quando há mesmo um service worker novo
+         pronto (nunca na primeira instalação). O botão limita-se a
+         recarregar a página — o service worker novo já está ativo
+         nessa altura (sw.js já faz skipWaiting()+clients.claim()
+         sozinho), só falta o browser voltar a pedir os ficheiros. -->
+    <div class="update-toast" id="update-toast" hidden role="status">
+      <span id="update-toast-texto"></span>
+      <button id="update-toast-btn" class="update-toast__btn" type="button"></button>
+    </div>
   </div>
 
   <!-- Libs externas — só para parsing de PDF e exportação de PDF.

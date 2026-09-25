@@ -245,6 +245,11 @@ export const pt = {
       "O Antecipa é uma ferramenta de simulação e apoio à decisão. Não é aconselhamento fiscal certificado e não substitui a declaração oficial de IRS entregue no Portal das Finanças.",
   },
 
+  updateToast: {
+    texto: "Há uma nova versão do Antecipa.",
+    botao: "Atualizar",
+  },
+
   perfil: {
     titulo: "Perfil",
     agregadoTitulo: "O seu agregado",
