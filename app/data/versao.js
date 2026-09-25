@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.63";
+export const VERSAO_ATUAL = "2.64";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.64", resumo: "Revisão de design: data de nascimento com rótulo próprio e espaçamento consistente (Perfil, Onboarding), logótipo do cabeçalho sem sublinhado, e a landing pública menos \"vazia\" no telemóvel" },
   { versao: "2.63", resumo: "Mais espaço entre os cartões empilhados de Perfil e Deduções" },
   { versao: "2.62", resumo: "Unificadas as margens internas de todos os cartões principais da app (Perfil, Deduções, Simulação) — um único padding partilhado, em vez de cada ecrã ter o seu próprio valor" },
   { versao: "2.61", resumo: "Correção: os cartões de Perfil e Deduções passam a alinhar com o resto da app (antes acabavam numa borda diferente); mais margem à volta do texto dentro de cada cartão" },

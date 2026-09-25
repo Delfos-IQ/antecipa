@@ -171,18 +171,20 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
               else if (tierAtual) resumoIrsJovem = `${pt.perfil.irsJovemAnoDoRegime} ${anoDoRegime}.º — ${Math.round(tierAtual.percentagem * 100)}% ${pt.perfil.irsJovemIsento}`;
             }
             return `
-          <div class="doc-card" style="margin-top:var(--space-2)">
+          <div class="doc-card" style="margin-top:var(--space-4)">
             <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
               <input type="text" data-pessoa-campo="nome" data-pessoa-id="${p.id}" value="${p.nome ?? ""}" placeholder="${pt.perfil.agregadoNomePlaceholder}" style="flex:1 1 140px" />
               <input type="text" data-pessoa-campo="nif" data-pessoa-id="${p.id}" value="${p.nif ?? ""}" placeholder="${pt.perfil.agregadoNifPlaceholder}" inputmode="numeric" maxlength="9" style="flex:1 1 110px" />
               ${i > 0 ? `<button class="btn btn-ghost" data-action="remover-pessoa" data-pessoa-id="${p.id}" style="color:var(--pagar)">${pt.perfil.removerPessoa}</button>` : ""}
             </div>
-            <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-top:var(--space-2)">
-              <span class="field-hint" style="white-space:nowrap">${pt.perfil.dataNascimentoLabel}</span>
-              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" data-pessoa-data-campo="dia" data-pessoa-id="${p.id}" value="${diaNasc}" style="width:52px;text-align:center;flex:none" />
-              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" data-pessoa-data-campo="mes" data-pessoa-id="${p.id}" value="${mesNasc}" style="width:52px;text-align:center;flex:none" />
-              <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" data-pessoa-data-campo="ano" data-pessoa-id="${p.id}" value="${anoNasc}" style="width:72px;text-align:center;flex:none" />
-              <span class="field-hint">${idadePessoa !== null ? `${pt.perfil.idadeEm} ${anoAtivo}: ${idadePessoa} ${pt.perfil.anos}` : ""}</span>
+            <div class="campo-data" style="margin-top:var(--space-4);margin-bottom:0">
+              <label>${pt.perfil.dataNascimentoLabel}</label>
+              <div class="campo-data__linha">
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" class="campo-data__dia" data-pessoa-data-campo="dia" data-pessoa-id="${p.id}" value="${diaNasc}" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" class="campo-data__mes" data-pessoa-data-campo="mes" data-pessoa-id="${p.id}" value="${mesNasc}" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" class="campo-data__ano" data-pessoa-data-campo="ano" data-pessoa-id="${p.id}" value="${anoNasc}" />
+              </div>
+              ${idadePessoa !== null ? `<p class="field-hint">${pt.perfil.idadeEm} ${anoAtivo}: ${idadePessoa} ${pt.perfil.anos}</p>` : ""}
             </div>
             <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center;margin-top:var(--space-2)">
               <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem">
@@ -271,12 +273,14 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                   const anoNasc = pendente.ano ?? anoSalvo;
                   return `
               <div class="doc-card" style="margin-bottom:var(--space-2)" data-dep-card="${d.id}">
-                <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-2)" />
-                <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:var(--space-2)">
-                  <span class="field-hint" style="white-space:nowrap">${pt.perfil.dataNascimentoLabel}</span>
-                  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" data-dep-data-campo="dia" data-dep-id="${d.id}" value="${diaNasc}" style="width:52px;text-align:center;flex:none" />
-                  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" data-dep-data-campo="mes" data-dep-id="${d.id}" value="${mesNasc}" style="width:52px;text-align:center;flex:none" />
-                  <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" data-dep-data-campo="ano" data-dep-id="${d.id}" value="${anoNasc}" style="width:72px;text-align:center;flex:none" />
+                <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-4)" />
+                <div class="campo-data">
+                  <label>${pt.perfil.dataNascimentoLabel}</label>
+                  <div class="campo-data__linha">
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" class="campo-data__dia" data-dep-data-campo="dia" data-dep-id="${d.id}" value="${diaNasc}" />
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" class="campo-data__mes" data-dep-data-campo="mes" data-dep-id="${d.id}" value="${mesNasc}" />
+                    <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" class="campo-data__ano" data-dep-data-campo="ano" data-dep-id="${d.id}" value="${anoNasc}" />
+                  </div>
                 </div>
                 <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
                   <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">

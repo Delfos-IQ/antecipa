@@ -196,10 +196,10 @@ export function criarOnboarding({ container, onConcluido }) {
             </div>
             <div class="field">
               <label>Data de nascimento</label>
-              <div style="display:flex;gap:6px">
-                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" data-dep-onb-campo="dia" data-dep-onb-i="${i}" value="${dia}" style="width:56px;text-align:center;flex:none" />
-                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" data-dep-onb-campo="mes" data-dep-onb-i="${i}" value="${mes}" style="width:56px;text-align:center;flex:none" />
-                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" data-dep-onb-campo="ano" data-dep-onb-i="${i}" value="${ano}" style="width:76px;text-align:center;flex:none" />
+              <div class="campo-data__linha">
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="DD" class="campo-data__dia" data-dep-onb-campo="dia" data-dep-onb-i="${i}" value="${dia}" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="2" placeholder="MM" class="campo-data__mes" data-dep-onb-campo="mes" data-dep-onb-i="${i}" value="${mes}" />
+                <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="AAAA" class="campo-data__ano" data-dep-onb-campo="ano" data-dep-onb-i="${i}" value="${ano}" />
               </div>
             </div>
           </div>`;

@@ -365,3 +365,19 @@ a { color: inherit; text-decoration: none; }
 .u-contain { object-fit: contain; }
 .u-mb-3 { margin-bottom: var(--space-3); }
 .u-mb-6 { margin-bottom: var(--space-6); }
+
+/* ---------- Compacto no telemóvel (25/09/2026) ----------
+   Pedido do Dani: rever e polir a app inteira, desktop e telemóvel.
+   Até agora esta folha não tinha nenhum @media (max-width) — o padding
+   vertical de .hero (104px em cima) e de cada .section (72px em cima e
+   em baixo) era fixo, pensado para ecrã largo. Num telemóvel de 375px
+   de largura isso é uma fração enorme da altura do ecrã só em espaço
+   vazio antes/entre secções — por isso a landing "respirava a mais" no
+   telemóvel, mesmo sem nenhum elemento visualmente partido. Aqui só se
+   reduz o padding vertical; o layout em si (grelhas de 1 coluna,
+   tipografia com clamp()) já se comportava bem. */
+@media (max-width: 640px) {
+  .hero { padding: var(--space-6) 0 var(--space-6); }
+  .section { padding: var(--space-6) 0; }
+  .rodape { padding: var(--space-6) 0 var(--space-5); }
+}
