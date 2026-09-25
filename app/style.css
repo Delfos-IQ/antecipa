@@ -343,9 +343,19 @@ label { display: block; font-weight: 500; margin-bottom: var(--space-1); font-si
    componente com rótulo verdadeiro, espaçamento igual ao resto dos
    campos, e a idade como field-hint normal, numa linha própria. */
 .campo-data { margin-bottom: var(--space-4); }
-.campo-data__linha { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
-.campo-data__dia, .campo-data__mes { width: 64px; text-align: center; flex: none; }
-.campo-data__ano { width: 84px; text-align: center; flex: none; }
+.campo-data__linha { display: flex; gap: var(--space-2); align-items: center; }
+/* Especificidade (25/09/2026, bug real — Dani viu os 3 campos empilhados
+   a ecrã inteiro, não lado a lado): um seletor de atributo como
+   input[type="text"] (mais abaixo, com width:100%) tem MAIS
+   especificidade do que uma classe simples como .campo-data__dia,
+   independentemente de qual vem primeiro no ficheiro — por isso
+   width:100% ganhava sempre e cada campo ocupava a linha toda. Aqui
+   junta-se a classe do contentor (.campo-data__linha) à classe do
+   campo para ultrapassar essa especificidade, tal como o guia de
+   design pede para ter cuidado com isto. */
+.campo-data__linha .campo-data__dia,
+.campo-data__linha .campo-data__mes { width: 44px; text-align: center; flex: none; padding-left: 4px; padding-right: 4px; }
+.campo-data__linha .campo-data__ano { width: 60px; text-align: center; flex: none; padding-left: 4px; padding-right: 4px; }
 input[type="text"], input[type="number"], input[type="date"], input[type="email"], select {
   width: 100%;
   border: 1px solid var(--hairline);
