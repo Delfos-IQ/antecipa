@@ -62,6 +62,15 @@
      espaço para "respiração extra") e maior em ecrãs normais/largos
      (--space-6, 32px) — ver media query mais abaixo. */
   --card-pad: var(--space-6);
+  /* --card-gap (25/09/2026): espaço vertical ENTRE cartões empilhados
+     dentro de .cartoes-grid (Perfil, Deduções) — antes era um
+     margin-bottom:var(--space-4) repetido inline em cada cartão, em
+     cada um dos dois ficheiros; agora é um único gap no contentor (ver
+     .cartoes-grid mais abaixo), igual em ambos os ecrãs. Pedido do
+     Dani: mais respiro entre o fim de um cartão e o início do
+     seguinte, não só dentro de cada cartão. Mesma lógica do
+     --card-pad — menor no telemóvel. */
+  --card-gap: var(--space-6);
   --max-content: 640px;
   /* 25/09/2026 — 1040px (resposta ao Dani, "está muito comprimido"/"pouco
      apelativa"): num monitor externo grande (confirmado pelo Dani — as
@@ -203,6 +212,9 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    removidos, porque já não fazem falta. */
 .cartoes-grid {
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
 }
 
 /* ---------- Banner legal (sempre visível, exceto durante o onboarding —
@@ -597,10 +609,10 @@ input:focus, select:focus { border-color: var(--brass); }
   .glass-clock__data { font-size: 0.68rem; }
 }
 @media (max-width: 480px) {
-  /* --card-pad volta ao padding original (16px) no telemóvel — 32px
-     tiraria espaço a mais a um ecrã já estreito; a "respiração extra"
-     só faz sentido em ecrãs normais/largos. */
-  :root { --card-pad: var(--space-4); }
+  /* --card-pad e --card-gap voltam ao valor original (16px) no
+     telemóvel — 32px tiraria espaço a mais a um ecrã já estreito; a
+     "respiração extra" só faz sentido em ecrãs normais/largos. */
+  :root { --card-pad: var(--space-4); --card-gap: var(--space-4); }
 }
 
 .metrics-grid {
