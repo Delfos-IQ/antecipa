@@ -605,7 +605,7 @@ input:focus, select:focus { border-color: var(--brass); }
   margin-top: var(--space-3);
   background: var(--hairline);
 }
-.descontos-barra span { display: block; }
+.descontos-barra span { display: block; height: 100%; }
 .descontos-legenda { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
 .descontos-legenda__item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; }
 .descontos-legenda__item i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
@@ -619,13 +619,20 @@ input:focus, select:focus { border-color: var(--brass); }
   height: 120px;
 }
 .mes-barras__col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+/* height fixa em px (25/09/2026, corrige gráfico invisível reportado
+   pelo Dani, capturas reais em Safari): antes tinha `flex: 1` em vez de
+   uma altura fixa — o Safari, ao contrário do Chrome, nem sempre trata a
+   altura resultante de flex:1 como "definida" para efeitos de resolver a
+   `height:X%` inline do .mes-barras__fill lá dentro, e a barra colapsava
+   a 0px (invisível), mesmo com dados reais e >0. Uma altura em px é
+   sempre definida, em qualquer motor de navegador. */
 .mes-barras__track {
-  flex: 1;
+  height: 100px;
   width: 100%;
   max-width: 22px;
   display: flex;
   align-items: flex-end;
-  background: var(--paper);
+  background: var(--hairline);
   border-radius: 4px;
   overflow: hidden;
 }
