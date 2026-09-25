@@ -742,6 +742,14 @@ input:focus, select:focus { border-color: var(--brass); }
 .mes-barras__fill { width: 100%; background: var(--hairline); }
 .mes-barras__fill[data-real="true"] { background: var(--brass); }
 .mes-barras__fill[data-cor="pagar"][data-real="true"] { background: var(--pagar); }
+/* Rendimento líquido por mês (25/09/2026, pedido do Dani: "los gráficos
+   de columnas eran mucho más ricos y con colores") — antes usava o
+   mesmo azul neutro (--brass) do resto da app; passa a usar --devolver
+   (o mesmo verde do cartão "Líquido acumulado" logo acima), tal como
+   "IRS retido acumulado" já usava --pagar (vermelho) a condizer com o
+   seu próprio cartão — os dois gráficos ficam a condizer com as cores
+   das métricas que representam, em vez de ambos neutros. */
+.mes-barras__fill[data-cor="devolver"][data-real="true"] { background: var(--devolver); }
 .mes-barras__label { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
 
 /* ---------- Dashboard — uso dos tetos de dedução ---------- */
@@ -849,7 +857,17 @@ input:focus, select:focus { border-color: var(--brass); }
 .detalhe-campo input[type="number"] { width: 140px; margin: 0; }
 .detalhe-campo__repor { font-size: 0.78rem; background: none; border: none; color: var(--brass); cursor: pointer; padding: 0; text-decoration: underline; }
 
+/* min-width:0 nos filhos diretos (25/09/2026, bug real reportado pelo
+   Dani em Safari): um item de grid tem por omissão min-width:auto, ou
+   seja, nunca encolhe abaixo da largura do seu conteúdo — normalmente
+   invisível, mas aqui o filho .desglose-detalhe (linha 8, barras de
+   "dedução correspondente") tinha lá dentro barras com width:X% que,
+   em Safari, resolviam a percentagem contra essa largura "auto" em vez
+   da largura real da coluna da grid, e a barra aparecia sempre cheia
+   independentemente da percentagem real. min-width:0 obriga o item a
+   ocupar exatamente a coluna da grid, tal como um bloco normal. */
 .desglose { display: grid; gap: 2px; }
+.desglose > * { min-width: 0; }
 .desglose-linha {
   display: grid;
   grid-template-columns: 32px 1fr auto;
@@ -879,8 +897,13 @@ input:focus, select:focus { border-color: var(--brass); }
 .copyright-line { font-size: 0.76rem; color: var(--muted); margin-top: var(--space-2); }
 
 /* ---------- Utility ---------- */
+/* min-width:0 nos filhos (mesmo motivo do .desglose acima, ver
+   comentário completo aí) — aplica-se aqui porque o Dashboard usa
+   .stack para as barras de "uso dos tetos de dedução". */
 .stack { display: grid; gap: var(--space-4); }
+.stack > * { min-width: 0; }
 .stack-sm { display: grid; gap: var(--space-2); }
+.stack-sm > * { min-width: 0; }
 .row { display: flex; align-items: center; gap: var(--space-3); }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .section-title { font-size: 1.15rem; margin-top: var(--space-6); margin-bottom: var(--space-3); }

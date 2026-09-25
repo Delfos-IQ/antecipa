@@ -271,7 +271,7 @@ export async function renderVentana13({ container, anoFiscal }) {
           const alturaPercent = v > 0 ? Math.max(6, Math.round((v / maxMensal) * 100)) : 0;
           return `
           <div class="mes-barras__col" title="${nome}: ${v.toFixed(2)}€">
-            <div class="mes-barras__track"><div class="mes-barras__fill" data-real="${mesesComDados.has(i + 1)}" style="height:${alturaPercent}%"></div></div>
+            <div class="mes-barras__track"><div class="mes-barras__fill" data-cor="devolver" data-real="${mesesComDados.has(i + 1)}" style="height:${alturaPercent}%"></div></div>
             <span class="mes-barras__label">${nome.slice(0, 3)}</span>
           </div>`;
         })
