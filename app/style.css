@@ -45,7 +45,15 @@
   --space-6: 32px;
   --space-7: 48px;
   --max-content: 640px;
-  --max-content-wide: 1040px;
+  /* 25/09/2026 — 1040px (resposta ao Dani, "está muito comprimido"/"pouco
+     apelativa"): num monitor externo grande (confirmado pelo Dani — as
+     suas capturas mostravam ~1920px de largura), 1040px deixava quase
+     metade do ecrã em margens brancas. Subido para 1400px — ainda deixa
+     uma margem confortável em monitores muito largos, mas usa muito mais
+     do ecrã do que antes; em ecrãs mais estreitos continua a comportar-se
+     como sempre, porque isto é só um teto (max-width), nunca uma largura
+     forçada. */
+  --max-content-wide: 1400px;
 }
 
 /* ---------- Reset & base ---------- */
@@ -163,6 +171,13 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
     break-inside: avoid;
     -webkit-column-break-inside: avoid;
   }
+}
+/* Monitor externo largo (25/09/2026, confirmado pelo Dani) — com
+   --max-content-wide subido para 1400px há espaço de sobra para uma 3ª
+   coluna nestes ecrãs de 6 cartões (Perfil, Deduções), em vez de deixar
+   2 colunas largas com muito texto por linha. */
+@media (min-width: 1440px) {
+  .cartoes-grid { column-count: 3; }
 }
 
 /* ---------- Banner legal (sempre visível, exceto durante o onboarding —
