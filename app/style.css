@@ -142,42 +142,22 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
-/* Layout genérico para ecrãs feitos de uma lista de .card empilhados
-   (Perfil, Deduções) — 25/09/2026, resposta ao Dani ("está muito
-   comprimido"): o .app-main já estava corretamente limitado a
-   max-content-wide (1040px) e centrado, mas dentro dessa faixa os
-   cartões vinham todos numa única coluna — num ecrã largo isso deixa
-   duas margens enormes de cada lado E um formulário estreito ao centro,
-   o que lido visualmente parece "comprimido" mesmo sem nenhum bug de
-   CSS (confirmado: max-width/centragem mediam certo via
-   getBoundingClientRect antes desta alteração).
-   1ª tentativa (v2.54) usava CSS grid a 2 colunas — mas os cartões têm
-   alturas muito diferentes (ex.: "Exigência de fatura", com 4 campos,
-   ao lado de "Ganhos de capital", com 1 campo só) e o grid emparelha
-   sempre o cartão N com o N+1 pela ordem, deixando um vazio enorme por
-   baixo do cartão mais curto quando o vizinho é bem mais alto — o Dani
-   viu esse vazio e reportou que "isto não está bem" (capturas reais,
-   25/09/2026). CSS multi-column (`column-count`) resolve isto: cada
-   coluna enche-se pela altura real do conteúdo (como um mosaico/jornal
-   a 2 colunas), sem pares fixos nem vazios — `break-inside: avoid` só
-   impede que um cartão seja cortado a meio entre as duas colunas. */
-.cartoes-grid { display: block; }
-@media (min-width: 1024px) {
-  .cartoes-grid {
-    column-count: 2;
-    column-gap: var(--space-4);
-  }
-  .cartoes-grid > .card {
-    break-inside: avoid;
-    -webkit-column-break-inside: avoid;
-  }
-}
-/* Monitor externo largo (25/09/2026, confirmado pelo Dani) — com
-   --max-content-wide subido para 1400px há espaço de sobra para uma 3ª
-   coluna nestes ecrãs de 6 cartões (Perfil, Deduções), em vez de deixar
-   2 colunas largas com muito texto por linha. */
-@media (min-width: 1440px) {
-  .cartoes-grid { column-count: 3; }
+/* .cartoes-grid — ecrãs feitos de uma lista de .card empilhados (Perfil,
+   Deduções). HISTÓRICO (25/09/2026): passou por 3 tentativas de grelha
+   multi-coluna (grid 2 colunas → mosaico multi-column 2 colunas → 3
+   colunas) para aproveitar ecrãs largos. O Dani rejeitou as 3 — cartões
+   de formulário com campos e texto de ajuda ficam "cortados"/estreitos
+   em coluna múltipla e a experiência piora, mesmo sem vazios nem bugs.
+   Pedido explícito: voltar a uma única coluna, tal como era antes de
+   tudo isto (v2.53). Diferente da largura geral da app (.app-main,
+   --max-content-wide, resolvida em v2.56 e essa sim mantida) — aqui o
+   problema não era espaço a menos, era espaço a mais por cartão: uma
+   coluna só, mas com um teto de largura próprio (--max-content, 640px,
+   igual ao dos formulários do onboarding) para não esticar cada campo
+   por um ecrã de 1400px de largura. */
+.cartoes-grid {
+  max-width: var(--max-content);
+  margin: 0 auto;
 }
 
 /* ---------- Banner legal (sempre visível, exceto durante o onboarding —
