@@ -134,6 +134,28 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   padding: var(--space-5) var(--space-4) var(--space-7);
 }
 
+/* Grelha genérica para ecrãs feitos de uma lista de .card empilhados
+   (Perfil, Deduções) — 25/09/2026, resposta ao Dani ("está muito
+   comprimido"): o .app-main já estava corretamente limitado a
+   max-content-wide (1040px) e centrado, mas dentro dessa faixa os
+   cartões vinham todos numa única coluna — num ecrã largo isso deixa
+   duas margens enormes de cada lado E um formulário estreito ao centro,
+   o que lido visualmente parece "comprimido" mesmo sem nenhum bug de
+   CSS (confirmado: max-width/centragem mediam certo via
+   getBoundingClientRect antes desta alteração). A partir de 1024px os
+   cartões passam a fluir em 2 colunas, usando a largura já disponível;
+   em ecrãs mais estreitos mantém-se a coluna única de sempre.
+   align-items:start impede que uma coluna "puxe" a altura da vizinha. */
+.cartoes-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+.cartoes-grid > .card { margin-bottom: 0; }
+@media (min-width: 1024px) {
+  .cartoes-grid { grid-template-columns: 1fr 1fr; align-items: start; }
+}
+
 /* ---------- Banner legal (sempre visível, exceto durante o onboarding —
    ver app.js) ---------- */
 .legal-banner[hidden] { display: none; } /* mesma razão que .bottom-nav[hidden] acima: sem isto, a regra de display:flex abaixo ganha ao [hidden] da UA stylesheet */

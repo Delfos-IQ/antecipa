@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.53";
+export const VERSAO_ATUAL = "2.54";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.54", resumo: "Correção: em ecrãs de computador largos, Perfil e Deduções ficavam numa coluna estreita ao centro — agora os cartões usam melhor o espaço" },
   { versao: "2.53", resumo: "Novo: dedução de encargos com lares (art.º 84º CIRS), por pessoa, em Perfil; correção de um bug real no limite agregado de deduções" },
   { versao: "2.52", resumo: "Reforço de segurança (política de conteúdo mais estrita) e confirmação de valores fiscais contra fontes oficiais" },
   { versao: "2.51", resumo: "Novo: suporte ao regime IRS Jovem (até 35 anos) — data de nascimento e ano de início em Perfil, por titular" },

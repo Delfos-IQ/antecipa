@@ -220,7 +220,9 @@ export async function renderVentanaDeducoes({ container, anoFiscal }) {
     container.innerHTML = `
       <h2>${pt.perfil.deducoesTitulo}</h2>
       <p class="field-hint" style="margin-bottom:var(--space-4)">${pt.perfil.deducoesCorpo}</p>
-      ${GRUPOS_DEDUCOES.map((grupo) => renderGrupoDeducao(grupo, deducoesColeta, pessoas)).join("")}
+      <div class="cartoes-grid">
+        ${GRUPOS_DEDUCOES.map((grupo) => renderGrupoDeducao(grupo, deducoesColeta, pessoas)).join("")}
+      </div>
       <p class="muted" style="font-size:0.78rem;margin-top:var(--space-2)">${pt.perfil.deducoesGuardar}</p>
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
     `;

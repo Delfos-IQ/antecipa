@@ -115,6 +115,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
     container.innerHTML = `
       <h2>${pt.perfil.titulo}</h2>
 
+      <div class="cartoes-grid">
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.agregadoTitulo}</p>
         <div class="field" style="margin-top:var(--space-2)">
@@ -393,6 +394,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.navegacaoTitulo}</p>
         <a class="btn btn-secondary btn-block" href="../" style="margin-top:var(--space-3)">${pt.perfil.voltarBoasVindas}</a>
+      </div>
       </div>
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
