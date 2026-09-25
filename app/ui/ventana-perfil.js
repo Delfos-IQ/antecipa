@@ -116,7 +116,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       <h2>${pt.perfil.titulo}</h2>
 
       <div class="cartoes-grid">
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+      <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.agregadoTitulo}</p>
         <div class="field" style="margin-top:var(--space-2)">
           <label for="agregado-situacao">${pt.perfil.situacaoLabel}</label>
@@ -255,7 +255,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         }
       </div>
 
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+      <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.dependentesTitulo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.dependentesCorpo}</p>
         ${
@@ -310,7 +310,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         <button class="btn btn-secondary btn-block" data-action="adicionar-dependente" style="margin-top:var(--space-2)">${pt.perfil.adicionarDependente}</button>
       </div>
 
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+      <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.ascendentesTitulo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.ascendentesCorpo}</p>
         ${
@@ -345,7 +345,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         <button class="btn btn-secondary btn-block" data-action="adicionar-ascendente" style="margin-top:var(--space-2)">${pt.perfil.adicionarAscendente}</button>
       </div>
 
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+      <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.anoFiscalTitulo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.anoFiscalCorpo}</p>
         <div class="stack" style="gap:var(--space-2)">
@@ -372,7 +372,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         </div>
       </div>
 
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+      <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.higieneTitulo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.higieneCorpo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">
@@ -391,7 +391,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
         </div>
       </div>
 
-      <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+      <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
         <p class="section-title">${pt.perfil.navegacaoTitulo}</p>
         <a class="btn btn-secondary btn-block" href="../" style="margin-top:var(--space-3)">${pt.perfil.voltarBoasVindas}</a>
       </div>

@@ -44,6 +44,14 @@
   --space-5: 24px;
   --space-6: 32px;
   --space-7: 48px;
+  /* --card-pad-lista (25/09/2026): padding horizontal/vertical dos
+     cartões empilhados de Perfil/Deduções (ver .cartoes-grid mais
+     abaixo). Variável, não um valor fixo em cada cartão, para poder
+     manter o padding menor no telemóvel (onde o ecrã é o fator
+     limitante, não sobra espaço para "respiração extra") e maior só em
+     ecrãs largos, onde o Dani pediu explicitamente mais margem à volta
+     do texto depois de alargar os cartões. Ver media query mais abaixo. */
+  --card-pad-lista: var(--space-6);
   --max-content: 640px;
   /* 25/09/2026 — 1040px (resposta ao Dani, "está muito comprimido"/"pouco
      apelativa"): num monitor externo grande (confirmado pelo Dani — as
@@ -164,14 +172,22 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    25/09/2026 (3ª volta, mesmo dia): no monitor externo largo do Dani,
    880px ainda deixava margens brancas enormes dos dois lados ("necesito
    más espacio", com capturas reais a confirmar). Subido bastante mais,
-   para 1200px — ainda uma coluna única e legível (nenhum campo de
-   formulário estica até lá, o conteúdo interno continua com a sua
-   própria largura confortável), mas usa muito mais do ecrã largo; fica
-   perto do teto geral da app (--max-content-wide, 1400px) porque desta
-   vez o pedido explícito era mesmo esse — menos margem branca, não
-   apenas "mais respiração para o texto". */
+   para 1200px.
+   25/09/2026 (4ª volta, mesmo dia): o Dani reparou em dois problemas com
+   capturas lado a lado — (1) esse teto de 1200px, PRÓPRIO desta classe,
+   fazia os cartões de Perfil/Deduções terminarem numa borda diferente
+   da dos cartões de Simulação (estes últimos nunca tiveram teto
+   próprio, usam a largura inteira do .app-main/--max-content-wide,
+   1400px) — "el ancho de las tarjetas no cae en la misma zona"; (2)
+   com o cartão tão largo, o padding fixo de 16px (--space-4) de cada
+   .card lia-se como texto colado à borda. Corrigido das duas formas:
+   removido o teto próprio (max-width) — agora .cartoes-grid ocupa a
+   mesma largura que qualquer outro ecrã dentro do .app-main, por isso
+   as bordas alinham sempre, seja qual for o ecrã; e subido o padding
+   interno de cada .card (em ventana-perfil.js e ventana-deducoes.js) de
+   --space-4 (16px) para --space-6 (32px), margem visível à volta do
+   texto mesmo num cartão largo. */
 .cartoes-grid {
-  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -554,6 +570,13 @@ input:focus, select:focus { border-color: var(--brass); }
   .glass-clock { padding: 8px 14px; border-radius: 14px; }
   .glass-clock__hora { font-size: 1.4rem; }
   .glass-clock__data { font-size: 0.68rem; }
+}
+@media (max-width: 480px) {
+  /* --card-pad-lista volta ao padding original (16px) no telemóvel —
+     32px tiraria espaço a mais a um ecrã já estreito; a "respiração
+     extra" só fazia sentido depois de alargar os cartões em monitores
+     grandes. */
+  :root { --card-pad-lista: var(--space-4); }
 }
 
 .metrics-grid {

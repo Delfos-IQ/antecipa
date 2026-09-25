@@ -160,7 +160,7 @@ function renderGrupoDeducao(grupo, valores, pessoas) {
   const notaApos = grupo.notaAposCampo ?? {};
   const campoEspecialApos = grupo.campoEspecialApos ?? {};
   return `
-    <div class="card" style="padding:var(--space-4);margin-bottom:var(--space-4)">
+    <div class="card" style="padding:var(--card-pad-lista);margin-bottom:var(--space-4)">
       <p class="section-title dedu-grupo__titulo">${renderIconeGrupo(grupo.chave)}${defsGrupo.titulo}</p>
       ${defsGrupo.corpoHint ? `<p class="field-hint" style="margin-bottom:var(--space-3)">${defsGrupo.corpoHint}</p>` : ""}
       <div class="stack" style="gap:var(--space-3)">
