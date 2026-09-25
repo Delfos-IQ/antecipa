@@ -1414,4 +1414,48 @@ console.log("\n--- IRS Jovem (art.º 12º-B CIRS) — isenção com progressivid
   assertIgual(comTeto.linhas["5B"].total, 29542.15, "IRS Jovem: isenção capada a 55×IAS (29.542,15€) quando 100% do rendimento excederia o teto");
 }
 
+console.log("\n--- Regressão contra a Demonstração de Liquidação real de 2025 do Dani (re-confirmado 25/09/2026 após o fix do limiteAgregado) ---");
+{
+  // Mesmo caso real já usado em 03/09 e 22/09/2026 para corrigir 4 bugs
+  // (despesasGerais fora do limite agregado, SS+ADSE combinadas, teto da
+  // quota sindical antes de duplicar, taxa adicional dividida por 2 em
+  // conjunta) — reconfirmado aqui especificamente contra o fix de HOJE
+  // (25/09/2026) ao limiteAgregado (limiar do art.º 68º-A em vez do topo
+  // da tabela de escalões normal). Números tirados linha a linha da
+  // Demonstração de Liquidação real (declaração conjunta, 3 dependentes,
+  // rendimento coletável 97.929,52€, quociente familiar 2,00).
+  const tabela2025 = obterTabelaFiscal(2025);
+  const rendimentoPorQuociente = 48874.06; // 97.748,12 (linha 9, já com o ajuste de rendimentos de anos anteriores) / 2
+  const resultado = calcularDeducoesAColeta({
+    deducoesColeta: {
+      saude: 1074.06,
+      educacao: 8200.74,
+      despesasGerais: 37738.96,
+      pprPorPessoa: { A: 1525, B: 1525 }, // 3.050€ agregado repartido pelos 2 titulares (split exato desconhecido, mas nenhum dos dois chega ao teto de 400€ com qualquer repartição plausível)
+    },
+    dependentes: [
+      { id: 1, nome: "D1" },
+      { id: 2, nome: "D2" },
+      { id: 3, nome: "D3" },
+    ],
+    pessoas: [{ id: "A" }, { id: "B" }],
+    tabela: tabela2025,
+    regime: "conjunta",
+    anoFiscal: 2025,
+    rendimentoPorQuociente,
+  });
+  assertIgual(resultado.saude, 161.11, "Caso real 2025: saúde 1.074,06€ × 15% = 161,11€ (bate exato com a Demonstração real)");
+  assertIgual(resultado.educacao, 800, "Caso real 2025: educação capada a 800€ (despesa 8.200,74€, muito acima do teto)");
+  assertIgual(resultado.ppr, 610, "Caso real 2025: PPR 3.050€ × 20% = 610€, sem cortar teto (bate exato)");
+  assertIgual(resultado.despesasGerais, 500, "Caso real 2025: despesas gerais capadas a 500€ (casal), despesa 37.738,96€");
+  assertIgual(resultado.porDependentes, 1800, "Caso real 2025: 3 dependentes × 600€ = 1.800€ (bate exato, nenhum com majoração por idade)");
+  assertIgual(resultado.limiteAgregado, 1896.34, "Caso real 2025: limite agregado ≈1.896,34€ (interpolação até aos 80.000€ do art.º 68º-A + majoração de 15% por 3 dependentes)");
+  if (resultado.limiteAgregadoAplicado) {
+    console.error("FALHOU: Caso real 2025 — o limite agregado NÃO deveria ter sido aplicado (a Demonstração real mostra \"Limite: 0,00\", ou seja, sem corte)");
+    process.exitCode = 1;
+  } else {
+    console.log("OK: Caso real 2025 — limite agregado calculado mas não aplicado, tal como a Demonstração de Liquidação real (\"Limite: 0,00\")");
+  }
+}
+
 console.log("\nTeste concluído" + (process.exitCode ? " COM FALHAS." : " sem exceções."));
