@@ -13,6 +13,7 @@ import { pt } from "../data/i18n.js";
 import { revisaoFiscal, obterTabelaFiscal } from "../data/legislacao-2026.js";
 import { VERSAO_ATUAL, HISTORICO_VERSOES } from "../data/versao.js";
 import { valorDeducaoPorDependente, valorDeducaoAscendente, valorDeducaoLares } from "../engine/calculo-irs.js";
+import { escapeHtml } from "./utils/escape-html.js";
 import {
   getHousehold,
   getPessoas,
@@ -173,7 +174,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
             return `
           <div class="doc-card" style="margin-top:var(--space-4)">
             <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
-              <input type="text" data-pessoa-campo="nome" data-pessoa-id="${p.id}" value="${p.nome ?? ""}" placeholder="${pt.perfil.agregadoNomePlaceholder}" style="flex:1 1 140px" />
+              <input type="text" data-pessoa-campo="nome" data-pessoa-id="${p.id}" value="${escapeHtml(p.nome ?? "")}" placeholder="${pt.perfil.agregadoNomePlaceholder}" style="flex:1 1 140px" />
               <input type="text" data-pessoa-campo="nif" data-pessoa-id="${p.id}" value="${p.nif ?? ""}" placeholder="${pt.perfil.agregadoNifPlaceholder}" inputmode="numeric" maxlength="9" style="flex:1 1 110px" />
               ${i > 0 ? `<button class="btn btn-ghost" data-action="remover-pessoa" data-pessoa-id="${p.id}" style="color:var(--pagar)">${pt.perfil.removerPessoa}</button>` : ""}
             </div>
@@ -273,7 +274,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                   const anoNasc = pendente.ano ?? anoSalvo;
                   return `
               <div class="doc-card" style="margin-bottom:var(--space-2)" data-dep-card="${d.id}">
-                <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-4)" />
+                <input type="text" data-dep-campo="nome" data-dep-id="${d.id}" value="${escapeHtml(d.nome ?? "")}" placeholder="${pt.perfil.dependenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-4)" />
                 <div class="campo-data">
                   <label>${pt.perfil.dataNascimentoLabel}</label>
                   <div class="campo-data__linha">
@@ -323,7 +324,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
                 .map(
                   (a) => `
               <div class="doc-card" style="margin-bottom:var(--space-2)" data-asc-card="${a.id}">
-                <input type="text" data-asc-campo="nome" data-asc-id="${a.id}" value="${a.nome ?? ""}" placeholder="${pt.perfil.ascendenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-2)" />
+                <input type="text" data-asc-campo="nome" data-asc-id="${a.id}" value="${escapeHtml(a.nome ?? "")}" placeholder="${pt.perfil.ascendenteNomePlaceholder}" style="width:100%;margin-bottom:var(--space-2)" />
                 <div class="row" style="gap:var(--space-2);flex-wrap:wrap;align-items:center">
                   <label style="display:flex;align-items:center;gap:4px;font-size:0.82rem;white-space:nowrap">
                     <input type="checkbox" data-asc-campo="deficiencia" data-asc-id="${a.id}" ${a.deficiencia ? "checked" : ""} />

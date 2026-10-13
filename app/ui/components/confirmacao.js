@@ -15,22 +15,7 @@
 
 import { chaveDescricao } from "../../parsers/parser-talao.js";
 import { carregarPdfJs } from "../../parsers/pdf-text.js";
-
-// Escapa texto vindo de fora da app (extraído de um PDF, portanto não
-// confiável) antes de o injetar via innerHTML — sem isto, uma "descrição"
-// de rubrica fabricada (ex.: `"><img src=x onerror=...>`) dentro do PDF
-// carregado corria como HTML/JS neste ecrã. Ver também
-// ui/ventanas-mensais.js, onde a mesma descrição é reexibida depois de
-// gravada.
-function escapeHtml(valor) {
-  return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  }[c]));
-}
+import { escapeHtml } from "../utils/escape-html.js";
 
 const ROTULOS_CATEGORIA = {
   irs: "IRS",

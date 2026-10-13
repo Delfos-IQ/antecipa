@@ -17,21 +17,7 @@ import { extrairTextoPdf } from "../parsers/pdf-text.js";
 import { parsearTalao } from "../parsers/parser-talao.js";
 import { parsearReciboVerde } from "../parsers/parser-recibo-verde.js";
 import { abrirConfirmacao } from "./components/confirmacao.js";
-
-// Escapa texto de origem não confiável (descrição de rubrica extraída de um
-// PDF carregado pelo utilizador, ou nome livre introduzido em Perfil) antes
-// de o injetar via innerHTML — ver mesmo helper em
-// ui/components/confirmacao.js, onde esta descrição é mostrada pela
-// primeira vez.
-function escapeHtml(valor) {
-  return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;",
-  }[c]));
-}
+import { escapeHtml } from "./utils/escape-html.js";
 
 function formatarMoeda(valor) {
   // ver nota em ui/ventana-14.js: substitui o nbsp antes do € por um

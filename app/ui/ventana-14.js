@@ -18,6 +18,7 @@ import {
 import { projetarAno, achatarRubricasDoAno } from "../engine/projecao.js";
 import { calcularDeclaracao, compararRegimes, detectarOportunidadePPR, detectarOportunidadeMaisValias, detectarSugestoesPagamento } from "../engine/calculo-irs.js";
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
+import { escapeHtml } from "./utils/escape-html.js";
 import { exportarPdfPessoal, exportarPdfContabilista } from "../export/pdf-export.js";
 
 function formatarMoeda(v) {
@@ -727,7 +728,7 @@ function renderDesglose(declaracoes) {
       const linhas = declaracao.linhas;
       const cabecalho =
         declaracoes.length > 1
-          ? `<p class="desglose-titular" style="font-weight:600;margin:var(--space-3) 0 var(--space-2)">${titulo ?? ""}</p>`
+          ? `<p class="desglose-titular" style="font-weight:600;margin:var(--space-3) 0 var(--space-2)">${escapeHtml(titulo ?? "")}</p>`
           : "";
       const html = ORDEM_LINHAS.filter((num) => linhas[num])
         .map((num) => {
@@ -807,7 +808,7 @@ function renderDetalhePessoa(pessoa, dados, ajustesDaPessoa) {
   const temCategoriaB = dados.mesAMes.some((m) => m.rubricas.some((r) => r.categoria === "B" && r.tipo === "abono"));
   return `
     <div>
-      <p class="detalhe-pessoa__nome">${pessoa.nome ?? ""}</p>
+      <p class="detalhe-pessoa__nome">${escapeHtml(pessoa.nome ?? "")}</p>
       ${dados.mesAMes.map((m) => renderDetalheMes(pessoa.id, m, temCategoriaB, ajustesDaPessoa)).join("")}
     </div>
   `;
@@ -898,7 +899,7 @@ function renderDetalheMes(pessoaId, mes, temCategoriaB, ajustesDaPessoa) {
                 .map(
                   (d) => `
              <div class="detalhe-campo">
-               <span class="detalhe-campo__label">${d.descricao}</span>
+               <span class="detalhe-campo__label">${escapeHtml(d.descricao)}</span>
                <span class="detalhe-campo__valor num">− ${formatarMoeda(d.valorComRedu)}</span>
              </div>`
                 )

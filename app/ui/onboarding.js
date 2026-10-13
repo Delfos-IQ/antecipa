@@ -5,6 +5,7 @@ import { pt } from "../data/i18n.js";
 import { simboloSVG } from "./components/symbol.js";
 import { saveHousehold, savePessoa, saveDependente, getHousehold } from "../storage/db.js";
 import { quocienteEstimado } from "../engine/quociente.js";
+import { escapeHtml } from "./utils/escape-html.js";
 
 const TOTAL_PASSOS = 5; // 1..5, passo 0 é boas-vindas sem barra
 
@@ -192,7 +193,7 @@ export function criarOnboarding({ container, onConcluido }) {
           <div class="card card--compacto">
             <div class="field">
               <label for="dep-nome-${i}">Nome</label>
-              <input type="text" id="dep-nome-${i}" data-dep-onb-campo="nome" data-dep-onb-i="${i}" value="${d.nome ?? ""}" placeholder="${pt.perfil.dependenteNomePlaceholder}" />
+              <input type="text" id="dep-nome-${i}" data-dep-onb-campo="nome" data-dep-onb-i="${i}" value="${escapeHtml(d.nome ?? "")}" placeholder="${pt.perfil.dependenteNomePlaceholder}" />
             </div>
             <div class="field">
               <label>Data de nascimento</label>
@@ -214,7 +215,7 @@ export function criarOnboarding({ container, onConcluido }) {
         <p class="row-between"><strong>Pessoa ${p.id}</strong>${i === 1 ? `<button class="btn btn-ghost" data-action="remover-pessoa" data-id="${p.id}">Remover</button>` : ""}</p>
         <div class="field">
           <label for="nome-${p.id}">${pt.onboarding.sujeitosPassivos.nome}</label>
-          <input type="text" id="nome-${p.id}" data-campo="nome" data-id="${p.id}" value="${p.nome}" />
+          <input type="text" id="nome-${p.id}" data-campo="nome" data-id="${p.id}" value="${escapeHtml(p.nome)}" />
         </div>
         <div class="field">
           <label for="nif-${p.id}">${pt.onboarding.sujeitosPassivos.nif}</label>
@@ -237,9 +238,11 @@ export function criarOnboarding({ container, onConcluido }) {
 
   // Mesmo ícone do banner legal global (index.html) — para o aviso ficar
   // reconhecível como "a mesma mensagem", só que aqui dentro da caixa
-  // escura em vez do banner amarelo.
+  // escura em vez do banner. Círculo-de-informação, não triângulo de
+  // aviso (13/10/2026, auditoria de design — ver mesma nota em
+  // style.css/.legal-banner: é um disclaimer de rotina, não um alarme).
   function iconeAviso() {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`;
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 10.5v6M12 7.5h.01"/></svg>`;
   }
 
   function ligarEventos(wrap) {

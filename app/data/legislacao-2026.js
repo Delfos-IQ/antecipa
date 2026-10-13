@@ -688,29 +688,28 @@ export const legislacaoFiscal = [
       encargosHabitacao: {
         percentagem: 0.15,
         limite: 900,
-        limitePrimeiroEscalao: 1100,
+        limitePrimeiroEscalao: 1050,
         confirmado: false,
         fonte:
           "art.º 78º-E CIRS — percentagem (15%) confirmada. Limite geral (900€) CONFIRMADO por fonte oficial: " +
           "comunicado do Conselho de Ministros, portugal.gov.pt/pt/gc25/governo/comunicados-do-conselho-de-ministros/719 " +
           "(\"aumento progressivo do limite de dedução dos encargos com rendas... para 900 euros em 2026 e 1.000 " +
-          "euros a partir de 2027\"). limitePrimeiroEscalao (1.100€) AINDA NÃO CONFIRMADO (tentativa 25/09/2026): " +
-          "as 3 fontes originais (deco.proteste.pt, montepio.org, idealista.pt) convergem em 1.100€, mas a " +
-          "investigação desta sessão encontrou sinais contraditórios que impedem confirmação segura: (a) o Guia " +
-          "Fiscal 2026 da PwC (pwc.pt/pt/pwcinforfisco/guia-fiscal/2026/irs.html) indica um limite majorado de " +
-          "1.000€ (não 1.100€) e um limite geral de 750€ (que não bate certo com os 900€ já confirmados oficialmente " +
-          "para 2026 — sugere que o guia da PwC possa referir-se a valores de outro ano de rendimentos, não a 2026); " +
-          "(b) o folheto oficial info.portaldasfinancas.gov.pt/.../IRS_deducoes_2025.pdf descreve um \"limite majorado\" " +
-          "de 1.000€ para o art.º 78º-E, mas este é um mecanismo DIFERENTE — aplica-se a quem mudou residência para " +
-          "território do Interior (Portaria n.º 208/2017), não ao critério de rendimento coletável até ao 1º escalão " +
-          "que é o que este campo (limitePrimeiroEscalao) pretende representar; há portanto pelo menos duas " +
-          "majorações distintas no mesmo artigo e risco de as confundir. Existe ainda uma norma transitória (Lei " +
-          "36/2024) com aplicação progressiva do aumento (50% em 2025, 75% em 2026, 100% em 2027) cujo efeito exato " +
-          "sobre o valor aplicável a rendimentos de 2026 não foi possível apurar com confiança via pesquisa web " +
-          "nesta sessão. RECOMENDAÇÃO: confirmar com contabilista ou lendo o texto integral da Lei 36/2024 / " +
-          "Decreto-Lei 97/2026 diretamente em diariodarepublica.pt antes de assumir 1.100€ como correto — o valor " +
-          "certo pode ser 1.000€ para 2026. Valor mantido em 1100 nesta versão (inalterado) por precaução, mas " +
-          "confirmado permanece false.",
+          "euros a partir de 2027\"). ATUALIZADO 13/10/2026 (2ª ronda de investigação, pedido do Dani): " +
+          "limitePrimeiroEscalao corrigido de 1.100€ para 1.050€ — confiança MÉDIA, valor CALCULADO, não " +
+          "publicado literalmente em euros por nenhuma fonte primária encontrada. Cálculo: a Lei n.º 36/2024 " +
+          "(art.º 3º) estabelece um aumento transitório e progressivo do limite majorado do art.º 78º-E, " +
+          "aplicado em três fases — 50% do aumento em 2025, 75% em 2026, 100% em 2027 — sobre a base de 900€ " +
+          "(o limite geral já confirmado) até ao teto final de 1.100€ referido pelas fontes jornalísticas " +
+          "originais (deco.proteste.pt, montepio.org, idealista.pt) como o valor de regime pleno (2027): " +
+          "900 + 75%×(1.100−900) = 900 + 150 = 1.050€ para 2026. O Decreto-Lei n.º 97/2026, n.º 10, remete para " +
+          "esta mesma aplicação progressiva mas o texto integral com a tabela ano-a-ano não foi possível " +
+          "localizar/ler diretamente em diariodarepublica.pt nesta sessão (bloqueio de acesso à rede a partir " +
+          "do sandbox) — por isso este valor continua `confirmado: false`. Risco conhecido: se a aplicação " +
+          "progressiva da Lei 36/2024 não seguir exatamente 50/75/100% (por exemplo, se for linear por outro " +
+          "critério, ou se a base de partida não for os 900€ mas sim um valor de 2024/2025 diferente), o valor " +
+          "correto pode divergir de 1.050€. RECOMENDAÇÃO mantida: confirmar com contabilista ou lendo o texto " +
+          "integral da Lei 36/2024 art.º 3º / DL 97/2026 n.º 10 diretamente em diariodarepublica.pt antes de " +
+          "usar este valor numa declaração real.",
       },
       // Dedução por exigência de fatura (art.º 78º-F CIRS, "IVAucher"-like)
       // — 15% do IVA suportado em setores como restauração, reparação de
@@ -805,8 +804,16 @@ export const legislacaoFiscal = [
           "art.º 87º CIRS — fórmula (4×IAS sujeito passivo, 2,5×IAS dependente/ascendente, +4×IAS para " +
           "incapacidade ≥90%) confirmada no bloco 2025 contra 3 fontes; valores em euros aqui recalculados com " +
           "IAS 2026 (537,13€), não re-confirmados individualmente contra uma fonte que já publique os valores " +
-          "2026 em euros. Acumulação com a dedução normal de dependentes/ascendentes NÃO confirmada — mesma " +
-          "ressalva do bloco 2025.",
+          "2026 em euros. Acumulação com a dedução normal de dependentes/ascendentes (art.º 78º-A) NÃO " +
+          "confirmada — mesma ressalva do bloco 2025, e permanece SEM RESPOSTA após nova investigação dedicada " +
+          "em 13/10/2026 (pedido do Dani): pesquisa alargada não encontrou nenhuma fonte primária (texto do " +
+          "art.º 87º, doutrina da AT, ou guia fiscal oficial) que trate explicitamente da interação entre esta " +
+          "dedução e a de dependentes/ascendentes — só convenção genérica de prática fiscal (não um texto legal " +
+          "citável) sugere que são cumuláveis. A app mantém o comportamento atual (aditivo — soma-se à dedução " +
+          "normal de dependentes/ascendentes) por ser a opção menos disruptiva e a mais comummente assumida na " +
+          "prática, mas isto NÃO deve ser lido como confirmado — só como a opção adotada na ausência de fonte " +
+          "primária. Próximo passo recomendado: consultar diretamente um contabilista ou a Linha do Contribuinte " +
+          "da AT sobre este ponto específico, em vez de mais pesquisa web (já esgotada duas vezes sem resultado).",
       },
       trabalhoDomestico: {
         percentagem: 0.05,
@@ -902,7 +909,22 @@ export const legislacaoFiscal = [
         "537,13€ (jornaldenegocios.pt, citando publicação em Diário da República) → 1,5×14×537,13 = 11.279,73€ < " +
         "12.180€ → usa-se 12.180€. CONFIRMADO 24/09/2026 por leitura direta do texto oficial da AT nessa mesma " +
         "página: \"O valor de referência do mínimo de existência é igual ao maior valor entre 12 180 € e 1,5 × " +
-        "14 × IAS\" — fórmula e valor fixo confirmados letra a letra.",
+        "14 × IAS\" — fórmula e valor fixo confirmados letra a letra. valorAnual (12.180€) e a fórmula do VALOR " +
+        "DE REFERÊNCIA continuam `confirmado: true`; o MECANISMO completo da lei (3 patamares de rendimento, " +
+        "ver `aplicarMinimoExistencia` em engine/calculo-irs.js) continua uma aproximação — ver nota de " +
+        "investigação de 13/10/2026 (INVESTIGAÇÃO 13/10/2026, pedido do Dani, 2ª ronda): pesquisa dedicada " +
+        "confirmou que os multiplicadores oficiais do art.º 70º são 2,60× e 1,35× " +
+        "(NÃO '2,3×/1,4×', uma suposição mais antiga agora corrigida/descartada) aplicados ao excesso de " +
+        "rendimento acima de um limiar L, em três patamares de rendimento (mais um 4º patamar de exclusão total " +
+        "do n.º 4 — o mecanismo não se aplica acima de certos limiares de rendimento combinado ou de rendimento " +
+        "sujeito a taxas liberatórias). A fórmula exata do limiar L foi localizada numa fonte secundária mas com " +
+        "texto parcialmente ilegível/corrompido na extração (" +
+        "L = valor de referência − (limite despesas gerais ÷ taxa do 1º escalão × 3,60) + (limite do 1º " +
+        "escalão ÷ 3,60)) — NÃO implementada no motor porque não foi possível confirmá-la contra uma fonte " +
+        "primária legível; o risco de codificar uma fórmula mal transcrita numa aplicação de cálculo fiscal é " +
+        "maior do que o benefício de substituir a aproximação atual (que já replica o EFEITO de piso mínimo da " +
+        "lei, só não o cálculo linha a linha). Mantido deliberadamente como aproximação documentada — não " +
+        "alterar sem confirmar a fórmula de L letra a letra em diariodarepublica.pt ou com um contabilista.",
     },
 
     // Benefício municipal — participação variável de IRS que alguns

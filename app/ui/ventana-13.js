@@ -103,7 +103,7 @@ function renderPlafonds(plafonds, temAlgumaDeducao) {
     <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.ventana13.plafondsCorpo}</p>
     ${
       temAlgumaDeducao
-        ? `<div class="stack" style="gap:var(--space-3)">
+        ? `<div class="stack stack--cols">
       ${plafonds
         .map((p) => {
           const percent = p.teto > 0 ? Math.min(100, Math.round((p.usado / p.teto) * 100)) : 0;

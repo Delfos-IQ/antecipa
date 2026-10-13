@@ -13,15 +13,28 @@
 // erro está aqui — depurar linha a linha (ver secção 12 do prompt).
 
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
+import { round2, sum } from "./numero.js";
+import { idadeNoAno } from "./idade.js";
+import { calcularDeducaoSaude } from "./deducoes/saude.js";
+import { calcularDeducaoEducacao } from "./deducoes/educacao.js";
+import { calcularDeducaoPPR } from "./deducoes/ppr.js";
+import { calcularDeducaoHabitacao } from "./deducoes/habitacao.js";
+import { calcularExigenciaFatura } from "./deducoes/exigencia-fatura.js";
+import { calcularDespesasGerais } from "./deducoes/despesas-gerais.js";
+import { valorDeducaoPorDependente, calcularDeducaoDependentes } from "./deducoes/dependentes.js";
+import { valorDeducaoAscendente, calcularDeducaoAscendentes } from "./deducoes/ascendentes.js";
+import { calcularDeducaoDeficiencia } from "./deducoes/deficiencia.js";
+import { valorDeducaoLares, calcularDeducaoLares } from "./deducoes/lares.js";
+import { calcularDonativos } from "./deducoes/donativos.js";
+import { calcularTrabalhoDomestico } from "./deducoes/trabalho-domestico.js";
+import { calcularLimiteAgregadoDeducoes } from "./deducoes/limite-agregado.js";
 
-const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-// NOTA (corrigido nesta sessão): a versão anterior não passava o índice a
-// `fn`, pelo que qualquer chamador que distinguisse "1º" de "2º e
-// seguintes" por posição (ex.: calcularDeducoesAColeta/porDependentes)
-// ficava sempre a tratar todos os itens como "2º e seguintes" — bug
-// silencioso, nunca dava erro, só um valor errado. `getModeloEntidade`/
-// quociente não são afetados (não usam o índice).
-const sum = (arr, fn) => arr.reduce((acc, x, i) => acc + (fn ? fn(x, i) : x), 0);
+// `valorDeducaoPorDependente`/`valorDeducaoAscendente`/`valorDeducaoLares`
+// vivem agora em engine/deducoes/ (split de 13/10/2026, ver comentário
+// junto a calcularDeducoesAColeta abaixo) — reexportadas aqui com o MESMO
+// nome para não quebrar ui/ventana-perfil.js, que as importa diretamente
+// deste ficheiro.
+export { valorDeducaoPorDependente, valorDeducaoAscendente, valorDeducaoLares };
 
 /**
  * 1. Rendimento Global
@@ -491,159 +504,18 @@ function calcularColetaTotal({ importanciaApurada, taxaSolidariedade, tributacoe
  * 8. Deduções à Coleta
  * Aplica os limites do art.º 78º por categoria, respeitando tetos.
  */
-// Idade do dependente a 31 de dezembro do ano fiscal (data legalmente
-// relevante para os escalões etários do art.º 78º-A CIRS). `dataNascimento`
-// pode faltar (dependentes criados antes desta funcionalidade existir, ou
-// sem data preenchida) — nesse caso assume-se idade "adulta" (sem
-// majoração), a opção mais conservadora (não infla a dedução por engano).
-// Idade a 31 de dezembro do ano fiscal, a partir de uma data de nascimento
-// ISO ("AAAA-MM-DD"). Generalizada (24/09/2026) a partir da versão que só
-// servia dependentes — agora também usada para a idade do(s) sujeito(s)
-// passivo(s) (`pessoas[i].dataNascimento`), necessária para o teto do PPR
-// por idade (ainda simplificado, ver calcularDeducoesAColeta) e para a
-// elegibilidade do IRS Jovem (art.º 12º-B CIRS, até 35 anos — ver
-// calcularIsencaoIrsJovem).
-function idadeNoAno(dataNascimento, anoFiscal) {
-  if (!dataNascimento) return null;
-  const nascimento = new Date(dataNascimento);
-  if (Number.isNaN(nascimento.getTime())) return null;
-  const referencia = new Date(`${anoFiscal}-12-31`);
-  let idade = referencia.getFullYear() - nascimento.getFullYear();
-  const aindaNaoFezAnos =
-    referencia.getMonth() < nascimento.getMonth() ||
-    (referencia.getMonth() === nascimento.getMonth() && referencia.getDate() < nascimento.getDate());
-  if (aindaNaoFezAnos) idade -= 1;
-  return idade;
-}
-function idadeDoDependenteNoAno(dependente, anoFiscal) {
-  return idadeNoAno(dependente?.dataNascimento, anoFiscal);
-}
-
-// Dedução por dependente (art.º 78º-A CIRS) — modelo real de 3 escalões,
-// confirmado nesta sessão contra 3 fontes independentes (pwc.pt,
-// doutorfinancas.pt, info.portaldasfinancas.gov.pt): 600€ base por
-// dependente; 726€ para o 1º dependente com menos de 3 anos (majoração de
-// 126€); 900€ para o 2º dependente em diante com até 6 anos. Se a guarda
-// for partilhada, o valor de cada dependente é dividido a meio (cada
-// sujeito passivo só pode deduzir metade) — mesmo critério já usado no
-// quociente familiar (calcularQuocienteFamiliar).
-export function valorDeducaoPorDependente(dependente, posicao, anoFiscal, limites) {
-  const idade = idadeDoDependenteNoAno(dependente, anoFiscal);
-  let valor;
-  if (posicao === 0) {
-    valor = idade !== null && idade < 3 ? limites.dependentes.primeiroComMajoracaoAte3Anos : limites.dependentes.primeiro;
-  } else {
-    valor = idade !== null && idade <= 6 ? limites.dependentes.segundoEmDianteAte6Anos : limites.dependentes.primeiro;
-  }
-  return dependente?.guarda === "partilhada" ? round2(valor / 2) : valor;
-}
-
-// Dedução extra do art.º 87º CIRS para um dependente com deficiência —
-// NOVO (04/09/2026, pedido do Dani). Soma-se ao valor "normal" de
-// valorDeducaoPorDependente acima (ver `confirmado: false` em
-// legislacao-2026.js/deficiencia sobre esta acumulação não estar
-// confirmada letra a letra). Aplica-se a mesma divisão por 2 em guarda
-// partilhada que já se aplica ao valor normal, por consistência — não
-// confirmado especificamente para esta dedução.
-function valorDeficienciaDependente(dependente, limites) {
-  if (!dependente?.deficiencia) return 0;
-  const config = limites.deficiencia;
-  if (!config) return 0;
-  let valor = config.dependenteOuAscendente;
-  if (dependente.incapacidadeIgualOuSuperior90) valor += config.despesaAcompanhamentoIncapacidade90;
-  return dependente?.guarda === "partilhada" ? round2(valor / 2) : round2(valor);
-}
-
-// Dedução por ascendente a cargo (art.º 78º-A CIRS) + extra por
-// deficiência (art.º 87º), se aplicável — NOVO (04/09/2026). `posicao`
-// e `totalAscendentes` decidem entre o valor "único ascendente" (635€,
-// só quando há exatamente 1 no agregado) e o valor "por ascendente"
-// (525€ cada, quando há 2 ou mais) — ver nota em legislacao-2026.js
-// sobre isto ser um valor de SUBSTITUIÇÃO, não uma majoração adicional.
-// Ao contrário dos dependentes, a dedução de deficiência de um ascendente
-// não tem a "despesa de acompanhamento" de incapacidade ≥90% (o art.º 87º
-// só a prevê para sujeito passivo ou dependente).
-export function valorDeducaoAscendente(ascendente, totalAscendentes, limites) {
-  const config = limites.ascendentes;
-  if (!config) return 0;
-  const base = totalAscendentes === 1 ? config.unicoAscendente : config.primeiro;
-  const extraDeficiencia = ascendente?.deficiencia ? (limites.deficiencia?.dependenteOuAscendente ?? 0) : 0;
-  return round2(base + extraDeficiencia);
-}
-
-// Encargos com lares (art.º 84º CIRS) — NOVO (24/09/2026). 25% do valor
-// suportado, com um teto de 403,75€ POR BENEFICIÁRIO (a pessoa cujos
-// encargos são pagos — sujeito passivo, ascendente, etc.), não por quem
-// paga nem pelo agregado. `encargosLarAnual` vive no próprio objeto do
-// beneficiário (pessoa ou ascendente) — ver comentário em
-// legislacao-2026.js para o texto legal e a razão de não modelar
-// dependentes/colaterais nesta versão.
-export function valorDeducaoLares(encargosLarAnual, limites) {
-  const config = limites.lares;
-  if (!config || !encargosLarAnual) return 0;
-  return round2(Math.min(encargosLarAnual * config.percentagem, config.limitePorBeneficiario));
-}
-
-// Dedução por deficiência do(s) próprio(s) sujeito(s) passivo(s) (art.º
-// 87º CIRS) — NOVO (04/09/2026). `pessoas` aqui é só quem está incluído
-// NESTA declaração (1 pessoa em regime separada, 2 em conjunta) — quem
-// decide isso é calcularDeducoesAColeta, que já recebe só as pessoas
-// certas.
-function somaDeficienciaSujeitosPassivos(pessoas, limites) {
-  const config = limites.deficiencia;
-  if (!config) return 0;
-  return round2(
-    sum(pessoas ?? [], (p) => {
-      if (!p?.deficiencia) return 0;
-      let valor = config.sujeitoPassivo;
-      if (p.incapacidadeIgualOuSuperior90) valor += config.despesaAcompanhamentoIncapacidade90;
-      return valor;
-    })
-  );
-}
-
-// Limite agregado às deduções à coleta (art.º 78º, n.º 7 e n.º 8 CIRS).
-// CORRIGIDO 24/09/2026: a alínea b) do n.º 7 não decresce até ao último
-// escalão FINITO da tabela de IRS (art.º 68º) — decresce até ao limiar do
-// art.º 68º-A (taxa adicional de solidariedade), que é um valor FIXO de
-// 80.000€, distinto e mais baixo do que o topo da tabela normal de
-// escalões (83.696€ em 2025, por exemplo — já usado noutro sítio da app
-// como `tabela.taxaSolidariedade[0].desde`). A fórmula literal (alínea b),
-// confirmada por economiafinancas.com/2025/irs-regras-e-limitacoes-as-
-// deducoes-a-coleta-de-2025/, com os números a baterem exatamente contra
-// os já confirmados nesta app): "1000 + 1500 × (80.000 − rendimento
-// coletável)/(71.941)" — onde 71.941 = 80.000 − 8.059 (8.059€ é o 1º
-// escalão de 2025, já confirmado por fonte primária em `tabela.escaloes`).
-// Antes desta correção, o motor usava o topo da tabela de escalões em vez
-// de 80.000€, o que dava um limite ligeiramente mais alto do que a lei
-// permite para rendimentos entre 80.000€ e o topo da tabela de escalões.
-// Sem limite até ao 1º escalão de IRS; entre o 1º escalão e 80.000€,
-// decresce linearmente de 2.500€ para 1.000€; fixo em 1.000€ acima disso.
-// Majoração de 5% por dependente para agregados com 3+ dependentes.
-function calcularLimiteAgregadoDeducoes({ rendimentoPorQuociente, numDependentes, tabela }) {
-  const config = tabela.limitesDeducoes?.limiteAgregado;
-  if (!config) return Infinity;
-
-  const primeiroLimite = tabela.escaloes[0].limite; // 1º escalão, art.º 68º
-  const limiarSolidariedade = tabela.taxaSolidariedade?.[0]?.desde ?? Infinity; // 80.000€, art.º 68º-A
-
-  let limite;
-  if (rendimentoPorQuociente <= primeiroLimite) {
-    limite = Infinity;
-  } else if (rendimentoPorQuociente >= limiarSolidariedade) {
-    limite = config.minimo;
-  } else {
-    const fracao = (limiarSolidariedade - rendimentoPorQuociente) / (limiarSolidariedade - primeiroLimite);
-    limite = config.minimo + (config.maximo - config.minimo) * fracao;
-  }
-
-  if (limite !== Infinity && numDependentes >= config.numDependentesParaMajoracao) {
-    limite = limite * (1 + config.majoracaoPorDependentePercentagem * numDependentes);
-  }
-
-  return limite === Infinity ? Infinity : round2(limite);
-}
-
+// NOTA (split de 13/10/2026): esta função chegou a ter ~220 linhas com 12+
+// categorias de dedução encadeadas (alta complexidade ciclomática) — foi
+// dividida em submódulos por categoria sob engine/deducoes/ (saude.js,
+// educacao.js, ppr.js, habitacao.js, exigencia-fatura.js,
+// despesas-gerais.js, dependentes.js, ascendentes.js, deficiencia.js,
+// lares.js, donativos.js, trabalho-domestico.js, limite-agregado.js), cada
+// um exportando uma função pura focada numa única categoria + a sua
+// referência legal. `calcularDeducoesAColeta` passa a ser só o orquestrador
+// que os chama e agrega os resultados — refatoração pura, o cálculo e a
+// forma do objeto devolvido são EXATAMENTE os mesmos de antes do split
+// (verificado byte a byte contra app/tests/test-engine.mjs).
+//
 // Exportada (22/09/2026, pedido do Dani: "podemos replicar as barras de
 // progresso do Portal das Finanças?") para poder ser chamada com um
 // contexto parcial a partir de ui/ventana-deducoes.js — uma pré-visualização
@@ -674,153 +546,57 @@ export function calcularDeducoesAColeta({
   coletaTotal,
 }) {
   const limites = tabela.limitesDeducoes;
-  const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
-  // Faturas emitidas com o NIF de um dependente também contam para saúde e
-  // educação (art.º 78º-C/D CIRS — "despesas de qualquer membro do agregado
-  // familiar"), mesmo padrão já usado acima para despesasGerais/exigência
-  // de fatura: soma-se à MESMA base antes da percentagem e do teto, não é
-  // um plafond à parte. Pedido real (03/09/2026): despesas dos filhos
-  // (dentista, consultas, vacinas, comedor escolar) pedidas com o NIF deles
-  // não apareciam em lado nenhum da simulação.
-  const baseSaude = (deducoesColeta.saude || 0) + (deducoesColeta.saudeDependentes || 0);
-  const saude = clamp(baseSaude * limites.saude.percentagem, limites.saude.limite);
-  const baseEducacao = (deducoesColeta.educacao || 0) + (deducoesColeta.educacaoDependentes || 0);
-  const educacao = clamp(baseEducacao * limites.educacao.percentagem, limites.educacao.limite);
+  const saudeResult = calcularDeducaoSaude({ deducoesColeta, limites });
+  const saude = saudeResult.valor;
 
-  // PPR: o limite legal é POR SUJEITO PASSIVO (art.º 21º EBF — ver
-  // legislacao-2026.js para o histórico do erro 800/700/600€ vs.
-  // 400/350/300€), não um plafond partilhado do agregado. CORRIGIDO
-  // (24/09/2026, pedido do Dani a partir do ecrã real: "el PPR es por
-  // titular, pero aqui solo hay espaço para um titular... este campo
-  // tendria que estar vinculado com os sujeitos pasivos definidos"). Até
-  // aqui `deducoesColeta.ppr` era um único número do agregado, capado ao
-  // teto ×2 em conjunta — o que dava a mesma dedução quer as entregas
-  // fossem feitas 50/50 por cada titular, quer um só titular tivesse
-  // feito tudo (caso em que a lei só permite deduzir até ao SEU próprio
-  // teto, não o do agregado inteiro). Confirmado que o teto do agregado é
-  // mesmo a soma de dois tetos independentes via uma Demonstração de
-  // Liquidação real (ver nota em legislacao-2026.js, bloco 2025: 610€
-  // deduzidos, sem clamping, em declaração conjunta). Agora calcula-se a
-  // dedução de cada titular (`deducoesColeta.pprPorPessoa`, mapa
-  // pessoaId → valor entregue) independentemente, cada uma capada ao seu
-  // próprio teto, e soma-se — `pessoas` já vem correctamente âmbito por
-  // quem chama esta função (compararRegimes passa só o titular relevante
-  // em cada declaração separada; o ecrã de Simulação/Deduções passa os
-  // dois em conjunta). Ainda simplificado: usa-se sempre o teto mais alto
-  // (menor idade) por titular, por não termos a data de nascimento de
-  // cada um disponível neste ponto — refinar em v1.1.
-  const pprTetoPorTitular = limites.ppr.limiteAte35Anos;
-  const pprPorPessoaMapa = deducoesColeta.pprPorPessoa || {};
-  // Legado: se ainda não há nenhum valor no novo mapa por titular mas
-  // existe o antigo campo único `ppr` (dados gravados antes desta
-  // correção), atribui-se por omissão ao 1º titular — não há forma de
-  // saber retroativamente como as entregas se repartiram entre os dois.
-  // ui/ventana-deducoes.js já migra isto para o mapa novo assim que o
-  // ecrã de Deduções é aberto (e zera o campo antigo), por isso este
-  // fallback só serve quem chama o motor diretamente sem passar por lá.
-  const usaValorLegadoPpr = Object.keys(pprPorPessoaMapa).length === 0 && (deducoesColeta.ppr || 0) > 0;
-  const titularesPpr = pessoas.length ? pessoas : [{ id: "household" }];
-  const pprDetalhePorPessoa = {};
-  let ppr = 0;
-  titularesPpr.forEach((titular, indice) => {
-    const contributo = usaValorLegadoPpr && indice === 0 ? deducoesColeta.ppr || 0 : pprPorPessoaMapa[titular.id] || 0;
-    const deducaoTitular = clamp(contributo * limites.ppr.percentagem, pprTetoPorTitular);
-    pprDetalhePorPessoa[titular.id] = { contributo: round2(contributo), deducao: deducaoTitular, teto: pprTetoPorTitular };
-    ppr = round2(ppr + deducaoTitular);
-  });
-  const pprTeto = round2(pprTetoPorTitular * titularesPpr.length);
+  const educacaoResult = calcularDeducaoEducacao({ deducoesColeta, limites });
+  const educacao = educacaoResult.valor;
 
-  // Limite de rendas de habitação: mais alto (limitePrimeiroEscalao) para
-  // quem tem rendimento (por quociente) dentro do 1º escalão de IRS — o
-  // mesmo escalão já calculado na Importância Apurada (linha 6), para
-  // ficar consistente com o quociente familiar em vez de comparar o
-  // rendimento coletável bruto. Ver nota em data/legislacao-2026.js sobre
-  // a divergência de fontes no limite geral.
-  const dentroDoPrimeiroEscalao = escalaoAplicado?.limite === tabela.escaloes?.[0]?.limite;
-  const limiteHabitacao =
-    dentroDoPrimeiroEscalao && limites.encargosHabitacao.limitePrimeiroEscalao
-      ? limites.encargosHabitacao.limitePrimeiroEscalao
-      : limites.encargosHabitacao.limite;
-  const habitacao = clamp((deducoesColeta.habitacao || 0) * limites.encargosHabitacao.percentagem, limiteHabitacao);
+  const pprResult = calcularDeducaoPPR({ deducoesColeta, pessoas, limites });
+  const ppr = pprResult.total;
+  const pprDetalhePorPessoa = pprResult.pprDetalhePorPessoa;
+  const pprTeto = pprResult.teto;
 
-  // Exigência de fatura (IVAucher, art.º 78º-F CIRS): 15% do IVA suportado
-  // nas categorias "normais" (restauração, reparação automóvel, e outras —
-  // cabeleireiros, veterinários, hotelaria, ginásios) + 100% nos transportes
-  // públicos (passes mensais/bilhetes), todos a partilhar o MESMO teto de
-  // 250€/agregado (ver nota em legislacao-2026.js). Mantém-se também o
-  // campo legado `exigenciaFatura` (valor já pré-calculado, para quem
-  // preferir inserir diretamente o total que o e-Fatura mostra) — soma-se
-  // aos restantes antes do teto.
-  const baseNormal =
-    (deducoesColeta.exigenciaFaturaRestauracao || 0) +
-    (deducoesColeta.exigenciaFaturaReparacaoAutomovel || 0) +
-    (deducoesColeta.exigenciaFaturaOutras || 0);
-  const baseTransportes = deducoesColeta.exigenciaFaturaPassesMensais || 0;
-  const exigenciaFaturaCalculada =
-    baseNormal * (limites.exigenciaFatura.percentagem ?? 0.15) +
-    baseTransportes * (limites.exigenciaFatura.percentagemTransportesPublicos ?? 1);
-  const exigenciaFatura = clamp(
-    exigenciaFaturaCalculada + (deducoesColeta.exigenciaFatura || 0),
-    limites.exigenciaFatura.limite
-  );
+  const habitacaoResult = calcularDeducaoHabitacao({ deducoesColeta, limites, escalaoAplicado, tabela });
+  const habitacao = habitacaoResult.valor;
+  const limiteHabitacao = habitacaoResult.teto;
 
-  // Faturas emitidas com o NIF de um dependente também contam para esta
-  // dedução (art.º 78º-B CIRS não distingue o NIF de quem paga, só que a
-  // despesa seja de "qualquer membro do agregado familiar") — pedido de
-  // uma validadora real (03/09/2026): em guarda partilhada, cada
-  // progenitor só reclama a sua parte (normalmente 50%) das faturas do
-  // dependente, campo próprio para não obrigar a somar isso à mão dentro
-  // do campo "despesasGerais". Soma-se à MESMA base antes da percentagem
-  // e do teto — não é um plafond adicional, é só mais base de cálculo
-  // para o mesmo limite de 250€/500€ por sujeito passivo (confirmado via
-  // Portal das Finanças: o limite é "por sujeito passivo", não por membro
-  // do agregado).
-  const baseDespesasGerais = (deducoesColeta.despesasGerais || 0) + (deducoesColeta.despesasGeraisDependentes || 0);
-  const despesasGerais = clamp(
-    baseDespesasGerais * limites.despesasGeraisFamiliares.percentagem,
-    regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro
-  );
+  const exigenciaFaturaResult = calcularExigenciaFatura({ deducoesColeta, limites });
+  const exigenciaFatura = exigenciaFaturaResult.valor;
 
-  const porDependentes = sum(dependentes, (d, i) => valorDeducaoPorDependente(d, i, anoFiscal, limites));
+  const despesasGeraisResult = calcularDespesasGerais({ deducoesColeta, limites, regime });
+  const despesasGerais = despesasGeraisResult.valor;
+
+  const porDependentes = calcularDeducaoDependentes({ dependentes, anoFiscal, limites }).total;
 
   // Ascendentes a cargo + deficiência (art.º 78º-A e art.º 87º CIRS) —
   // NOVO (04/09/2026). Tratados como porDependentes: fora do limite
   // agregado do art.º 78º n.º 7/8 (dependentes/ascendentes são
   // expressamente excluídos desse limite; deficiência é um artigo
   // totalmente à parte, 87º, não uma alínea do 78º).
-  const porAscendentes = round2(sum(ascendentes, (a) => valorDeducaoAscendente(a, ascendentes.length, limites)));
-  const deficienciaSujeitosPassivos = somaDeficienciaSujeitosPassivos(pessoas, limites);
-  const deficienciaDependentes = round2(sum(dependentes, (d) => valorDeficienciaDependente(d, limites)));
-  const deficiencia = round2(deficienciaSujeitosPassivos + deficienciaDependentes);
+  const porAscendentes = calcularDeducaoAscendentes({ ascendentes, limites }).total;
+  const deficiencia = calcularDeducaoDeficiencia({ pessoas, dependentes, limites }).total;
 
   // Encargos com lares (art.º 84º CIRS) — NOVO (24/09/2026). Artigo à
   // parte do 78º, tal como deficiência/ascendentes: fica FORA do limite
   // agregado. Soma-se o(s) beneficiário(s) já modelados: o(s) próprio(s)
   // sujeito(s) passivo(s) desta declaração e os ascendentes a cargo.
-  const laresSujeitosPassivos = round2(sum(pessoas, (p) => valorDeducaoLares(p?.encargosLarAnual, limites)));
-  const laresAscendentes = round2(sum(ascendentes, (a) => valorDeducaoLares(a?.encargosLarAnual, limites)));
-  const lares = round2(laresSujeitosPassivos + laresAscendentes);
+  const laresResult = calcularDeducaoLares({ pessoas, ascendentes, limites });
+  const { total: lares, laresSujeitosPassivos, laresAscendentes } = laresResult;
 
   const duplaTributacao = round2(deducoesColeta.duplaTributacao || 0);
 
-  // Donativos (mecenato, art.º 63º EBF) — 25% do valor doado, até 15% da
-  // coleta total (linha 7, ANTES desta própria dedução — é essa a base
-  // legal do teto, não a coleta já líquida). Ver nota em
-  // data/legislacao-2026.js sobre os casos especiais não modelados.
-  const limiteDonativos = limites.donativos ? round2((coletaTotal || 0) * limites.donativos.limitePercentagemColeta) : 0;
-  const donativos = limites.donativos
-    ? clamp((deducoesColeta.donativos || 0) * limites.donativos.percentagem, limiteDonativos)
-    : 0;
+  const donativosResult = calcularDonativos({ deducoesColeta, limites, coletaTotal });
+  const donativos = donativosResult.valor;
+  const limiteDonativos = donativosResult.teto;
 
   // Trabalho doméstico (art.º 78º-H CIRS, alínea m) do n.º 1 do art.º 78º)
   // — NOVO (04/09/2026). Ao contrário de dependentes/ascendentes, a
   // alínea m) ESTÁ na lista de alíneas sujeitas ao limite agregado do
   // art.º 78º n.º 7/8 (ver comentário abaixo) — por isso entra em
   // subtotalSujeitoALimite, não é somado à parte como porDependentes.
-  const trabalhoDomestico = limites.trabalhoDomestico
-    ? clamp((deducoesColeta.trabalhoDomestico || 0) * limites.trabalhoDomestico.percentagem, limites.trabalhoDomestico.limite)
-    : 0;
+  const trabalhoDomestico = calcularTrabalhoDomestico({ deducoesColeta, limites }).valor;
 
   // Limite agregado (art.º 78º, n.º 7/8 CIRS): aplica-se só às deduções
   // das alíneas c), d), e), f), h), k) e m) do n.º 1 do art.º 78º — saúde,
@@ -885,7 +661,7 @@ export function calcularDeducoesAColeta({
     // progresso "dedução correspondente / teto" (ver ui/ventana-deducoes.js
     // e o desglose da linha 8 em ui/ventana-14.js), sem duplicar aqui a
     // lógica de qual teto se aplica a cada categoria — vêm exatamente dos
-    // mesmos valores já usados acima em cada `clamp`.
+    // mesmos valores já usados acima em cada submódulo.
     limites: {
       saude: limites.saude.limite,
       educacao: limites.educacao.limite,
@@ -906,21 +682,26 @@ export function calcularDeducoesAColeta({
 // Mínimo de existência (art.º 70º CIRS) — SIMPLIFICAÇÃO, não a fórmula
 // oficial exata. A regra real deduz um valor variável ao rendimento
 // coletável ANTES do cálculo do imposto, através de uma fórmula com vários
-// ramos (por escalão de rendimento, com multiplicadores 2,3× e 1,4× sobre
-// o excesso acima de um limiar L calculado a partir dos limites de
-// despesas gerais e do 1º escalão) — não conseguimos confirmar essa
-// fórmula com precisão suficiente nesta sessão para a implementar sem
-// risco de dar um valor errado. Em vez disso, aplicamos aqui uma
-// aproximação conservadora e claramente documentada: garantir que o
-// rendimento líquido de IRS (rendimento global − coleta) nunca fica
-// abaixo do `minimoExistencia.valorAnual`, reduzindo a coleta até esse
-// ponto (nunca abaixo de 0) quando isso se aplicar — só para sujeitos
-// passivos cujo rendimento seja predominantemente de Categoria A ou B,
-// como exige o art.º 70º. Isto replica o EFEITO final da lei (ninguém com
-// rendimentos baixos de trabalho fica com menos que o mínimo de
-// existência líquido), mas não é o cálculo linha a linha oficial — não
-// usar este valor para preencher uma declaração real sem confirmar contra
-// a fórmula exata do Portal das Finanças.
+// ramos (por escalão de rendimento, com multiplicadores CONFIRMADOS
+// 2,60× e 1,35× — atualizado 13/10/2026, corrige a suposição anterior de
+// "2,3×/1,4×" — sobre o excesso acima de um limiar L calculado a partir
+// dos limites de despesas gerais e do 1º escalão, mais uma exclusão total
+// do n.º 4 acima de certos limiares de rendimento) — a fórmula exata do
+// limiar L foi localizada numa fonte secundária mas com texto
+// parcialmente ilegível na extração, por isso não conseguimos confirmá-la
+// com precisão suficiente para a implementar sem risco de dar um valor
+// errado (ver comentário completo em data/legislacao-2026.js,
+// `minimoExistencia`). Em vez disso, aplicamos aqui uma aproximação
+// conservadora e claramente documentada: garantir que o rendimento
+// líquido de IRS (rendimento global − coleta) nunca fica abaixo do
+// `minimoExistencia.valorAnual`, reduzindo a coleta até esse ponto (nunca
+// abaixo de 0) quando isso se aplicar — só para sujeitos passivos cujo
+// rendimento seja predominantemente de Categoria A ou B, como exige o
+// art.º 70º. Isto replica o EFEITO final da lei (ninguém com rendimentos
+// baixos de trabalho fica com menos que o mínimo de existência líquido),
+// mas não é o cálculo linha a linha oficial — não usar este valor para
+// preencher uma declaração real sem confirmar contra a fórmula exata do
+// Portal das Finanças.
 function aplicarMinimoExistencia({ coletaAntes, rendimentoGlobal, tabela }) {
   const minimo = tabela.minimoExistencia;
   if (!minimo?.valorAnual) return coletaAntes;

@@ -359,10 +359,68 @@ export async function importarTudo(dump) {
   if (nomesDump.length === 0) {
     throw new Error("Ficheiro inválido: nenhuma das secções reconhecidas (household, documentos, rubricas…).");
   }
-  for (const nome of nomesDump) await db.clear(nome);
-  for (const nome of nomesDump) {
-    for (const registo of dump.stores[nome] ?? []) await db.put(nome, registo);
-  }
+
+  // As duas limpezas + escritas abaixo corriam antes em transações
+  // separadas por store (uma `tx()` por `db.clear`/`db.put`) — se a
+  // importação falhasse a meio (ex.: ficheiro corrompido numa store só,
+  // quota excedida, erro de key constraint), ficavam stores já limpas e
+  // repostas e outras por repor, sem aviso claro ao utilizador: dados
+  // parcialmente importados e silenciosamente inconsistentes. Agora tudo
+  // corre dentro de UMA ÚNICA transação `readwrite` sobre todas as stores
+  // envolvidas: qualquer erro (de qualquer pedido, em qualquer store) fica
+  // sem `preventDefault()`, pelo que o IndexedDB aborta a transação
+  // inteira automaticamente — repõe tudo como estava antes de se começar
+  // a importar (tão perto de atómico quanto o IndexedDB permite) — e o
+  // erro é propagado daqui para fora, nunca engolido, para o ecrã de
+  // Perfil o mostrar ao utilizador (ver catch em ui/ventana-perfil.js,
+  // `importarTudoErro`).
+  const dbConn = await open();
+  await new Promise((resolve, reject) => {
+    let transacaoAbortada = false;
+    const t = dbConn.transaction(nomesDump, "readwrite");
+
+    t.oncomplete = () => resolve();
+    t.onerror = (ev) => {
+      // Um erro num pedido individual (store.put/clear) já aborta a
+      // transação por si só (comportamento por omissão do IndexedDB,
+      // já que nunca chamamos `preventDefault()`) — aqui só capturamos
+      // o motivo para uma mensagem de erro útil.
+      ev.stopPropagation?.();
+      reject(t.error ?? new Error("Erro desconhecido ao escrever na base de dados."));
+    };
+    t.onabort = () => {
+      if (transacaoAbortada) return; // já rejeitado via onerror acima
+      reject(t.error ?? new Error("A importação foi cancelada antes de terminar."));
+    };
+
+    try {
+      for (const nome of nomesDump) {
+        t.objectStore(nome).clear();
+      }
+      for (const nome of nomesDump) {
+        const store = t.objectStore(nome);
+        for (const registo of dump.stores[nome] ?? []) {
+          store.put(registo);
+        }
+      }
+    } catch (erroSincrono) {
+      // Erro síncrono (ex.: registo com forma inesperada para a keyPath
+      // da store) — aborta explicitamente para garantir rollback e
+      // propaga o motivo.
+      transacaoAbortada = true;
+      try {
+        t.abort();
+      } catch {
+        // ignora: já pode estar a abortar/terminar
+      }
+      reject(erroSincrono);
+    }
+  }).catch((erro) => {
+    throw new Error(
+      `Não foi possível concluir a importação — nenhum dado foi alterado (a operação foi revertida na íntegra). Detalhe: ${erro?.message ?? erro}`
+    );
+  });
+
   return { storesImportadas: nomesDump };
 }
 

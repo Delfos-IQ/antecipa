@@ -8,6 +8,7 @@ import { pt } from "../data/i18n.js";
 import { getDeducoesColeta, saveDeducoesColeta, getHousehold, getPessoas } from "../storage/db.js";
 import { calcularDeducoesAColeta } from "../engine/calculo-irs.js";
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
+import { escapeHtml } from "./utils/escape-html.js";
 
 function formatarMoeda(v) {
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v ?? 0);
@@ -143,7 +144,7 @@ function renderCampoPPR(pessoas, valores) {
             const valorAtual = pprPorPessoa[p.id] ?? 0;
             return `
           <label style="display:block">
-            <span style="font-size:0.8rem;color:var(--muted)">${nomeTitular}</span>
+            <span style="font-size:0.8rem;color:var(--muted)">${escapeHtml(nomeTitular)}</span>
             <input type="number" min="0" step="0.01" inputmode="decimal" data-deducao-ppr-pessoa="${p.id}"
               value="${valorAtual || ""}" placeholder="0,00" style="margin-top:4px" />
             ${renderBarra(`ppr:${p.id}`)}
