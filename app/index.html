@@ -12,12 +12,21 @@
        caso alguma sanitização futura falhe). cdnjs.cloudflare.com está
        na lista branca só porque é de onde vêm jsPDF (script clássico) e
        pdf.js (import dinâmico + worker) — ver app/parsers/pdf-text.js e
-       o <script> de jsPDF mais abaixo. Sem 'unsafe-inline' em nenhuma
-       diretiva: todo o JS/CSS da app vive em ficheiros próprios. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdnjs.cloudflare.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
+       o <script> de jsPDF mais abaixo. fonts.googleapis.com/fonts.gstatic.com
+       adicionados em 13/10/2026 só para a Fraunces (ver --font-result em
+       style.css) — googleapis.com serve o CSS do @font-face (por isso
+       style-src), gstatic.com serve o ficheiro da fonte em si (por isso
+       font-src). Sem 'unsafe-inline' em nenhuma diretiva: todo o JS/CSS
+       da app vive em ficheiros próprios. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://cdnjs.cloudflare.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';" />
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="../icons/icon-192.png" />
   <link rel="apple-touch-icon" href="../icons/icon-192.png" />
+  <!-- Fraunces (13/10/2026, mockups "premium design" aprovados pelo Dani):
+       usada SÓ na cifra do .resultado-selo__valor — ver --font-result em
+       style.css. --font-display/--font-body/--font-mono continuam todos
+       em Inter, isto não é uma mudança de tipografia global. -->
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>

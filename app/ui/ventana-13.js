@@ -18,6 +18,14 @@ function formatarMoeda(v) {
     .replace(" €", '<span class="moeda">€</span>');
 }
 
+// Versão em texto simples (sem o <span class="moeda">) de formatarMoeda,
+// para usar em atributos (data-valor, lido por CSS via content:attr() no
+// tooltip dos gráficos de barras — 13/10/2026, mockups "premium design"
+// aprovados pelo Dani) onde HTML dentro do valor não é interpretado.
+function formatarMoedaTexto(v) {
+  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(v ?? 0);
+}
+
 // Progresso de cada teto de dedução face ao que já foi preenchido em
 // Deduções (ver ui/ventana-deducoes.js). Duplica deliberadamente só a
 // aritmética de percentagem+teto de engine/calculo-irs.js
@@ -270,7 +278,7 @@ export async function renderVentana13({ container, anoFiscal }) {
           const v = liquidoPorMes[i];
           const alturaPercent = v > 0 ? Math.max(6, Math.round((v / maxMensal) * 100)) : 0;
           return `
-          <div class="mes-barras__col" title="${nome}: ${v.toFixed(2)}€">
+          <div class="mes-barras__col" title="${nome}: ${v.toFixed(2)}€" data-valor="${nome}: ${formatarMoedaTexto(v)}">
             <div class="mes-barras__track"><div class="mes-barras__fill" data-cor="devolver" data-real="${mesesComDados.has(i + 1)}" style="height:${alturaPercent}%"></div></div>
             <span class="mes-barras__label">${nome.slice(0, 3)}</span>
           </div>`;
@@ -291,7 +299,7 @@ export async function renderVentana13({ container, anoFiscal }) {
           const v = irsAcumuladoPorMes[i];
           const alturaPercent = v > 0 ? Math.max(6, Math.round((v / maxIrsAcumulado) * 100)) : 0;
           return `
-          <div class="mes-barras__col" title="${nome}: ${v.toFixed(2)}€ acumulado">
+          <div class="mes-barras__col" title="${nome}: ${v.toFixed(2)}€ acumulado" data-valor="${nome}: ${formatarMoedaTexto(v)} acumulado">
             <div class="mes-barras__track"><div class="mes-barras__fill" data-cor="pagar" data-real="${mesesComDados.has(i + 1)}" style="height:${alturaPercent}%"></div></div>
             <span class="mes-barras__label">${nome.slice(0, 3)}</span>
           </div>`;

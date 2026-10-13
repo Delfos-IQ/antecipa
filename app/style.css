@@ -67,6 +67,12 @@
   --font-display: "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
   --font-mono: "Inter", system-ui, sans-serif;
+  /* --font-result (13/10/2026, mockups "premium design" aprovados pelo
+     Dani): usada SÓ na cifra do .resultado-selo__valor — uma serifa
+     separada para destacar o único número que o utilizador vem à app
+     ver, não uma mudança de tipografia global. --font-display/--font-body/
+     --font-mono continuam todos em Inter. */
+  --font-result: "Fraunces", serif;
 
   --radius: 14px;
   --radius-sm: 8px;
@@ -949,6 +955,36 @@ input:focus, select:focus { border-color: var(--brass); }
 .mes-barras__fill[data-cor="devolver"][data-real="true"] { background: var(--devolver); }
 .mes-barras__label { font-size: 0.62rem; color: var(--muted); margin-top: 4px; }
 
+/* Tooltip real ao passar o rato na barra (13/10/2026, mockups "premium
+   design" aprovados pelo Dani) — só em desktop (mesma convenção de
+   @media (min-width: 1024px) já usada no resto do ficheiro); em
+   telemóvel o `title` nativo do próprio .mes-barras__col (ver
+   ui/ventana-13.js) continua a servir de fallback ao toque longo. O
+   valor vem de data-valor (texto já formatado em JS, mês + euros) lido
+   via content:attr(), sem markup extra nem JS adicional para isto. */
+.mes-barras__col { position: relative; }
+.mes-barras__col::after {
+  content: attr(data-valor);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-6px);
+  background: var(--navy-deep);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+}
+@media (min-width: 1024px) {
+  .mes-barras__col:hover::after { opacity: 1; }
+}
+
 /* ---------- Dashboard — uso dos tetos de dedução ---------- */
 .plafond-track {
   height: 8px;
@@ -999,13 +1035,22 @@ input:focus, select:focus { border-color: var(--brass); }
 .resultado-selo[data-tipo="a_devolver"] .resultado-selo__label { color: var(--devolver-fg); }
 .resultado-selo[data-tipo="a_pagar"] .resultado-selo__label { color: var(--pagar-fg); }
 .resultado-selo__valor {
-  font-family: var(--font-mono);
-  font-weight: 800;
+  /* Fraunces (13/10/2026) em vez de --font-mono: único sítio da app que
+     usa --font-result — ver nota em :root. Peso 600 (não 800, o peso que
+     o Inter mono tinha): a Fraunces já tem presença visual própria a um
+     peso mais leve, 800 ficava pesado demais nesta serifa. */
+  font-family: var(--font-result);
+  font-weight: 600;
   letter-spacing: -0.01em;
   font-size: clamp(2.6rem, 9vw, 4rem);
 }
 .resultado-selo[data-tipo="a_devolver"] .resultado-selo__valor { color: var(--devolver-fg); }
 .resultado-selo[data-tipo="a_pagar"] .resultado-selo__valor { color: var(--pagar-fg); }
+/* O "€" de formatarMoeda() já vem envolvido em <span class="moeda"> (ver
+   ui/ventana-14.js) — aqui, só dentro do selo, ganha itálico a um peso
+   médio, como nos mockups aprovados (só o símbolo da moeda, nunca o
+   número inteiro). */
+.resultado-selo__valor .moeda { font-style: italic; font-weight: 500; }
 .resultado-selo__confianca {
   margin-top: var(--space-4);
   padding-top: var(--space-3);

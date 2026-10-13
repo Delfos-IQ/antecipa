@@ -31,6 +31,37 @@ function formatarMoeda(v) {
     .replace(" €", '<span class="moeda">€</span>');
 }
 
+// Contagem crescente do selo, de 0 até ao valor final, em ~600ms com
+// aceleração "ease-out" cúbica (13/10/2026, mockups "premium design"
+// aprovados pelo Dani) — nunca repete, nunca faz loop: uma só chamada de
+// requestAnimationFrame que para sozinha ao chegar a t=1. Respeita
+// prefers-reduced-motion: salta direto para o valor final sem animação.
+// Reaproveita formatarMoeda (mesmo utilitário de formatação do resto da
+// ventana) em cada frame, para o "€" em itálico (.moeda, ver style.css)
+// e o separador de milhares ficarem corretos durante toda a contagem,
+// não só no valor final.
+function animarContagemSelo(el, valorFinal) {
+  const prefereReduzido =
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (prefereReduzido) {
+    el.innerHTML = formatarMoeda(valorFinal);
+    return;
+  }
+  const duracaoMs = 600;
+  const inicio = performance.now();
+  function passo(agora) {
+    const t = Math.min(1, (agora - inicio) / duracaoMs);
+    const facilitado = 1 - Math.pow(1 - t, 3); // ease-out cúbico
+    el.innerHTML = formatarMoeda(valorFinal * facilitado);
+    if (t < 1) {
+      requestAnimationFrame(passo);
+    } else {
+      el.innerHTML = formatarMoeda(valorFinal); // valor exato, sem arredondamento da interpolação
+    }
+  }
+  requestAnimationFrame(passo);
+}
+
 const LABELS_LINHA = {
   1: "Rendimento Global",
   2: "Deduções Específicas",
@@ -209,6 +240,15 @@ export async function renderVentana14({ container, anoFiscal }) {
   // re-renderizações (troca de modo, edição de um ajuste) para o
   // utilizador não perder o sítio onde estava a rever/corrigir.
   let detalheAberto = false;
+  // Guarda da animação de contagem do selo (13/10/2026, mockups "premium
+  // design" aprovados pelo Dani) — vive FORA de render() (uma só vez por
+  // navegação para esta ventana, não recriada a cada chamada de render())
+  // precisamente para sobreviver a re-renderizações do mesmo valor:
+  // render() recria o DOM inteiro (toggle-desglose, toggle-detalhe,
+  // trocar de regime...) mas isso não deve reiniciar a contagem se o
+  // valor do resultado não mudou — só um valor novo (ex.: ajuste manual
+  // gravado, modoCalculo trocado) deve voltar a animar.
+  let valorSeloAnimado;
 
   let estado = { resultadoUnico, comparacao, oportunidades, percentagemMediaReal, household, pessoas, dependentes, deducoesColeta, ajustes, rubricasPorPessoa };
 
@@ -319,6 +359,21 @@ export async function renderVentana14({ container, anoFiscal }) {
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>
     `;
+
+    // Contagem crescente do selo (13/10/2026) — só anima quando o valor
+    // mudou desde a última renderização desta mesma navegação (ver
+    // comentário junto a `valorSeloAnimado` acima); numa re-renderização
+    // com o mesmo valor (toggle-desglose, toggle-detalhe...) só escreve o
+    // valor final diretamente, sem voltar a contar.
+    const seloValorEl = container.querySelector(".resultado-selo__valor");
+    if (seloValorEl) {
+      if (valorSeloAnimado !== resultadoParaSelo.valor) {
+        valorSeloAnimado = resultadoParaSelo.valor;
+        animarContagemSelo(seloValorEl, resultadoParaSelo.valor);
+      } else {
+        seloValorEl.innerHTML = formatarMoeda(resultadoParaSelo.valor);
+      }
+    }
 
     const layout = container.querySelector(".simulacao-layout");
     container.querySelector('[data-action="toggle-desglose"]').textContent = desgloseAberto
