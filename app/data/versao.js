@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.70";
+export const VERSAO_ATUAL = "2.71";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.71", resumo: "Correção: no Dashboard, a barra de uma dedução ao chegar ao teto máximo aparecia a vermelho, como se fosse um aviso — passa a verde, como já acontecia em Deduções, porque chegar ao teto é bom sinal" },
   { versao: "2.70", resumo: "Novo: o número do resultado ganha uma tipografia própria e conta a subir até ao valor final; os gráficos do Dashboard mostram o valor exato ao passar o rato, em computador" },
   { versao: "2.69", resumo: "Atualização grande: modo escuro, novo visual para o resultado e para o aviso legal, computador com menu lateral em vez de barra inferior, pequenas correções de contraste e de precisão fiscal (encargos com habitação e mínimo de existência)" },
   { versao: "2.68", resumo: "Novo: quando há uma versão nova da app, aparece um aviso discreto com um botão \"Atualizar\" — antes era preciso saber limpar a cache do browser à mão para ver as correções mais recentes" },

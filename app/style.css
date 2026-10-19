@@ -993,7 +993,13 @@ input:focus, select:focus { border-color: var(--brass); }
   overflow: hidden;
 }
 .plafond-fill { height: 100%; background: var(--brass); border-radius: 4px; transition: width 0.2s ease; }
-.plafond-fill[data-cheio="true"] { background: var(--pagar); }
+/* Cor ao atingir 100% do teto (19/10/2026, pedido do Dani): era --pagar
+   (vermelho de "vai pagar"), o que lia como alarme — mas atingir o teto
+   de uma dedução é uma coisa boa (extraiu-se o máximo possível dessa
+   categoria), não um aviso. Alinhado com .dedu-barra__fill (Ventana
+   Deduções), que já usava --devolver a 100% — agora as duas barras de
+   "uso dos tetos" da app concordam na mesma convenção. */
+.plafond-fill[data-cheio="true"] { background: var(--devolver); }
 
 /* ---------- Ventana 14 — simulação ---------- */
 /* resultado-selo — redesenhado (13/10/2026, auditoria de design): era
