@@ -42,8 +42,20 @@ import { MARCADOR_COLUNA_DIREITA } from "./pdf-text.js";
 
 // Uma linha de rubrica, já reconstruída em ordem de leitura, tem a forma:
 //   [»]CÓD SUBCÓD DESCRIÇÃO... DD/MM [a)] NÚM [NÚM [NÚM]]
+// Cada NÚM pode vir com um "-" à frente (ex.: "-67,07", "-5,00") — isto
+// acontece em linhas de REGULARIZAÇÃO/correção (ex.: "Irs - Trabalho
+// Suplementar" ou "S.S.-regime geral" com incidência negativa, quando a
+// entidade corrige um mês anterior). BUG real encontrado em 20/10/2026
+// (Dani comparou o Dashboard contra a sua própria tabela mensal e o
+// líquido acumulado não batia certo — rastreado até ao talão de
+// Agosto/2026 de um dos titulares): sem o "-?" abaixo, estas linhas
+// simplesmente não batiam com a regex e eram descartadas em silêncio —
+// nem apareciam no ecrã de confirmação, nem entravam em nenhuma conta.
+// Como a linha descartada era sempre uma CORREÇÃO (reduz um desconto já
+// lançado), perdê-la faz o total de descontos ficar sempre a mais e o
+// líquido a menos do que devia — nunca ao contrário.
 const REGEX_LINHA_RUBRICA =
-  /^(»)?\s*(\d{3})[\s-]?(\d{3})\s+(.+?)\s+(\d{2}\/\d{2})\s*(?:[a-z]\)\s*)?((?:[\d.]+,\d{2}\s*){1,3})$/;
+  /^(»)?\s*(\d{3})[\s-]?(\d{3})\s+(.+?)\s+(\d{2}\/\d{2})\s*(?:[a-z]\)\s*)?((?:-?[\d.]+,\d{2}\s*){1,3})$/;
 
 const CATEGORIAS_DESCONTO = ["irs", "ss", "sindicato", "adse", "outros"];
 

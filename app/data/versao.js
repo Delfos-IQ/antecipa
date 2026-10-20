@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.71";
+export const VERSAO_ATUAL = "2.72";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.72", resumo: "Correção importante: linhas de correção/regularização num talão (valor negativo, ex.: acerto de IRS ou Segurança Social de um mês anterior) estavam a ser ignoradas ao ler o PDF — o líquido e as deduções ficavam sempre um pouco mais baixos do que deviam. Quem já carregou um talão com este tipo de linha deve apagá-lo e voltar a carregá-lo" },
   { versao: "2.71", resumo: "Correção: no Dashboard, a barra de uma dedução ao chegar ao teto máximo aparecia a vermelho, como se fosse um aviso — passa a verde, como já acontecia em Deduções, porque chegar ao teto é bom sinal" },
   { versao: "2.70", resumo: "Novo: o número do resultado ganha uma tipografia própria e conta a subir até ao valor final; os gráficos do Dashboard mostram o valor exato ao passar o rato, em computador" },
   { versao: "2.69", resumo: "Atualização grande: modo escuro, novo visual para o resultado e para o aviso legal, computador com menu lateral em vez de barra inferior, pequenas correções de contraste e de precisão fiscal (encargos com habitação e mínimo de existência)" },
