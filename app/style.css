@@ -146,8 +146,25 @@
    e só o segundo uso pode mudar aqui sem partir o primeiro. Todos os
    pares texto/fundo abaixo foram verificados com um script de contraste
    (ver relatório) — ≥4.5:1 para texto normal em todos os casos. */
-@media (prefers-color-scheme: dark) {
-  :root {
+/* 20/10/2026 (3ª volta, mesmo dia) — pedido do Dani: "un botón para
+   alternar entre el modo oscuro y claro en la app... el website tendria
+   y la app tendria que estar en concordancia". Até aqui o modo escuro
+   só existia via @media (prefers-color-scheme: dark) — seguia SÓ o
+   sistema operativo, sem escolha manual possível. Passa a um atributo
+   em <html> (data-tema="dark"/"light"), escrito por assets/tema.js +
+   assets/tema-early.js (ver esses ficheiros — o "early" existe só para
+   não haver um flash do tema errado ao carregar, já que o CSP desta app
+   não permite <script> inline que pudesse correr antes do CSS). Sem
+   @media aqui: a app NUNCA fica sem o atributo definido (tema-early.js
+   escreve-o sempre, logo no arranque, com a preferência guardada ou,
+   na falta dela, a do sistema) — por isso um único bloco
+   :root[data-tema="dark"] chega, sem duplicar os valores escuros numa
+   versão "@media" e noutra "atributo". Quem muda de tema no sistema
+   operativo sem ter escolhido nada manualmente continua a ver a app
+   mudar sozinha (tema.js ouve prefers-color-scheme e atualiza o
+   atributo) — só deixa de seguir o sistema depois de tocar no botão.
+   Mesmos valores/paleta "premium" de antes, só muda o seletor. */
+:root[data-tema="dark"] {
     --navy-deep: #0b1d3a; /* inalterado — cabeçalho mantém a mesma marca
       navy em claro e escuro (decisão já confirmada, não faz parte deste
       redesenho) */
@@ -204,7 +221,6 @@
     --brass-hover: var(--brass-light);
     --accent-text: var(--brass-light);
     --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 26px 52px -26px rgba(0, 0, 0, 0.8);
-  }
 }
 
 /* ---------- Reset & base ---------- */
@@ -273,6 +289,10 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 .app-header__row {
   display: flex;
   align-items: center;
+  /* justify-content (20/10/2026, botão de alternar tema) — antes só
+     tinha o logótipo, agora reparte-o do botão de tema, que fica à
+     direita. */
+  justify-content: space-between;
   gap: var(--space-3);
   max-width: var(--max-content-wide);
   margin: 0 auto;
@@ -292,6 +312,36 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 }
 .app-header__logo:hover { opacity: 0.85; }
 .app-header__logo:focus-visible { outline: 2px solid var(--brass-light); outline-offset: 3px; }
+
+/* ---------- Botão de alternar tema (claro/escuro) ----------
+   20/10/2026, pedido do Dani: "un botón para alternar entre el modo
+   oscuro y claro en la app... el website tendria y la app tendria que
+   estar en concordancia" — mesma classe/markup usada aqui e em
+   landing.css, só o fundo/cor do cabeçalho onde vive é diferente (aqui
+   sempre --navy-deep; na landing segue o tema). Os dois ícones (lua/sol)
+   vivem sempre os dois no DOM — qual se vê é decidido em CSS puro pelo
+   atributo data-tema em <html> (ver o novo bloco no topo do ficheiro),
+   nunca por JS a trocar o SVG, para não haver um instante sem ícone
+   nenhum. */
+.tema-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.tema-toggle:hover { background: rgba(255, 255, 255, 0.16); }
+.tema-toggle svg { width: 20px; height: 20px; }
+.tema-toggle__icone--sol { display: none; }
+:root[data-tema="dark"] .tema-toggle__icone--lua { display: none; }
+:root[data-tema="dark"] .tema-toggle__icone--sol { display: block; }
 .brand-mark {
   width: 44px;
   height: 44px;
