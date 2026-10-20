@@ -343,18 +343,14 @@ export async function renderVentana14({ container, anoFiscal }) {
 
       ${oportunidades.length > 0 ? renderOportunidades(oportunidades) : ""}
 
-      <div class="row-between" style="margin-top:var(--space-5)">
+      <div class="acoes-simulacao" style="margin-top:var(--space-5)">
         <button class="btn btn-secondary" data-action="toggle-desglose">${pt.ventana14.verCalculoCompleto}</button>
-        <div class="row" style="gap:var(--space-2)">
-          <button class="btn btn-ghost" data-action="pdf-pessoal">${pt.ventana14.exportarPessoal}</button>
-          <button class="btn btn-ghost" data-action="pdf-contabilista">${pt.ventana14.exportarContabilista}</button>
-        </div>
+        <button class="btn btn-secondary" data-action="toggle-detalhe">${detalheAberto ? pt.ventana14.fecharDetalheProjecao : pt.ventana14.verDetalheProjecao}</button>
+        <span class="acoes-simulacao__separador"></span>
+        <button class="btn btn-ghost" data-action="pdf-pessoal">${pt.ventana14.exportarPessoal}</button>
+        <button class="btn btn-ghost" data-action="pdf-contabilista">${pt.ventana14.exportarContabilista}</button>
       </div>
       <div class="simulacao-layout" data-desglose-aberto="${desgloseAberto}">${desgloseAberto ? renderDesglose(declaracoesParaDesglose) : ""}</div>
-
-      <div class="row-between" style="margin-top:var(--space-4)">
-        <button class="btn btn-secondary" data-action="toggle-detalhe">${detalheAberto ? pt.ventana14.fecharDetalheProjecao : pt.ventana14.verDetalheProjecao}</button>
-      </div>
       <div class="detalhe-projecao-wrap" style="margin-top:var(--space-3)">${detalheAberto ? renderDetalheProjecaoWrap(estado) : ""}</div>
 
       <p class="disclaimer">${pt.ventana14.disclaimer}</p>

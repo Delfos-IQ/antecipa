@@ -388,6 +388,14 @@ export const pt = {
     deducoesDependenteGenerico: "Dependente",
     deducoesSemPessoas: "Adicione pelo menos um titular em Perfil para começar a preencher as deduções.",
     deducoesAgregadoTitulo: "Do agregado",
+    // Bug real corrigido (20/10/2026): o cartão de habitação na secção
+    // "Do agregado" reaproveita o campo `habitacao`, que antes vivia
+    // dentro de deducoesGrupos.saudeEducacao (quando essa secção incluía
+    // saúde/educação do agregado inteiro) — mas assim herdava também o
+    // TÍTULO dessa secção antiga ("Saúde, educação e PPR"), que já não
+    // faz sentido aqui. Ver tituloChave em GRUPOS_AGREGADO/
+    // renderGrupoAgregado (ui/ventana-deducoes.js).
+    deducoesHabitacaoTitulo: "Habitação",
     deducoesAgregadoCorpo:
       "Estas categorias não têm um \"dono\" individual no e-Fatura — aplicam-se à casa ou ao agregado como um todo, não a uma pessoa em concreto.",
     deducoesGrupos: {

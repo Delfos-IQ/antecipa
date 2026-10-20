@@ -150,9 +150,25 @@
       tags) com texto branco por cima; mudar o valor partiria esse
       contraste. Ver --brass-light abaixo para o mesmo azul em uso de
       texto. */
-    --paper: #0f2142;
-    --card: #17304f;
-    --hairline: #28406b;
+    /* --paper/--card/--hairline/--shadow-card retocados (20/10/2026,
+       pedido do Dani: "el modo nocturno está muy poco contrastado,
+       quería verlo con aspecto más premium"). Antes --paper (#0f2142) e
+       --card (#17304f) eram dois tons de navy demasiado próximos — os
+       cartões quase se confundiam com o fundo da página, e --shadow-card
+       nunca tinha uma variante própria para modo escuro (ficava com o
+       valor de :root, uma sombra ESCURA sobre rgba(20,26,43,...), que
+       sobre um fundo já escuro é praticamente invisível — por isso os
+       cartões também não "flutuavam" como em modo claro). --paper desce
+       para um navy bem mais profundo (quase preto, mas ainda azul de
+       marca, não um cinza genérico); --card sobe ligeiramente para
+       aumentar a distância tonal; --hairline fica mais claro para as
+       bordas serem visíveis; --shadow-card ganha uma variante com halo
+       claro muito ténue por cima (simula luz a vir de cima, como um
+       verniz) + sombra preta mais funda por baixo — o mesmo efeito de
+       elevação "premium" que os cartões já têm em modo claro. */
+    --paper: #081326;
+    --card: #152e52;
+    --hairline: #35538a;
     --brass: #1f4e9e;
     --brass-light: #6ea0e8;
     --brass-soft: #1b3a66;
@@ -162,11 +178,12 @@
     --pagar: #9b3d3d; /* inalterado — fundo sólido (.metric-tile) */
     --pagar-bg: #3a1818;
     --pagar-fg: #e08080;
-    --muted: #9fb0cc;
+    --muted: #a7b8d4;
     --text: #e8edf5;
-    --heading: #e8edf5;
+    --heading: #f3f6fb;
     --brass-hover: var(--brass-light);
     --accent-text: var(--brass-light);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05), 0 16px 36px -12px rgba(0, 0, 0, 0.65);
   }
 }
 
@@ -282,7 +299,10 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 @media (min-width: 1024px) {
   #app {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    /* 300px (antes 240px) — pedido do Dani (20/10/2026): "el menú
+       lateral también más grande", a par do logótipo e dos ícones
+       maiores abaixo, que precisam de mais respiro à volta. */
+    grid-template-columns: 300px 1fr;
     grid-template-rows: auto auto 1fr;
     grid-template-areas:
       "header header"
@@ -294,6 +314,15 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   .legal-banner { grid-area: legal; }
   .bottom-nav { grid-area: nav; }
   .app-main { grid-area: main; }
+
+  /* Logótipo ao dobro em escritório (20/10/2026, pedido do Dani: "yo
+     queria los logos al doble y las letras de la marca también") — só
+     neste breakpoint; em telemóvel o cabeçalho continua compacto, por
+     falta de espaço vertical. */
+  .app-header { padding: var(--space-5) var(--space-6) var(--space-6); }
+  .app-header__logo { gap: var(--space-4); }
+  .brand-mark { width: 88px; height: 88px; }
+  .brand-wordmark { font-size: 2.8rem; }
 
   .bottom-nav {
     /* position:sticky + bottom:0 vêm da regra base (telemóvel, barra presa
@@ -320,19 +349,27 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
     width: 100%;
     border-top: none;
     border-right: 1px solid var(--hairline);
-    padding: var(--space-5) var(--space-3);
-    padding-bottom: var(--space-3);
+    /* gap/padding maiores (20/10/2026, pedido do Dani: "el menú lateral
+       también más grande") — a condizer com a coluna mais larga
+       (300px) e os ícones maiores abaixo. */
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-4);
+    padding-bottom: var(--space-4);
   }
   .bottom-nav__item {
     flex-direction: row;
     justify-content: flex-start;
-    gap: var(--space-3);
+    gap: var(--space-4);
     width: 100%;
-    padding: 10px var(--space-3);
+    padding: 14px var(--space-4);
     border-radius: var(--radius-sm);
-    font-size: 0.88rem;
+    font-size: 1rem;
   }
-  .bottom-nav__item svg { width: 20px; height: 20px; }
+  /* 26px (antes 20px) + display:block (ver regra geral de svg mais acima)
+     — ícones maiores e alinhados ao centro vertical do item, nunca
+     desalinhados por causa do espaço em baixo da linha de base inline
+     que um <svg> normal deixa. */
+  .bottom-nav__item svg { width: 26px; height: 26px; }
   .bottom-nav__item[aria-current="true"] { background: var(--brass-soft); }
 }
 
@@ -476,9 +513,39 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    uma segunda cor — substitui .dedu-grupo__icone (mantido como alias). */
 .dedu-grupo__titulo { display: flex; align-items: center; gap: var(--space-2); }
 .dedu-grupo__icone, .dedu-icone { display: inline-flex; flex: none; color: var(--accent-text); }
-.dedu-grupo__icone svg, .dedu-icone svg { width: 20px; height: 20px; }
+/* 28px (antes 20px) — pedido do Dani (20/10/2026): "imágenes SVG
+   mayores" ao comparar com o e-Fatura, que usa ícones grandes por
+   categoria. A variante --pequeno (tabs de pessoa, subcategorias de
+   exigência de fatura) mantém-se discreta. */
+.dedu-grupo__icone svg, .dedu-icone svg { width: 28px; height: 28px; }
 .dedu-icone--pequeno { margin-right: 6px; vertical-align: -4px; }
 .dedu-icone--pequeno svg { width: 16px; height: 16px; }
+
+/* Grelha "estilo e-Fatura" dos cartões de Deduções (20/10/2026, pedido
+   do Dani: "pensaba que la parte de las deducciones estaría más
+   alineado con la forma de presentación de e-factura... dos o tres
+   tarjetas por línea"). Classe PRÓPRIA deste ecrã — NÃO aplicada a
+   .cartoes-grid em geral (Perfil continua em coluna única: ver o
+   histórico de 3 tentativas rejeitadas junto à definição de
+   .cartoes-grid acima).
+   Contagem FIXA de colunas por breakpoint (1 → 2 → 3), não
+   `auto-fit`/`minmax`: testado visualmente (Playwright, 1440px) com um
+   número ímpar de cartões — com auto-fit, o último cartão sozinho numa
+   linha esticava para ocupar a linha INTEIRA (ex.: "Exigência de
+   fatura" a ocupar a largura toda, muito mais largo que os outros) em
+   vez de ficar do tamanho normal com espaço vazio ao lado, que é o que
+   o e-Fatura faz e o que o Dani pediu. */
+.dedu-cartoes-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .dedu-cartoes-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .dedu-cartoes-grid { grid-template-columns: repeat(3, 1fr); }
+}
 
 /* Tabs de pessoa do ecrã de Deduções (20/10/2026) — uma tab por titular
    e por dependente, ver renderVentanaDeducoes em ui/ventana-deducoes.js.
@@ -547,6 +614,28 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    estado atual, por isso mantém-se legível em vez do cinza apagado
    genérico acima. */
 [data-action="usar-ano"][disabled] { opacity: 1; color: var(--heading); cursor: default; }
+
+/* Barra de ações da Simulação — "Ver cálculo completo" / "Ver detalhe
+   mês a mês" / exportar PDF (20/10/2026, pedido do Dani: "los botones
+   con aspecto premium y alineados"). Antes eram duas linhas
+   `.row-between` separadas (uma por cada painel que abrem), com os
+   dois botões de exportar PDF como `.btn-ghost` sem contorno — liam-se
+   como links de texto simples, com peso visual bem mais fraco que
+   "Ver cálculo completo" ao lado. Aqui os quatro ficam juntos numa só
+   barra (ver "acoes-simulacao" em ui/ventana-14.js) com o MESMO
+   tratamento de pílula arredondada — só `.btn-ghost` ganha um contorno
+   próprio, para não desaparecer ao lado dos `.btn-secondary`. Scoped a
+   esta barra (não a `.btn-ghost`/`.btn-secondary` em geral, usados por
+   toda a app com paddings/cores próprias em cada ecrã — mudar a
+   variante base teria um efeito em cascata não pedido). */
+.acoes-simulacao { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.acoes-simulacao__separador { flex: 1 1 auto; }
+@media (max-width: 639px) {
+  .acoes-simulacao__separador { flex-basis: 100%; height: 0; }
+}
+.acoes-simulacao .btn { border-radius: 999px; }
+.acoes-simulacao .btn-ghost { border: 1px solid var(--hairline); padding: 10px 18px; }
+.acoes-simulacao .btn-ghost:hover { border-color: var(--navy-mid); }
 
 /* ---------- Forms ---------- */
 label { display: block; font-weight: 500; margin-bottom: var(--space-1); font-size: 0.9rem; }
@@ -719,18 +808,27 @@ input:focus, select:focus { border-color: var(--brass); }
 }
 .card--compacto { padding: var(--space-2); }
 
-/* ---------- Oportunidades de poupança fiscal (Ventana 14) ---------- */
+/* ---------- Oportunidades de poupança fiscal / Sugestões para pagar
+   menos (Ventana 14) ---------- */
 .oportunidades {
   /* padding próprio removido (25/09/2026, unificação de margens) —
      este elemento já leva a classe .card no HTML (ver
      "oportunidades card" em ventana-14.js), por isso herda o padding
      padrão de .card (--card-pad) em vez de um valor próprio. */
   border-left: 3px solid var(--brass-light);
+  /* display:flex + gap (20/10/2026, pedido do Dani: "en tarjetas
+     agrupadas") — substitui a separação por hairline de cada item por
+     cartões individuais próprios (ver .oportunidade-item abaixo),
+     espaçados uns dos outros em vez de só separados por uma linha. */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
-.oportunidade-item + .oportunidade-item {
-  margin-top: var(--space-4);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--hairline);
+.oportunidade-item {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
 }
 .oportunidade-item__titulo { font-weight: 600; color: var(--heading); }
 
@@ -941,7 +1039,13 @@ input:focus, select:focus { border-color: var(--brass); }
   font-size: 0.68rem;
   color: var(--muted);
 }
-.timeline i[data-real="true"] { background: var(--brass-soft); color: var(--accent-text); font-weight: 600; }
+/* Era --brass-soft (um azul PÁLIDO — a mesma família de cor do estado
+   "sem dados"/--hairline, por isso lia-se quase igual) — bug real
+   reportado pelo Dani (20/10/2026): "esperaba un azul oscuro los meses
+   con información cargada". Passa a --brass sólido (o mesmo azul de
+   marca usado como fundo de botões/tags), com texto branco — agora o
+   mês com dados reais destaca-se claramente do mês ainda projetado. */
+.timeline i[data-real="true"] { background: var(--brass); color: #fff; font-weight: 600; }
 
 .metric-tile[data-cor="devolver"] { background: var(--devolver); }
 .metric-tile[data-cor="devolver"] .metric-tile__label { color: #d5ecdf; }

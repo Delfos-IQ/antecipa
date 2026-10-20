@@ -74,8 +74,17 @@ const EXIGENCIA_FATURA_SUBCATEGORIAS = [
 // `campos`/`barras` que o ecrã já usava antes do redesenho.
 const GRUPOS_AGREGADO = [
   {
+    // Bug real corrigido (20/10/2026, apanhado numa captura de verificação
+    // visual): este grupo reaproveita o campo "habitacao" que antes vivia
+    // dentro de deducoesGrupos.saudeEducacao (quando essa secção ainda
+    // incluía saúde/educação do agregado inteiro) — mas o TÍTULO do
+    // cartão continuava a vir do mesmo sítio ("Saúde, educação e PPR"),
+    // uma secção que já não existe aqui (saúde/educação passaram a ser
+    // por pessoa). `tituloChave` aponta para uma chave de topo própria
+    // (`pt.perfil.deducoesHabitacaoTitulo`), lida em renderGrupoAgregado
+    // em vez de `defsGrupo.titulo`.
     chave: "saudeEducacao",
-    tituloChave: "deducoesAgregadoTitulo",
+    tituloChave: "deducoesHabitacaoTitulo",
     campos: ["habitacao"],
     barras: [{ apos: "habitacao", categoria: "habitacao", semContextoCompleto: true }],
   },
@@ -284,7 +293,7 @@ function renderGrupoAgregado(grupo, valores) {
   const notaApos = grupo.notaAposCampo ?? {};
   return `
     <div class="card">
-      <p class="section-title dedu-grupo__titulo">${renderIcone(grupo.chave === "saudeEducacao" ? "habitacao" : grupo.chave === "outras" ? "outrasDeducoes" : grupo.chave)}${defsGrupo.titulo}</p>
+      <p class="section-title dedu-grupo__titulo">${renderIcone(grupo.chave === "saudeEducacao" ? "habitacao" : grupo.chave === "outras" ? "outrasDeducoes" : grupo.chave)}${grupo.tituloChave ? pt.perfil[grupo.tituloChave] : defsGrupo.titulo}</p>
       ${defsGrupo.corpoHint ? `<p class="field-hint" style="margin-bottom:var(--space-3)">${defsGrupo.corpoHint}</p>` : ""}
       <div class="stack" style="gap:var(--space-3)">
         ${grupo.campos
@@ -412,7 +421,7 @@ export async function renderVentanaDeducoes({ container, anoFiscal }) {
       ${
         pessoaAtiva
           ? `
-      <div class="cartoes-grid" data-dedu-painel-pessoa>
+      <div class="dedu-cartoes-grid" data-dedu-painel-pessoa>
         ${CATEGORIAS_PESSOA.map((categoria) => renderCartaoCategoriaPessoa(categoria, pessoaAtiva, deducoesColeta)).join("")}
         ${pessoaAtiva.isTitular ? renderCartaoPPR(pessoaAtiva, deducoesColeta) : ""}
         ${renderCartaoExigenciaFatura(pessoaAtiva, deducoesColeta)}
@@ -422,7 +431,7 @@ export async function renderVentanaDeducoes({ container, anoFiscal }) {
 
       <p class="section-title dedu-agregado-titulo" style="margin-top:var(--space-6)">${pt.perfil.deducoesAgregadoTitulo}</p>
       <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.deducoesAgregadoCorpo}</p>
-      <div class="cartoes-grid">
+      <div class="dedu-cartoes-grid">
         ${GRUPOS_AGREGADO.map((grupo) => renderGrupoAgregado(grupo, deducoesColeta)).join("")}
       </div>
 
