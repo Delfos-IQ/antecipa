@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.75";
+export const VERSAO_ATUAL = "2.76";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.76", resumo: "Correção importante: no computador, o menu lateral por vezes sobrepunha-se ao cabeçalho — corrigido. Logótipo do computador reduzido (tinha ficado grande demais na v2.74). Os cartões de \"Oportunidades de poupança\", na Simulação, passam a aparecer dois a dois lado a lado; os botões por baixo (exportar PDF, ver detalhe) ganham mais destaque visual" },
   { versao: "2.75", resumo: "Ajustes de compatibilidade entre navegadores e dispositivos: ao adicionar a app ao ecrã principal do iPhone, passa a abrir em ecrã inteiro como uma app a sério (antes abria como uma aba normal do Safari); os controlos do sistema (setas de menus, etc.) seguem agora o tema claro/escuro da própria app; e vários campos numéricos mostram sempre o teclado correto no telemóvel" },
   { versao: "2.74", resumo: "Vários ajustes de aspeto pedidos depois de ver a app a sério: menu lateral e logótipo maiores no computador, cartões de Deduções em grelha (2-3 por linha, como o e-Fatura) com ícones maiores, modo escuro com mais contraste, os meses já carregados no Dashboard agora aparecem a azul escuro (antes eram quase iguais aos meses por carregar), e os botões de \"Sugestões para pagar menos\"/exportar PDF agrupados e alinhados" },
   { versao: "2.73", resumo: "Deduções redesenhado: agora organizado por pessoa (cada titular e cada dependente tem o seu próprio espaço para Despesas Gerais, Saúde, Educação e Exigência de Fatura, tal como no Portal das Finanças/e-Fatura), com novos ícones e as barras de \"dedução correspondente\" sempre visíveis. Quem já tinha valores preenchidos não perde nada — ficam atribuídos automaticamente ao 1º titular/1º dependente, e podem ser movidos para a pessoa certa" },

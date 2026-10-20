@@ -331,14 +331,19 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   .bottom-nav { grid-area: nav; }
   .app-main { grid-area: main; }
 
-  /* Logótipo ao dobro em escritório (20/10/2026, pedido do Dani: "yo
-     queria los logos al doble y las letras de la marca también") — só
-     neste breakpoint; em telemóvel o cabeçalho continua compacto, por
-     falta de espaço vertical. */
+  /* Logótipo maior em escritório (20/10/2026, pedido do Dani: "yo queria
+     los logos al doble y las letras de la marca también") — só neste
+     breakpoint; em telemóvel o cabeçalho continua compacto, por falta de
+     espaço vertical.
+     20/10/2026 (2ª volta, mesmo dia, visto já em produção): "demasiado
+     grande! me gustaria hacerlo más pequeño, pero no a la mitad. Tal vez
+     bajarlo 1/4 del tamaño" — reduzido cerca de 1/4 a partir do dobro
+     (88px→66px, 2.8rem→2.1rem), não de volta ao tamanho original
+     (44px/1.4rem). */
   .app-header { padding: var(--space-5) var(--space-6) var(--space-6); }
   .app-header__logo { gap: var(--space-4); }
-  .brand-mark { width: 88px; height: 88px; }
-  .brand-wordmark { font-size: 2.8rem; }
+  .brand-mark { width: 66px; height: 66px; }
+  .brand-wordmark { font-size: 2.1rem; }
 
   .bottom-nav {
     /* position:sticky + bottom:0 vêm da regra base (telemóvel, barra presa
@@ -644,13 +649,33 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
    esta barra (não a `.btn-ghost`/`.btn-secondary` em geral, usados por
    toda a app com paddings/cores próprias em cada ecrã — mudar a
    variante base teria um efeito em cascata não pedido). */
-.acoes-simulacao { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+/* 20/10/2026 (2ª volta, mesmo dia): "atribuir más espacio a los botones
+   relativamente a las cajas" — a barra vivia nua sobre o fundo da
+   página, sem o mesmo tratamento de cartão que os painéis acima
+   (.card/.oportunidades), por isso lia-se como um apêndice fino e sem
+   peso. Ganha agora o mesmo fundo/contorno/padding de um cartão, e os
+   próprios botões crescem (mais padding, letra maior) para pesarem mais
+   perto das caixas que os rodeiam. */
+.acoes-simulacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: var(--card-pad);
+}
 .acoes-simulacao__separador { flex: 1 1 auto; }
 @media (max-width: 639px) {
   .acoes-simulacao__separador { flex-basis: 100%; height: 0; }
 }
-.acoes-simulacao .btn { border-radius: 999px; }
-.acoes-simulacao .btn-ghost { border: 1px solid var(--hairline); padding: 10px 18px; }
+.acoes-simulacao .btn {
+  border-radius: 999px;
+  padding: 14px 26px;
+  font-size: 1rem;
+}
+.acoes-simulacao .btn-ghost { border: 1px solid var(--hairline); }
 .acoes-simulacao .btn-ghost:hover { border-color: var(--navy-mid); }
 
 /* ---------- Forms ---------- */
@@ -832,13 +857,25 @@ input:focus, select:focus { border-color: var(--brass); }
      "oportunidades card" em ventana-14.js), por isso herda o padding
      padrão de .card (--card-pad) em vez de um valor próprio. */
   border-left: 3px solid var(--brass-light);
-  /* display:flex + gap (20/10/2026, pedido do Dani: "en tarjetas
+  /* display:grid + gap (20/10/2026, pedido do Dani: "en tarjetas
      agrupadas") — substitui a separação por hairline de cada item por
      cartões individuais próprios (ver .oportunidade-item abaixo),
-     espaçados uns dos outros em vez de só separados por uma linha. */
-  display: flex;
-  flex-direction: column;
+     espaçados uns dos outros em vez de só separados por uma linha.
+     20/10/2026 (2ª volta, mesmo dia): "las tarjetas en el simulador,
+     agrupadas de dos en dos" — passa de 1 para 2 colunas a partir de
+     768px (coluna única em telemóvel, por falta de largura). O título
+     (.section-title) e o aviso final (.field-hint) continuam a ocupar
+     a largura toda, só os .oportunidade-item entram na grelha. */
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
+}
+@media (min-width: 768px) {
+  .oportunidades { grid-template-columns: repeat(2, 1fr); }
+}
+.oportunidades > .section-title,
+.oportunidades > .field-hint {
+  grid-column: 1 / -1;
 }
 .oportunidade-item {
   background: var(--paper);
@@ -1365,13 +1402,29 @@ input:focus, select:focus { border-color: var(--brass); }
 .bottom-nav[hidden] { display: none; } /* [hidden] perde para .bottom-nav{display:flex} sem isto — mesma especificidade, a regra de autor ganha à UA stylesheet */
 .bottom-nav {
   position: sticky;
-  bottom: 0;
   background: var(--card);
-  border-top: 1px solid var(--hairline);
   display: flex;
-  padding: 6px var(--space-2);
-  padding-bottom: max(6px, env(safe-area-inset-bottom));
-  z-index: 20;
+}
+/* 20/10/2026 — BUG real (reportado pelo Dani: "el menu se sobrepone al
+   header"): "bottom", "border-top", "padding" e "z-index" andavam aqui
+   em baixo, sem media query — por isso, mesma especificidade que a
+   versão de computador (linha ~343) mas a aparecer DEPOIS dela no
+   ficheiro, ganhavam sempre em cascata, mesmo em ecrãs ≥1024px:
+   "bottom:0" sobrepunha-se ao "bottom:auto" do computador (esticando o
+   menu lateral do topo até ao fundo da janela) e "z-index:20" empatava
+   com o do .app-header, desempatado por ordem no DOM (o nav vem depois
+   do header), por isso o nav acabava pintado por cima do cabeçalho.
+   Agora escopadas só a telemóvel — o computador já define o seu próprio
+   bottom/border-top/padding/z-index (ou não precisa deles) na media
+   query acima. */
+@media (max-width: 1023.98px) {
+  .bottom-nav {
+    bottom: 0;
+    border-top: 1px solid var(--hairline);
+    padding: 6px var(--space-2);
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    z-index: 20;
+  }
 }
 .bottom-nav__item {
   flex: 1;
