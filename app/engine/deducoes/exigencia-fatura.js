@@ -4,7 +4,7 @@
 // Extraído de calcularDeducoesAColeta em engine/calculo-irs.js (13/10/2026,
 // split do motor em submódulos por categoria). Refatoração pura.
 
-import { round2 } from "../numero.js";
+import { round2, somaMapa } from "../numero.js";
 
 const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
@@ -16,12 +16,24 @@ const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 // campo legado `exigenciaFatura` (valor já pré-calculado, para quem
 // preferir inserir diretamente o total que o e-Fatura mostra) — soma-se
 // aos restantes antes do teto.
+//
+// `*PorPessoa` (20/10/2026, pedido do Dani: "en el portal de las finanzas,
+// cada uno tiene su espacio para poner las facturas" — confirmado que até
+// os dependentes têm as suas próprias categorias no e-Fatura, mesmo as
+// que normalmente ficam vazias, ex.: ginásios de um dependente): cada
+// categoria passa a ter uma entrada por pessoa (titular ou dependente),
+// somada aqui antes do teto único do agregado — ver somaMapa em
+// engine/numero.js e a migração em ui/ventana-deducoes.js.
 export function calcularExigenciaFatura({ deducoesColeta, limites }) {
   const baseNormal =
     (deducoesColeta.exigenciaFaturaRestauracao || 0) +
     (deducoesColeta.exigenciaFaturaReparacaoAutomovel || 0) +
-    (deducoesColeta.exigenciaFaturaOutras || 0);
-  const baseTransportes = deducoesColeta.exigenciaFaturaPassesMensais || 0;
+    (deducoesColeta.exigenciaFaturaOutras || 0) +
+    somaMapa(deducoesColeta.exigenciaFaturaRestauracaoPorPessoa) +
+    somaMapa(deducoesColeta.exigenciaFaturaReparacaoAutomovelPorPessoa) +
+    somaMapa(deducoesColeta.exigenciaFaturaOutrasPorPessoa);
+  const baseTransportes =
+    (deducoesColeta.exigenciaFaturaPassesMensais || 0) + somaMapa(deducoesColeta.exigenciaFaturaPassesMensaisPorPessoa);
   const exigenciaFaturaCalculada =
     baseNormal * (limites.exigenciaFatura.percentagem ?? 0.15) +
     baseTransportes * (limites.exigenciaFatura.percentagemTransportesPublicos ?? 1);

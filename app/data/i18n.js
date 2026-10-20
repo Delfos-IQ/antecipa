@@ -382,7 +382,33 @@ export const pt = {
     // de um único campo do agregado.
     pprTitular1: "1º titular",
     pprTitular2: "2º titular",
+    // Redesenho pessoa-primeiro (20/10/2026) — ver comentário no topo de
+    // ui/ventana-deducoes.js. Nome genérico para uma tab de dependente
+    // sem nome próprio preenchido no agregado (ex.: "Dependente 1").
+    deducoesDependenteGenerico: "Dependente",
+    deducoesSemPessoas: "Adicione pelo menos um titular em Perfil para começar a preencher as deduções.",
+    deducoesAgregadoTitulo: "Do agregado",
+    deducoesAgregadoCorpo:
+      "Estas categorias não têm um \"dono\" individual no e-Fatura — aplicam-se à casa ou ao agregado como um todo, não a uma pessoa em concreto.",
     deducoesGrupos: {
+      // Categorias por pessoa (titular ou dependente) — tal como no
+      // e-Fatura real, cada um tem o seu próprio espaço para Despesas
+      // Gerais, Saúde e Educação. Os tetos legais continuam a ser do
+      // agregado (ver barra, sempre a soma de todos).
+      pessoa: {
+        despesasGerais: {
+          label: "Despesas gerais",
+          hint: "Faturas desta pessoa (roupa, combustível, etc.), tal como aparecem no e-Fatura dela. Soma-se às dos restantes membros do agregado para o mesmo teto de 250€ (500€ em casal).",
+        },
+        saude: {
+          label: "Despesas de saúde",
+          hint: "Consultas, farmácia, dentista desta pessoa. Dedução de 15%, até 1.000€ no total do agregado.",
+        },
+        educacao: {
+          label: "Despesas de educação",
+          hint: "Propinas, livros, material escolar desta pessoa. Dedução de 30%, até 800€ no total do agregado.",
+        },
+      },
       saudeEducacao: {
         titulo: "Saúde, educação e PPR",
         saude: { label: "Despesas de saúde", hint: "Total anual em faturas de saúde (consultas, farmácia). Dedução de 15%, até 1.000€." },

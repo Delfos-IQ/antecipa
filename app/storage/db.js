@@ -241,6 +241,22 @@ export async function getDeducoesColeta(anoFiscal, pessoaId = "household") {
     saudeDependentes: 0,
     educacao: 0,
     educacaoDependentes: 0,
+    // *PorPessoa (20/10/2026, pedido do Dani: ecrã de Deduções por pessoa,
+    // como o e-Fatura real — "yo tengo mi e-factura y vera el suyo...
+    // luego los niños el suyo"): substituem os pares própria/dependentes
+    // acima por um mapa pessoaId→valor, uma entrada por titular E por
+    // dependente (não só um total lumped dos filhos todos juntos) — ver
+    // ui/ventana-deducoes.js (migração automática dos campos antigos) e
+    // engine/numero.js (somaMapa, chamado por cada submódulo de dedução
+    // em engine/deducoes/, que soma estes mapas + os campos antigos
+    // acima, para nunca perder dados ainda não migrados).
+    saudePorPessoa: {},
+    educacaoPorPessoa: {},
+    despesasGeraisPorPessoa: {},
+    exigenciaFaturaRestauracaoPorPessoa: {},
+    exigenciaFaturaReparacaoAutomovelPorPessoa: {},
+    exigenciaFaturaPassesMensaisPorPessoa: {},
+    exigenciaFaturaOutrasPorPessoa: {},
     // ppr (legado): campo único do agregado, substituído por pprPorPessoa
     // abaixo (24/09/2026 — o teto legal é por titular, não do agregado).
     // Mantido só para dados antigos ainda por migrar — ver comentário em

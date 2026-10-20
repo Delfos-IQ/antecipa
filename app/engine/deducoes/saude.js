@@ -7,7 +7,7 @@
 // split do motor em submódulos por categoria — ver app/engine/deducoes/).
 // Refatoração pura: o cálculo é idêntico ao que já existia ali.
 
-import { round2 } from "../numero.js";
+import { round2, somaMapa } from "../numero.js";
 
 const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
@@ -18,8 +18,15 @@ const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 // parte. Pedido real (03/09/2026): despesas dos filhos (dentista,
 // consultas, vacinas, comedor escolar) pedidas com o NIF deles não
 // apareciam em lado nenhum da simulação.
+//
+// `saudePorPessoa` (20/10/2026): substitui o par saude/saudeDependentes por
+// uma entrada por pessoa (titular ou dependente) — ver somaMapa em
+// engine/numero.js e a migração em ui/ventana-deducoes.js. Os campos
+// antigos continuam a somar-se como fallback para dados ainda não
+// migrados.
 export function calcularDeducaoSaude({ deducoesColeta, limites }) {
-  const baseSaude = (deducoesColeta.saude || 0) + (deducoesColeta.saudeDependentes || 0);
+  const baseSaude =
+    (deducoesColeta.saude || 0) + (deducoesColeta.saudeDependentes || 0) + somaMapa(deducoesColeta.saudePorPessoa);
   const valor = clamp(baseSaude * limites.saude.percentagem, limites.saude.limite);
   return {
     valor,

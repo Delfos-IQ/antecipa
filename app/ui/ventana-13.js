@@ -9,6 +9,10 @@
 import { pt } from "../data/i18n.js";
 import { getTodasRubricas, getDeducoesColeta, getHousehold } from "../storage/db.js";
 import { obterTabelaFiscal } from "../data/legislacao-2026.js";
+import { calcularDeducaoSaude } from "../engine/deducoes/saude.js";
+import { calcularDeducaoEducacao } from "../engine/deducoes/educacao.js";
+import { calcularExigenciaFatura } from "../engine/deducoes/exigencia-fatura.js";
+import { calcularDespesasGerais } from "../engine/deducoes/despesas-gerais.js";
 
 function formatarMoeda(v) {
   // ver nota em ui/ventana-14.js: substitui o nbsp antes do € por um
@@ -27,42 +31,26 @@ function formatarMoedaTexto(v) {
 }
 
 // Progresso de cada teto de dedução face ao que já foi preenchido em
-// Deduções (ver ui/ventana-deducoes.js). Duplica deliberadamente só a
-// aritmética de percentagem+teto de engine/calculo-irs.js
-// (calcularDeducoesAColeta) — não a lógica fiscal completa — porque essa
-// função não está exportada e o dashboard só precisa de "quanto já usei
-// do teto", não de recalcular a declaração inteira.
+// Deduções (ver ui/ventana-deducoes.js). ATUALIZADO (20/10/2026): deixou
+// de duplicar a aritmética de percentagem+teto à mão (ficava sempre um
+// passo atrás de engine/deducoes/ sempre que esses ficheiros mudavam — foi
+// o caso quando saúde/educação/despesas gerais/exigência de fatura
+// passaram a somar também os mapas *PorPessoa) e passa a chamar
+// diretamente os mesmos submódulos que a Simulação usa — a mesma conta,
+// sem duplicação.
 function calcularPlafonds(deducoesColeta, tabela, regime) {
   const limites = tabela.limitesDeducoes;
-  const clamp = (v, l) => Math.max(0, Math.min(v, l));
 
-  const saudeUsado = clamp((deducoesColeta.saude || 0) * limites.saude.percentagem, limites.saude.limite);
-  const educacaoUsado = clamp((deducoesColeta.educacao || 0) * limites.educacao.percentagem, limites.educacao.limite);
-
-  const baseExigencia15 =
-    (deducoesColeta.exigenciaFaturaRestauracao || 0) +
-    (deducoesColeta.exigenciaFaturaReparacaoAutomovel || 0) +
-    (deducoesColeta.exigenciaFaturaOutras || 0);
-  const baseTransportes = deducoesColeta.exigenciaFaturaPassesMensais || 0;
-  const exigenciaUsado = clamp(
-    baseExigencia15 * (limites.exigenciaFatura.percentagem ?? 0.15) +
-      baseTransportes * (limites.exigenciaFatura.percentagemTransportesPublicos ?? 1) +
-      (deducoesColeta.exigenciaFatura || 0),
-    limites.exigenciaFatura.limite
-  );
-
-  const limiteDespesasGerais =
-    regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro;
-  const despesasGeraisUsado = clamp(
-    (deducoesColeta.despesasGerais || 0) * limites.despesasGeraisFamiliares.percentagem,
-    limiteDespesasGerais
-  );
+  const saude = calcularDeducaoSaude({ deducoesColeta, limites });
+  const educacao = calcularDeducaoEducacao({ deducoesColeta, limites });
+  const exigenciaFatura = calcularExigenciaFatura({ deducoesColeta, limites });
+  const despesasGerais = calcularDespesasGerais({ deducoesColeta, limites, regime });
 
   return [
-    { label: pt.ventana13.plafondSaude, usado: saudeUsado, teto: limites.saude.limite },
-    { label: pt.ventana13.plafondEducacao, usado: educacaoUsado, teto: limites.educacao.limite },
-    { label: pt.ventana13.plafondExigenciaFatura, usado: exigenciaUsado, teto: limites.exigenciaFatura.limite },
-    { label: pt.ventana13.plafondDespesasGerais, usado: despesasGeraisUsado, teto: limiteDespesasGerais },
+    { label: pt.ventana13.plafondSaude, usado: saude.valor, teto: saude.teto },
+    { label: pt.ventana13.plafondEducacao, usado: educacao.valor, teto: educacao.teto },
+    { label: pt.ventana13.plafondExigenciaFatura, usado: exigenciaFatura.valor, teto: exigenciaFatura.teto },
+    { label: pt.ventana13.plafondDespesasGerais, usado: despesasGerais.valor, teto: despesasGerais.teto },
   ];
 }
 

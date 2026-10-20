@@ -468,10 +468,55 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
 /* Ícones dos cartões de Deduções (24/09/2026, pedido do Dani ao ver os
    ícones a cores do e-Fatura: monocromáticos e na paleta da marca, não uma
    cor por categoria — mesmo tratamento de .recurso-card__icon na landing,
-   um único acento azul (--brass), nunca decorativo a cores. */
+   um único acento azul (--brass), nunca decorativo a cores.
+   Tratamento "duotone" (20/10/2026, redesenho pessoa-primeiro, pedido do
+   Dani: "imagenes SVG propias de la app y con aspecto premium") — cada
+   ícone passa a ter uma silhueta preenchida de opacidade baixa por trás
+   do traçado de linha, mas continua a usar só o acento de marca, nunca
+   uma segunda cor — substitui .dedu-grupo__icone (mantido como alias). */
 .dedu-grupo__titulo { display: flex; align-items: center; gap: var(--space-2); }
-.dedu-grupo__icone { display: inline-flex; flex: none; }
-.dedu-grupo__icone svg { width: 20px; height: 20px; color: var(--accent-text); }
+.dedu-grupo__icone, .dedu-icone { display: inline-flex; flex: none; color: var(--accent-text); }
+.dedu-grupo__icone svg, .dedu-icone svg { width: 20px; height: 20px; }
+.dedu-icone--pequeno { margin-right: 6px; vertical-align: -4px; }
+.dedu-icone--pequeno svg { width: 16px; height: 16px; }
+
+/* Tabs de pessoa do ecrã de Deduções (20/10/2026) — uma tab por titular
+   e por dependente, ver renderVentanaDeducoes em ui/ventana-deducoes.js.
+   Diferente de .pessoa-tabs (que assume sempre exactamente 2 titulares,
+   lado a lado em ecrã largo): aqui o número de tabs varia (2 titulares +
+   N dependentes no caso real do Dani), por isso fica sempre em modo tab
+   — nunca lado a lado — com scroll horizontal em ecrã estreito. */
+.dedu-pessoa-tabs {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--hairline);
+  -webkit-overflow-scrolling: touch;
+}
+.dedu-pessoa-tab {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--card);
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.dedu-pessoa-tab .dedu-icone { color: currentColor; }
+.dedu-pessoa-tab[aria-selected="true"] {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #fff;
+}
+.dedu-agregado-titulo { margin-top: var(--space-6); }
 
 /* ---------- Buttons ---------- */
 .btn {

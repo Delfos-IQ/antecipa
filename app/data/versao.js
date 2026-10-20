@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.72";
+export const VERSAO_ATUAL = "2.73";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.73", resumo: "Deduções redesenhado: agora organizado por pessoa (cada titular e cada dependente tem o seu próprio espaço para Despesas Gerais, Saúde, Educação e Exigência de Fatura, tal como no Portal das Finanças/e-Fatura), com novos ícones e as barras de \"dedução correspondente\" sempre visíveis. Quem já tinha valores preenchidos não perde nada — ficam atribuídos automaticamente ao 1º titular/1º dependente, e podem ser movidos para a pessoa certa" },
   { versao: "2.72", resumo: "Correção importante: linhas de correção/regularização num talão (valor negativo, ex.: acerto de IRS ou Segurança Social de um mês anterior) estavam a ser ignoradas ao ler o PDF — o líquido e as deduções ficavam sempre um pouco mais baixos do que deviam. Quem já carregou um talão com este tipo de linha deve apagá-lo e voltar a carregá-lo" },
   { versao: "2.71", resumo: "Correção: no Dashboard, a barra de uma dedução ao chegar ao teto máximo aparecia a vermelho, como se fosse um aviso — passa a verde, como já acontecia em Deduções, porque chegar ao teto é bom sinal" },
   { versao: "2.70", resumo: "Novo: o número do resultado ganha uma tipografia própria e conta a subir até ao valor final; os gráficos do Dashboard mostram o valor exato ao passar o rato, em computador" },

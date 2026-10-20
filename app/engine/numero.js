@@ -14,3 +14,17 @@ export const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 // ficava sempre a tratar todos os itens como "2º e seguintes" — bug
 // silencioso, nunca dava erro, só um valor errado.
 export const sum = (arr, fn) => arr.reduce((acc, x, i) => acc + (fn ? fn(x, i) : x), 0);
+
+// Soma os valores de um mapa pessoaId→valor (ex.: deducoesColeta.saudePorPessoa).
+// 20/10/2026 (pedido do Dani: ecrã de Deduções por pessoa, como no e-Fatura
+// — ver ui/ventana-deducoes.js): saúde/educação/despesas gerais/exigência
+// de fatura deixam de ter só um campo "próprio" + um campo "dependentes"
+// (lumped, todos os filhos juntos) e passam a ter uma entrada por pessoa
+// (titulares E dependentes, chave "p:<id>"/"d:<id>" — prefixo necessário
+// porque pessoas e dependentes vêm de duas IndexedDB object stores
+// distintas, cada uma com o seu próprio autoIncrement, por isso os ids
+// podem colidir sem o prefixo). Os campos antigos (saude/saudeDependentes/
+// etc.) mantêm-se no objeto só como fallback para dados ainda não
+// migrados — ver a migração em ui/ventana-deducoes.js — por isso cada
+// submódulo de dedução soma SEMPRE os dois: soma(mapa) + camposAntigos.
+export const somaMapa = (mapa) => Object.values(mapa || {}).reduce((acc, v) => acc + (Number(v) || 0), 0);

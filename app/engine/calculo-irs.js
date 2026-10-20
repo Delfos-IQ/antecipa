@@ -961,22 +961,43 @@ export function calcularDeclaracao(input) {
 // é a aproximação mais razoável sem sabermos o NIF de cada fatura — dá a
 // cada declaração separada metade do que o casal declarou, em vez do
 // total duplicado.
-function dividirDeducoesColetaPorDois(deducoesColeta = {}) {
+// ATUALIZADO (20/10/2026, pedido do Dani: ecrã de Deduções por pessoa —
+// "yo tengo mi e-factura y vera el suyo"): agora que saúde/educação/
+// despesas gerais/exigência de fatura sabem de QUEM é cada valor
+// (`*PorPessoa`, ver engine/deducoes/ e engine/numero.js:somaMapa), a
+// declaração separada de cada titular já não precisa de adivinhar por
+// "metade" — filtra-se o mapa dessa pessoa pelos SEUS próprios ids (o
+// titular + os dependentes atribuídos a ELE nesse cenário, via
+// `dependentesAtribuidos`), o que é estritamente mais exato do que a
+// aproximação 50/50 antiga. Os campos antigos (ainda não migrados) são a
+// ÚNICA coisa que continua a dividir por metade — é a aproximação mais
+// razoável sem saber de quem é cada um (ver histórico abaixo); assim que
+// o utilizador abre o novo ecrã de Deduções, migram para os mapas e
+// deixam de passar por aqui.
+function deducoesColetaParaSeparada(deducoesColeta = {}, pessoa, dependentesAtribuidos = []) {
   const metade = (chave) => (deducoesColeta[chave] ? round2(deducoesColeta[chave] / 2) : deducoesColeta[chave]);
+  const idsPermitidos = new Set(
+    [pessoa ? `p:${pessoa.id}` : null, ...dependentesAtribuidos.map((d) => `d:${d.id}`)].filter(Boolean)
+  );
+  const filtrarMapa = (mapa) => Object.fromEntries(Object.entries(mapa || {}).filter(([chave]) => idsPermitidos.has(chave)));
   return {
     ...deducoesColeta,
+    // Campos legados (fallback, dados ainda não migrados): mesma
+    // aproximação de sempre — sem saber de quem é cada um, metade para
+    // cada declaração separada dá, no total, o que o casal declarou (em
+    // vez do total duplicado — ver nota histórica original mais abaixo
+    // no changelog do repositório).
     saude: metade("saude"),
     saudeDependentes: metade("saudeDependentes"),
     educacao: metade("educacao"),
     educacaoDependentes: metade("educacaoDependentes"),
     habitacao: metade("habitacao"),
-    // ppr (24/09/2026): já NÃO se divide — `pprPorPessoa` (spalhado acima
+    // ppr (24/09/2026): já NÃO se divide — `pprPorPessoa` (espalhado acima
     // via ...deducoesColeta) já traz o valor de cada titular à parte, e
     // calcularDeducoesAColeta lê só a entrada do titular relevante para
     // cada declaração separada (ver `pessoas` passado em cada chamada
     // abaixo). O campo antigo `ppr` (metade abaixo) só serve de fallback
-    // para dados legados ainda não migrados para pprPorPessoa — ver
-    // comentário em calcularDeducoesAColeta.
+    // para dados legados ainda não migrados para pprPorPessoa.
     ppr: metade("ppr"),
     exigenciaFaturaRestauracao: metade("exigenciaFaturaRestauracao"),
     exigenciaFaturaReparacaoAutomovel: metade("exigenciaFaturaReparacaoAutomovel"),
@@ -986,10 +1007,21 @@ function dividirDeducoesColetaPorDois(deducoesColeta = {}) {
     trabalhoDomestico: metade("trabalhoDomestico"),
     donativos: metade("donativos"),
     duplaTributacao: metade("duplaTributacao"),
-    // despesasGerais e despesasGeraisDependentes ficam intactas de propósito:
-    // o teto já é limiteCasal (2×limiteSolteiro), por isso metade + metade,
-    // cada uma capada a limiteSolteiro, já reproduz o total correto sem
-    // dividir a base.
+    // despesasGerais/despesasGeraisDependentes (legado) ficam intactas de
+    // propósito: o teto já é limiteCasal (2×limiteSolteiro), por isso
+    // metade + metade, cada uma capada a limiteSolteiro, já reproduz o
+    // total correto sem dividir a base.
+    //
+    // Mapas *PorPessoa (já migrados): filtrados pelo titular desta
+    // declaração + os dependentes atribuídos a ele neste cenário — já não
+    // é preciso dividir por dois, sabe-se mesmo de quem é cada valor.
+    saudePorPessoa: filtrarMapa(deducoesColeta.saudePorPessoa),
+    educacaoPorPessoa: filtrarMapa(deducoesColeta.educacaoPorPessoa),
+    despesasGeraisPorPessoa: filtrarMapa(deducoesColeta.despesasGeraisPorPessoa),
+    exigenciaFaturaRestauracaoPorPessoa: filtrarMapa(deducoesColeta.exigenciaFaturaRestauracaoPorPessoa),
+    exigenciaFaturaReparacaoAutomovelPorPessoa: filtrarMapa(deducoesColeta.exigenciaFaturaReparacaoAutomovelPorPessoa),
+    exigenciaFaturaPassesMensaisPorPessoa: filtrarMapa(deducoesColeta.exigenciaFaturaPassesMensaisPorPessoa),
+    exigenciaFaturaOutrasPorPessoa: filtrarMapa(deducoesColeta.exigenciaFaturaOutrasPorPessoa),
   };
 }
 
@@ -1020,11 +1052,9 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes, t
     ascendentes: todosAscendentes,
   });
 
-  const deducoesColetaMetade = dividirDeducoesColetaPorDois(inputBase.deducoesColeta);
-
   const separadaA = calcularDeclaracao({
     ...inputBase,
-    deducoesColeta: deducoesColetaMetade,
+    deducoesColeta: deducoesColetaParaSeparada(inputBase.deducoesColeta, pessoaA.pessoa, pessoaA.dependentesAtribuidos ?? []),
     regime: "separada",
     rubricasPorPessoa: [pessoaA.rubricas],
     dependentes: pessoaA.dependentesAtribuidos ?? [],
@@ -1034,7 +1064,7 @@ export function compararRegimes(inputBase, pessoaA, pessoaB, todosDependentes, t
 
   const separadaB = calcularDeclaracao({
     ...inputBase,
-    deducoesColeta: deducoesColetaMetade,
+    deducoesColeta: deducoesColetaParaSeparada(inputBase.deducoesColeta, pessoaB.pessoa, pessoaB.dependentesAtribuidos ?? []),
     regime: "separada",
     rubricasPorPessoa: [pessoaB.rubricas],
     dependentes: pessoaB.dependentesAtribuidos ?? [],

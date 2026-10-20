@@ -4,7 +4,7 @@
 // Extraído de calcularDeducoesAColeta em engine/calculo-irs.js (13/10/2026,
 // split do motor em submódulos por categoria). Refatoração pura.
 
-import { round2 } from "../numero.js";
+import { round2, somaMapa } from "../numero.js";
 
 const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 
@@ -19,8 +19,16 @@ const clamp = (valor, limite) => round2(Math.min(Math.max(valor, 0), limite));
 // para o mesmo limite de 250€/500€ por sujeito passivo (confirmado via
 // Portal das Finanças: o limite é "por sujeito passivo", não por membro
 // do agregado).
+//
+// `despesasGeraisPorPessoa` (20/10/2026): substitui o par despesasGerais/
+// despesasGeraisDependentes por uma entrada por pessoa (titular ou
+// dependente), tal como cada um tem o seu próprio e-Fatura — ver somaMapa
+// em engine/numero.js e a migração em ui/ventana-deducoes.js.
 export function calcularDespesasGerais({ deducoesColeta, limites, regime }) {
-  const baseDespesasGerais = (deducoesColeta.despesasGerais || 0) + (deducoesColeta.despesasGeraisDependentes || 0);
+  const baseDespesasGerais =
+    (deducoesColeta.despesasGerais || 0) +
+    (deducoesColeta.despesasGeraisDependentes || 0) +
+    somaMapa(deducoesColeta.despesasGeraisPorPessoa);
   const teto = regime === "conjunta" ? limites.despesasGeraisFamiliares.limiteCasal : limites.despesasGeraisFamiliares.limiteSolteiro;
   const valor = clamp(baseDespesasGerais * limites.despesasGeraisFamiliares.percentagem, teto);
   return { valor, teto, referenciaLegal: "art.º 78º-B CIRS" };
