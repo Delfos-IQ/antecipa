@@ -12,10 +12,11 @@
 // mantidos em sincronia à mão, um a seguir ao outro. Manter cada resumo a
 // uma linha curta, sem detalhes técnicos — isto é para o utilizador
 // confirmar "estou na versão mais recente?", não um changelog técnico.
-export const VERSAO_ATUAL = "2.76";
+export const VERSAO_ATUAL = "2.77";
 
 // Mais recente primeiro.
 export const HISTORICO_VERSOES = [
+  { versao: "2.77", resumo: "Modo escuro redesenhado: paleta quase preta e quente com dourado/latão como único acento, em vez do azul de antes — mais sóbrio e com mais presença. Perfil reorganizado em cartões com ícone próprio por secção (Agregado, Dependentes, Ascendentes, Ano fiscal, Dados, Navegação), com uma pequena animação ao entrar e ao passar o rato" },
   { versao: "2.76", resumo: "Correção importante: no computador, o menu lateral por vezes sobrepunha-se ao cabeçalho — corrigido. Logótipo do computador reduzido (tinha ficado grande demais na v2.74). Os cartões de \"Oportunidades de poupança\", na Simulação, passam a aparecer dois a dois lado a lado; os botões por baixo (exportar PDF, ver detalhe) ganham mais destaque visual" },
   { versao: "2.75", resumo: "Ajustes de compatibilidade entre navegadores e dispositivos: ao adicionar a app ao ecrã principal do iPhone, passa a abrir em ecrã inteiro como uma app a sério (antes abria como uma aba normal do Safari); os controlos do sistema (setas de menus, etc.) seguem agora o tema claro/escuro da própria app; e vários campos numéricos mostram sempre o teclado correto no telemóvel" },
   { versao: "2.74", resumo: "Vários ajustes de aspeto pedidos depois de ver a app a sério: menu lateral e logótipo maiores no computador, cartões de Deduções em grelha (2-3 por linha, como o e-Fatura) com ícones maiores, modo escuro com mais contraste, os meses já carregados no Dashboard agora aparecem a azul escuro (antes eram quase iguais aos meses por carregar), e os botões de \"Sugestões para pagar menos\"/exportar PDF agrupados e alinhados" },

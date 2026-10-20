@@ -34,6 +34,31 @@ import {
   definirAnoFiscalAtivo,
 } from "../storage/db.js";
 
+// Ícones dos cabeçalhos de cartão de Perfil (20/10/2026, redesenho
+// "premium" pedido pelo Dani: "agrupar por tarjetas, darle un aspecto
+// premium") — mesmo estilo (viewBox 24x24, stroke="currentColor",
+// stroke-width="1.8", sem fill) já usado nos ícones da navegação
+// principal (ver index.html), para não introduzir um 2º estilo de ícone
+// na mesma app.
+const ICONES_PERFIL = {
+  agregado: `<circle cx="8" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.8-5 5.5-5s5.5 1.7 5.5 5"/><path d="M15 6.2a3.2 3.2 0 0 1 0 6.3"/><path d="M16.2 13.2c2 .6 3 2.1 3 4.3"/>`,
+  dependentes: `<circle cx="12" cy="12" r="9"/><path d="M8.5 10h.01M15.5 10h.01"/><path d="M8 14.5c1.1 1.2 2.5 1.8 4 1.8s2.9-.6 4-1.8"/>`,
+  ascendentes: `<path d="M12 20s-7-4.3-9.2-8.4C1.2 8.4 2.6 5 6 5c2 0 3.3 1.1 4 2.2.7-1.1 2-2.2 4-2.2 3.4 0 4.8 3.4 3.2 6.6C19 15.7 12 20 12 20z"/>`,
+  anoFiscal: `<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m8.5 14.5 2 2 4-4"/>`,
+  higiene: `<path d="M12 3l7 3v6c0 4.3-3 7.3-7 9-4-1.7-7-4.7-7-9V6l7-3z"/><path d="m9 12 2 2 4-4"/>`,
+  navegacao: `<path d="M3 12l9-8 9 8"/><path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9"/>`,
+};
+
+function cabecalhoCartao(chaveIcone, titulo) {
+  return `
+    <div class="card-header-icone">
+      <span class="card-header-icone__chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONES_PERFIL[chaveIcone]}</svg>
+      </span>
+      <p class="section-title">${titulo}</p>
+    </div>`;
+}
+
 // Mesma lógica de idadeDoDependenteNoAno em engine/calculo-irs.js — aqui só
 // para mostrar ao utilizador que escalão se aplica a cada dependente,
 // nunca usada para o cálculo em si (esse continua a viver só no motor).
@@ -118,7 +143,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
 
       <div class="cartoes-grid">
       <div class="card">
-        <p class="section-title">${pt.perfil.agregadoTitulo}</p>
+        ${cabecalhoCartao("agregado", pt.perfil.agregadoTitulo)}
         <div class="field" style="margin-top:var(--space-2)">
           <label for="agregado-situacao">${pt.perfil.situacaoLabel}</label>
           <select id="agregado-situacao" data-action="mudar-situacao">
@@ -259,7 +284,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       </div>
 
       <div class="card">
-        <p class="section-title">${pt.perfil.dependentesTitulo}</p>
+        ${cabecalhoCartao("dependentes", pt.perfil.dependentesTitulo)}
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.dependentesCorpo}</p>
         ${
           dependentes.length
@@ -316,7 +341,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       </div>
 
       <div class="card">
-        <p class="section-title">${pt.perfil.ascendentesTitulo}</p>
+        ${cabecalhoCartao("ascendentes", pt.perfil.ascendentesTitulo)}
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.ascendentesCorpo}</p>
         ${
           ascendentes.length
@@ -351,7 +376,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       </div>
 
       <div class="card">
-        <p class="section-title">${pt.perfil.anoFiscalTitulo}</p>
+        ${cabecalhoCartao("anoFiscal", pt.perfil.anoFiscalTitulo)}
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.anoFiscalCorpo}</p>
         <div class="stack" style="gap:var(--space-2)">
           ${anosDisponiveis
@@ -378,7 +403,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       </div>
 
       <div class="card">
-        <p class="section-title">${pt.perfil.higieneTitulo}</p>
+        ${cabecalhoCartao("higiene", pt.perfil.higieneTitulo)}
         <p class="field-hint" style="margin-bottom:var(--space-3)">${pt.perfil.higieneCorpo}</p>
         <p class="field-hint" style="margin-bottom:var(--space-3)">
           ${pt.perfil.revisaoFiscalPrefixo} ${revisaoFiscal.dataRevisao} · ${pt.perfil.revisaoFiscalProxima}: ${revisaoFiscal.proximaRevisaoPrevista}.
@@ -397,7 +422,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
       </div>
 
       <div class="card">
-        <p class="section-title">${pt.perfil.navegacaoTitulo}</p>
+        ${cabecalhoCartao("navegacao", pt.perfil.navegacaoTitulo)}
         <a class="btn btn-secondary btn-block" href="../" style="margin-top:var(--space-3)">${pt.perfil.voltarBoasVindas}</a>
       </div>
       </div>

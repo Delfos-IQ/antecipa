@@ -148,48 +148,62 @@
    (ver relatório) — ≥4.5:1 para texto normal em todos os casos. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --navy-deep: #0b1d3a; /* inalterado — já funciona como painel escuro */
-    --navy-ink: #1c3a61; /* um tom mais claro que --paper novo, para os
-      painéis escuros (.privacy-note, .metric-tile) continuarem a
-      destacar-se do fundo da página em vez de se misturarem nele */
+    --navy-deep: #0b1d3a; /* inalterado — cabeçalho mantém a mesma marca
+      navy em claro e escuro (decisão já confirmada, não faz parte deste
+      redesenho) */
+    --navy-ink: #20222c; /* retocado (ver bloco abaixo) — era um navy
+      médio, agora um antracite quente, para continuar a destacar-se do
+      novo --paper/--card sem voltar a introduzir azul num ecrã já
+      pensado à volta do dourado */
     --navy-mid: #1f4e9e; /* inalterado — usado como FUNDO sólido (botões,
       tags) com texto branco por cima; mudar o valor partiria esse
       contraste. Ver --brass-light abaixo para o mesmo azul em uso de
       texto. */
-    /* --paper/--card/--hairline/--shadow-card retocados (20/10/2026,
-       pedido do Dani: "el modo nocturno está muy poco contrastado,
-       quería verlo con aspecto más premium"). Antes --paper (#0f2142) e
-       --card (#17304f) eram dois tons de navy demasiado próximos — os
-       cartões quase se confundiam com o fundo da página, e --shadow-card
-       nunca tinha uma variante própria para modo escuro (ficava com o
-       valor de :root, uma sombra ESCURA sobre rgba(20,26,43,...), que
-       sobre um fundo já escuro é praticamente invisível — por isso os
-       cartões também não "flutuavam" como em modo claro). --paper desce
-       para um navy bem mais profundo (quase preto, mas ainda azul de
-       marca, não um cinza genérico); --card sobe ligeiramente para
-       aumentar a distância tonal; --hairline fica mais claro para as
-       bordas serem visíveis; --shadow-card ganha uma variante com halo
-       claro muito ténue por cima (simula luz a vir de cima, como um
-       verniz) + sombra preta mais funda por baixo — o mesmo efeito de
-       elevação "premium" que os cartões já têm em modo claro. */
-    --paper: #081326;
-    --card: #152e52;
-    --hairline: #35538a;
-    --brass: #1f4e9e;
-    --brass-light: #6ea0e8;
-    --brass-soft: #1b3a66;
-    --devolver: #2f6b52; /* inalterado — fundo sólido (.metric-tile) */
-    --devolver-bg: #16331f;
-    --devolver-fg: #5fae85;
-    --pagar: #9b3d3d; /* inalterado — fundo sólido (.metric-tile) */
-    --pagar-bg: #3a1818;
-    --pagar-fg: #e08080;
-    --muted: #a7b8d4;
-    --text: #e8edf5;
-    --heading: #f3f6fb;
+    /* REDESENHO do modo escuro (20/10/2026, 2ª volta — pedido do Dani:
+       "rediseñar el modo oscuro, no me convence nada" — os retoques de
+       contraste feitos mais cedo no mesmo dia não chegavam). Till
+       agora o modo escuro era uma variante mais escura do azul de marca;
+       a pedido do Dani ("más sobrio, con una estética más selecta"),
+       passa a uma paleta quase preta e quente (antracite, não azul nem
+       cinza frio) com um dourado/latão envelhecido como único acento —
+       em vez do azul vivo que era usado tanto para acento como para
+       estados "ativo". O cabeçalho (--navy-deep) fica tal e qual estava
+       — é identidade de marca, não faz parte deste pedido.
+       --brass passa a um bronze mais escuro (ainda usado como FUNDO
+       sólido com texto branco — botões primários, etiquetas — por isso
+       não pode ficar claro demais, perdia o contraste: ~5:1 testado).
+       --brass-light passa a um dourado claro (usado como --accent-text,
+       cor de TEXTO sobre fundo escuro — pode ficar bem mais claro que
+       --brass porque nunca leva texto branco por cima).
+       --brass-soft deixa de ser um azul sólido e passa a um
+       antracite-dourado bem escuro (continua sólido, não transparente —
+       é usado como FUNDO atrás de --accent-text em vários sítios:
+       etiquetas, estado "ativo" do menu lateral, toggle de modo de
+       cálculo — teria de funcionar sobre qualquer fundo à sua volta,
+       por isso não pode depender de transparência).
+       --devolver/--pagar (verde/vermelho) dessaturados e aquecidos para
+       não destoarem do dourado — já não é o azul+verde+vermelho vivos
+       de antes, é tudo mais contido.
+       --shadow-card ganha mais profundidade (sombra mais funda) — os
+       cartões "flutuam" mais, efeito pedido ("más presencia"). */
+    --paper: #0a0b10;
+    --card: #15161c;
+    --hairline: #2c2920;
+    --brass: #8a6a30;
+    --brass-light: #e3c88a;
+    --brass-soft: #332a14;
+    --devolver: #4f8f6c; /* inalterado como fundo sólido (.metric-tile) */
+    --devolver-bg: #16211a;
+    --devolver-fg: #7cc9a0;
+    --pagar: #a85b52; /* inalterado como fundo sólido (.metric-tile) */
+    --pagar-bg: #241410;
+    --pagar-fg: #e2948a;
+    --muted: #9a917f;
+    --text: #e9e6df;
+    --heading: #f7f5ef;
     --brass-hover: var(--brass-light);
     --accent-text: var(--brass-light);
-    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05), 0 16px 36px -12px rgba(0, 0, 0, 0.65);
+    --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.04), 0 26px 52px -26px rgba(0, 0, 0, 0.8);
   }
 }
 
@@ -453,6 +467,60 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex;
   flex-direction: column;
   gap: var(--card-gap);
+}
+
+/* ---------- Perfil em cartões "premium" (20/10/2026, pedido do Dani:
+   "rediseñar el menú del perfil, agrupar por tarjetas, darle un aspecto
+   premium") — cada .card de Perfil ganha um cabeçalho com ícone circular
+   (em vez do <p class="section-title"> a solo) e um leve efeito de
+   entrada + elevação ao passar o rato, para dar mais presença aos
+   cartões sem reinventar a identidade visual existente (tipografia e
+   estrutura ficam iguais, só o cabeçalho e o movimento mudam). Scoped a
+   .cartoes-grid (só Perfil — Deduções usa .dedu-cartoes-grid, que não é
+   afetado). */
+@keyframes cartao-entrada {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cartoes-grid .card {
+  animation: cartao-entrada 0.4s ease both;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.cartoes-grid .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04), 0 28px 48px -26px rgba(0, 0, 0, 0.35);
+}
+/* Entrada escalonada pelos primeiros cartões (Agregado, Dependentes,
+   Ascendentes...) — sem isto todos apareciam ao mesmo tempo, menos
+   "vivo". Para além do 6º cartão (raro — só com muitos anos fiscais
+   extra) todos entram juntos, sem problema. */
+.cartoes-grid .card:nth-child(2) { animation-delay: 0.04s; }
+.cartoes-grid .card:nth-child(3) { animation-delay: 0.08s; }
+.cartoes-grid .card:nth-child(4) { animation-delay: 0.12s; }
+.cartoes-grid .card:nth-child(5) { animation-delay: 0.16s; }
+.cartoes-grid .card:nth-child(6) { animation-delay: 0.2s; }
+.card-header-icone {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.card-header-icone .section-title { margin: 0; }
+.card-header-icone__chip {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--brass-light);
+  background: var(--brass-soft);
+  color: var(--brass-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-header-icone__chip svg { width: 20px; height: 20px; }
+@media (prefers-reduced-motion: reduce) {
+  .cartoes-grid .card { animation: none; }
 }
 
 /* ---------- Banner legal (sempre visível, exceto durante o onboarding —
