@@ -29,7 +29,7 @@ function campoResumo({ campo, rotulo, valor }) {
   return `
     <div class="field">
       <label>${rotulo} €</label>
-      <input type="number" step="0.01" data-campo-resumo="${campo}" value="${valor ?? ""}" />
+      <input type="number" step="0.01" inputmode="decimal" data-campo-resumo="${campo}" value="${valor ?? ""}" />
     </div>`;
 }
 
@@ -115,7 +115,7 @@ function renderListaRubricas(rubricas, tipo) {
           </div>
           <div class="field">
             <label>Valor (com redução) €</label>
-            <input type="number" step="0.01" data-campo="valorComRedu" data-idx="${i}" value="${r.valorComRedu ?? ""}" />
+            <input type="number" step="0.01" inputmode="decimal" data-campo="valorComRedu" data-idx="${i}" value="${r.valorComRedu ?? ""}" />
           </div>
           <button class="btn btn-ghost" data-action="remover" data-idx="${i}">Remover esta linha</button>
         </div>`

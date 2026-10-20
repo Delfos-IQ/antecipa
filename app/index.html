@@ -6,6 +6,29 @@
   <title>Antecipa — o seu IRS, um ano antes da hora</title>
   <meta name="description" content="Antecipa: simulação de IRS alinhada com a fórmula oficial, mês a mês, um ano antes da campanha de entrega." />
   <meta name="theme-color" content="#0B1D3A" />
+  <!-- Meta tags próprias do iOS (20/10/2026, auditoria de compatibilidade
+       entre navegadores/Android/iOS, pedida pelo Dani) — o manifest.json
+       já tinha "display": "standalone" e um conjunto completo de ícones,
+       mas o Safari do iOS HISTORICAMENTE não lê o modo de visualização
+       do manifest.json ao abrir uma app adicionada ao ecrã principal —
+       precisa destas tags próprias da Apple para abrir em ecrã inteiro
+       (sem a barra de endereço/chrome do Safari) em vez de se comportar
+       como um separador normal. apple-mobile-web-app-title define o
+       nome mostrado debaixo do ícone no ecrã principal (sem isto, usa o
+       <title> completo da página, demasiado comprido). O Android/Chrome
+       não precisa disto — já respeita o manifest.json sozinho. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Antecipa" />
+  <!-- color-scheme (20/10/2026, mesma auditoria): sem isto, os controlos
+       NATIVOS do navegador (setas do <select>, scrollbars, etc.) ficam
+       sempre no estilo claro, mesmo com o resto da app já em modo
+       escuro (ver @media (prefers-color-scheme: dark) em style.css) —
+       mistura visual, mais notória no iOS (o seletor em roda do <select>)
+       e no scrollbar do Chrome/Android. "light dark" deixa o motor do
+       navegador escolher sozinho conforme prefers-color-scheme, tal
+       como a app já faz para o resto das cores. -->
+  <meta name="color-scheme" content="light dark" />
   <!-- Content-Security-Policy: reforço recomendado pela auditoria de
        segurança de 04/09/2026 (v2.32 já corrigiu o XSS real encontrado
        nessa auditoria; esta política é defesa em profundidade extra,

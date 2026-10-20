@@ -175,7 +175,7 @@ export function criarOnboarding({ container, onConcluido }) {
     return `
       <div class="field" style="margin-top:var(--space-4)">
         <label for="num-dependentes">Número de dependentes (estimativa)</label>
-        <input type="number" id="num-dependentes" min="0" max="10" value="${estado.numDependentesEstimado}" />
+        <input type="number" id="num-dependentes" min="0" max="10" inputmode="numeric" value="${estado.numDependentesEstimado}" />
         <p class="field-hint">${pt.onboarding.agregado.quocienteLabel}: <strong class="num">${q.toFixed(2)}</strong></p>
       </div>
       ${estado.numDependentesEstimado > 0 ? renderDependentesInfo() : ""}`;

@@ -370,7 +370,7 @@ export async function renderVentanaPerfil({ container, anoFiscal, onAnoFiscalMud
           <div style="margin-top:var(--space-2)">
             <p class="field-hint" style="margin-bottom:var(--space-1)">${pt.perfil.adicionarAnoAnteriorLabel}</p>
             <div class="row" style="gap:var(--space-2)">
-              <input type="number" data-campo="ano-anterior" placeholder="${pt.perfil.adicionarAnoAnteriorPlaceholder}" style="flex:1 1 90px" />
+              <input type="number" data-campo="ano-anterior" inputmode="numeric" placeholder="${pt.perfil.adicionarAnoAnteriorPlaceholder}" style="flex:1 1 90px" />
               <button class="btn btn-secondary" data-action="adicionar-ano-anterior" style="flex:none">${pt.perfil.adicionarAnoAnteriorBotao}</button>
             </div>
           </div>

@@ -14,6 +14,12 @@
      variáveis (--brass, --font-display, --font-mono...) ficaram do
      sistema anterior por não valer a pena re-nomear todos os usos no
      CSS; o que importa são os valores, já na nova identidade. */
+  /* Duplica a <meta name="color-scheme"> do index.html (20/10/2026,
+     auditoria de compatibilidade) — a propriedade CSS é a forma
+     "oficial" de o dizer, a meta tag é só para quando o CSS ainda não
+     carregou (primeira pintura). Os dois juntos evitam um "flash" de
+     controlos nativos claros antes do stylesheet chegar. */
+  color-scheme: light dark;
   --navy-deep: #0b1d3a;
   --navy-ink: #142a52;
   --navy-mid: #1f4e9e;
@@ -236,6 +242,16 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   background: var(--navy-deep);
   color: #fff;
   padding: var(--space-4) var(--space-4) var(--space-5);
+  /* safe-area-inset-top (20/10/2026, junto com apple-mobile-web-app-
+     status-bar-style="black-translucent" em index.html): esse estilo de
+     barra de estado deixa o conteúdo da própria página passar por baixo
+     do relógio/bateria do iPhone (em vez de uma barra opaca à parte) —
+     sem este padding extra, o logótipo ficaria tapado pelo entalhe/
+     Dynamic Island numa app instalada no ecrã principal. `max()` com o
+     padding-top normal garante que nada muda em ecrãs sem entalhe (o
+     valor do env() é 0 aí) nem fora do modo standalone (Android,
+     desktop, Safari normal). */
+  padding-top: max(var(--space-4), env(safe-area-inset-top));
   position: sticky;
   top: 0;
   z-index: 20;

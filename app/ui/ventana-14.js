@@ -988,7 +988,7 @@ function renderCampoEditavel({ label, pessoaId, mes, componente, rubrica, ajuste
     <div class="detalhe-campo">
       <span class="detalhe-campo__label">${label}</span>
       <input
-        type="number" step="0.01" min="0"
+        type="number" step="0.01" min="0" inputmode="decimal"
         value="${rubrica.valorComRedu.toFixed(2)}"
         data-editor-componente
         data-pessoa-id="${pessoaId}"
